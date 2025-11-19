@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>NEON SHIFT: FINAL FIX</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        body {
+            margin: 0; overflow: hidden; background-color: #050505;
+            font-family: 'Orbitron', sans-serif;
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+            user-select: none;
+        }
+
+        #game-wrapper {
+            position: relative;
+            width: 900px; height: 500px;
+            box-shadow: 0 0 80px rgba(0,255,255,0.1);
+            border: 2px solid #333;
+            background: #000;
+            overflow: hidden;
+        }
+
+        canvas { display: block; width: 100%; height: 100%; outline: none; }
+
+        /* UI */
+        .ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+            z-index: 50; pointer-events: none;
+        }
+
+        .menu-box {
+            background: rgba(10, 10, 20, 0.95);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 40px; pointer-events: auto;
+            box-shadow: 0 0 50px #000;
+            min-width: 400px;
+        }
+
+        h1 { margin: 0; font-size: 48px; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.5); }
+        
+        .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;}
+
+        button {
+            background: #222; border: 1px solid #fff; color: #fff;
+            padding: 10px 20px; font-family: 'Orbitron'; font-weight: bold;
+            cursor: pointer; text-transform: uppercase; transition: 0.2s;
+        }
+        button:hover { background: #fff; color: #000; }
+
+        /* BUTTON VARIATIONS */
+        .btn-easy:hover { background: #0f0; border-color: #0f0; box-shadow: 0 0 15px #0f0; }
+        .btn-normal:hover { background: #0ff; border-color: #0ff; box-shadow: 0 0 15px #0ff; }
+        .btn-hard:hover { background: #f05; border-color: #f05; box-shadow: 0 0 15px #f05; }
+        .btn-editor { border-color: #fa0; color: #fa0; width: 100%; margin-top: 10px; }
+        .btn-editor:hover { background: #fa0; color: #000; }
+
+        /* EDITOR TOOLS */
+        #editor-ui {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100px;
+            background: #111; border-top: 2px solid #fa0;
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+            pointer-events: auto;
+        }
+        .tool-btn { width: 40px; height: 40px; border: 1px solid #555; display: flex; justify-content: center; align-items: center; }
+        .tool-btn.active { background: #fa0; color: #000; border-color: #fa0; }
+
+        .hidden { display: none !important; }
+        #hud { position: absolute; top: 20px; left: 20px; font-size: 24px; color: #fff; font-weight: bold; z-index: 10; }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <canvas id="gameCanvas" width="900" height="500"></canvas>
+    
+    <div id="hud" class="hidden">SCORE: <span id="score-val">0</span></div>
+
+    <!-- MENU PRINCIPAL -->
+    <div id="main-menu" class="ui-layer">
+        <div class="menu-box">
+            <h1>NEON SHIFT</h1>
+            <p style="color:#aaa; font-size: 12px;">ESPACE ou CLIC pour inverser la gravité</p>
+            
+            <div class="btn-group">
+                <button class="btn-easy" onclick="startGame('easy')">Cool</button>
+                <button class="btn-normal" onclick="startGame('normal')">Normal</button>
+                <button class="btn-hard" onclick="startGame('hard')">EXTRÊME</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn-editor" onclick="openEditor()">🛠️ ÉDITEUR DE NIVEAU</button>
+            </div>
+            <div style="margin-top: 15px;">
+                <input id="load-input" type="text" placeholder="Coller code niveau" style="padding:5px; width:180px;">
+                <button onclick="loadLevel()">LOAD</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER -->
+    <div id="game-over" class="ui-layer hidden">
+        <div class="menu-box" style="border-color: #f05;">
+            <h1 style="color:#f05;">ECHEC</h1>
+            <p>Score Final: <span id="final-score">0</span></p>
+            <button onclick="showMenu()">MENU</button>
+            <button onclick="restart()">REJOUER</button>
+        </div>
+    </div>
+
+    <!-- UI EDITEUR -->
+    <div id="editor-ui" class="hidden">
+        <div style="color:#fff; font-size:10px; position:absolute; top:-20px; left:0; background:#000; padding:2px;">
+            CLIC GAUCHE: Placer | CLIC DROIT: Effacer | FLÈCHES: Caméra
+        </div>
+        <button class="tool-btn active" onclick="setTool('wall_top')">Haut</button>
+        <button class="tool-btn" onclick="setTool('wall_bottom')">Bas</button>
+        <button class="tool-btn" onclick="setTool('laser')">Laser</button>
+        <button class="tool-btn" onclick="setTool('coin')">$$</button>
+        <div style="width: 1px; height: 30px; background:#333; margin:0 10px;"></div>
+        <button onclick="testLevel()" style="font-size:10px;">TESTER</button>
+        <button onclick="saveLevel()" style="font-size:10px; color:#0f0; border-color:#0f0;">COPIER CODE</button>
+        <button onclick="showMenu()" style="font-size:10px; color:#f00; border-color:#f00;">QUITTER</button>
+        <textarea id="export-area" style="opacity:0; width:1px; height:1px;"></textarea>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- CONFIGURATION ---
+    const SETTINGS = {
+        easy:   { speed: 5, spawn: 100, color: '#0f0' },
+        normal: { speed: 7, spawn: 70,  color: '#0ff' },
+        hard:   { speed: 10, spawn: 50, color: '#f05' },
+        custom: { speed: 7, spawn: 0,   color: '#fa0' }
+    };
+
+    let state = { 
+        running: false, isEditor: false, mode: 'normal',
+        score: 0, frame: 0, camX: 0
+    };
+
+    // --- PLAYER ---
+    const player = {
+        x: 100, y: 250, size: 30, dy: 0, dir: 1,
+        update() {
+            // Physique "Légère" corrigée
+            this.dy += 0.6 * this.dir; 
+            this.y += this.dy;
+            
+            // Limites Sol/Plafond
+            if(this.y < 0) { this.y = 0; this.dy = 0; }
+            if(this.y > canvas.height - this.size) { this.y = canvas.height - this.size; this.dy = 0; }
+        },
+        draw() {
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 20; ctx.shadowColor = SETTINGS[state.mode].color;
+            ctx.fillRect(this.x, this.y, this.size, this.size);
+            ctx.shadowBlur = 0;
+        },
+        switch() { this.dir *= -1; }
+    };
+
+    let obstacles = [];
+    let editorItems = [];
+    let currentTool = 'wall_top';
+
+    // --- INPUTS FIABILISÉS ---
+    function handleAction(e) {
+        // Si on est dans l'éditeur, on ne saute pas
+        if (state.isEditor) return; 
+
+        // Si le jeu tourne, on saute
+        if (state.running) {
+            if (e.type === 'keydown' && e.code !== 'Space') return;
+            if (e.code === 'Space') e.preventDefault(); // Empêche scroll
+            player.switch();
+        }
+    }
+    
+    window.addEventListener('keydown', handleAction);
+    canvas.addEventListener('mousedown', (e) => {
+        // Si c'est l'éditeur, c'est géré ailleurs. 
+        // Si c'est le jeu, on déclenche l'action
+        if(!state.isEditor) handleAction(e);
+    });
+
+    // --- BOUCLE DE JEU ---
+    function loop() {
+        if (!state.running) {
+            if (state.isEditor) editorLoop();
+            requestAnimationFrame(loop);
+            return;
+        }
+
+        // 1. Logic
+        state.frame++;
+        let cfg = SETTINGS[state.mode];
+        
+        // Spawn procédural (sauf si custom)
+        if (state.mode !== 'custom' && state.frame % cfg.spawn === 0) {
+            spawnObstacle();
+        }
+
+        player.update();
+
+        // Obstacles Update
+        for (let i = 0; i < obstacles.length; i++) {
+            let o = obstacles[i];
+            o.x -= cfg.speed;
+
+            // Collision
+            if (rectIntersect(player.x, player.y, player.size, player.size, o.x, o.y, o.w, o.h)) {
+                if (o.type === 'coin') {
+                    state.score += 50;
+                    obstacles.splice(i, 1); i--;
+                    continue;
+                } else {
+                    gameOver();
+                    return; // Stop frame
+                }
+            }
+
+            // Score et nettoyage
+            if (!o.passed && o.x + o.w < player.x) {
+                state.score += 10;
+                o.passed = true;
+            }
+            if (o.x + o.w < -100) {
+                obstacles.splice(i, 1); i--;
+            }
+        }
+
+        // 2. Draw
+        ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Dessin Obstacles
+        ctx.fillStyle = cfg.color;
+        obstacles.forEach(o => {
+            if (o.type === 'coin') {
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath(); ctx.arc(o.x + 15, o.y + 15, 10, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = cfg.color; // Reset color
+            } else if (o.type === 'laser') {
+                ctx.fillStyle = '#f00'; ctx.fillRect(o.x, o.y, o.w, o.h);
+                ctx.fillStyle = '#fff'; ctx.fillRect(o.x, o.y+5, o.w, 2);
+                ctx.fillStyle = cfg.color;
+            } else {
+                ctx.fillRect(o.x, o.y, o.w, o.h);
+            }
+        });
+
+        player.draw();
+        document.getElementById('score-val').innerText = state.score;
+
+        requestAnimationFrame(loop);
+    }
+
+    // --- OUTILS ---
+    function spawnObstacle() {
+        let r = Math.random();
+        let x = canvas.width;
+        if (r < 0.4) obstacles.push({x:x, y:0, w:50, h:Math.random()*200+50, type:'wall'});
+        else if (r < 0.8) obstacles.push({x:x, y:canvas.height-(Math.random()*200+50), w:50, h:400, type:'wall'}); // h:400 pour etre sur de toucher le bas
+        else if (r < 0.9) obstacles.push({x:x, y:canvas.height/2, w:200, h:12, type:'laser'});
+        else obstacles.push({x:x, y:Math.random()*(canvas.height-50), w:30, h:30, type:'coin'});
+    }
+
+    function rectIntersect(x1, y1, w1, h1, x2, y2, w2, h2) {
+        return x2 < x1 + w1 && x2 + w2 > x1 && y2 < y1 + h1 && y2 + h2 > y1;
+    }
+
+    // --- ETATS ---
+    function startGame(mode, customData) {
+        state.running = true;
+        state.isEditor = false;
+        state.mode = mode;
+        state.score = 0;
+        state.frame = 0;
+        player.y = 250; player.dy = 0; player.dir = 1;
+        obstacles = [];
+
+        if (mode === 'custom' && customData) {
+            // Copie profonde pour ne pas modifier l'éditeur
+            obstacles = JSON.parse(JSON.stringify(customData));
+            // Correction des hauteurs pour les murs du bas
+            obstacles.forEach(o => {
+                 if(o.y > 300 && o.type !== 'coin' && o.type !== 'laser') o.h = 1000; // Assure que le mur touche le fond
+            });
+        }
+
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('game-over').classList.add('hidden');
+        document.getElementById('editor-ui').classList.add('hidden');
+        document.getElementById('hud').classList.remove('hidden');
+        
+        requestAnimationFrame(loop);
+    }
+
+    function gameOver() {
+        state.running = false;
+        document.getElementById('final-score').innerText = state.score;
+        document.getElementById('game-over').classList.remove('hidden');
+        document.getElementById('hud').classList.add('hidden');
+    }
+
+    function showMenu() {
+        state.running = false; state.isEditor = false;
+        document.getElementById('main-menu').classList.remove('hidden');
+        document.getElementById('game-over').classList.add('hidden');
+        document.getElementById('editor-ui').classList.add('hidden');
+        document.getElementById('hud').classList.add('hidden');
+    }
+
+    function restart() {
+        if(state.mode === 'custom') testLevel();
+        else startGame(state.mode);
+    }
+
+    // --- EDITEUR ---
+    function openEditor() {
+        state.isEditor = true; state.running = false; state.camX = 0;
+        editorItems = [];
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('editor-ui').classList.remove('hidden');
+        requestAnimationFrame(loop);
+    }
+
+    function editorLoop() {
+        ctx.fillStyle = '#111'; ctx.fillRect(0,0,canvas.width, canvas.height);
+        
+        // Grille
+        ctx.strokeStyle = '#222'; ctx.lineWidth = 1;
+        let off = state.camX % 50;
+        for(let x=-off; x<canvas.width; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,500); ctx.stroke(); }
+
+        // Items
+        ctx.fillStyle = '#666';
+        editorItems.forEach(o => {
+            let rx = o.x - state.camX;
+            if(rx > -100 && rx < 900) {
+                if(o.type === 'coin') ctx.fillStyle = '#fd0';
+                else if(o.type === 'laser') ctx.fillStyle = '#f00';
+                else ctx.fillStyle = '#666';
+                ctx.fillRect(rx, o.y, o.w, o.h);
+                ctx.strokeRect(rx, o.y, o.w, o.h);
+            }
+        });
+        
+        // Player start line
+        ctx.strokeStyle = '#0ff'; ctx.beginPath(); ctx.moveTo(100-state.camX, 0); ctx.lineTo(100-state.camX, 500); ctx.stroke();
+    }
+
+    function setTool(t) { 
+        currentTool = t; 
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+    }
+
+    // Editor Inputs
+    window.addEventListener('keydown', e => {
+        if(!state.isEditor) return;
+        if(e.code === 'ArrowRight') state.camX += 50;
+        if(e.code === 'ArrowLeft' && state.camX > 0) state.camX -= 50;
+    });
+
+    canvas.addEventListener('mousedown', e => {
+        if(!state.isEditor) return;
+        let r = canvas.getBoundingClientRect();
+        let x = Math.floor((e.clientX - r.left + state.camX)/50)*50;
+        let y = Math.floor((e.clientY - r.top)/50)*50;
+
+        if (e.button === 2) { // Clic Droit efface
+            editorItems = editorItems.filter(i => !(i.x === x && i.y === y));
+        } else {
+            let obj = {x, y, w:50, h:50, type:currentTool};
+            if(currentTool === 'wall_top') { obj.y=0; obj.h=y+50; }
+            if(currentTool === 'wall_bottom') { obj.y=y; obj.h=500-y; }
+            if(currentTool === 'laser') { obj.y=y+20; obj.h=10; obj.w=100; }
+            if(currentTool === 'coin') { obj.x+=15; obj.y+=15; obj.w=20; obj.h=20; }
+            
+            editorItems = editorItems.filter(i => i.x !== obj.x || i.y !== obj.y);
+            editorItems.push(obj);
+        }
+    });
+    
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    // --- SAUVEGARDE ---
+    function testLevel() { startGame('custom', editorItems); }
+    
+    function saveLevel() {
+        let txt = JSON.stringify(editorItems);
+        let el = document.getElementById('export-area');
+        el.value = txt; el.select(); document.execCommand('copy');
+        alert("Niveau copié !");
+    }
+
+    function loadLevel() {
+        try {
+            let data = JSON.parse(document.getElementById('load-input').value);
+            startGame('custom', data);
+        } catch(e) { alert('Code invalide'); }
+    }
+
+</script>
+</body>
+</html>

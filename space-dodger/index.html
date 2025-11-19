@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Space Dodger+</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #111729, #05060d);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 700px;
+      padding: 20px;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(12px);
+    }
+
+    .panel-left h1 {
+      font-size: 1.4rem;
+      margin-bottom: 4px;
+    }
+
+    .panel-left p {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .panel-right {
+      text-align: right;
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .panel-right div + div {
+      margin-top: 3px;
+    }
+
+    canvas {
+      width: 100%;
+      max-width: 700px;
+      background: radial-gradient(circle at top, #20324f, #050812);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.15);
+      display: block;
+      margin: 0 auto;
+      touch-action: none; /* evite le scroll pendant le jeu sur mobile */
+    }
+
+    .wrapper-relative {
+      position: relative;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+    }
+
+    .overlay-inner {
+      background: rgba(5, 6, 13, 0.92);
+      border-radius: 16px;
+      padding: 24px 28px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.18);
+      min-width: 260px;
+      max-width: 90vw;
+    }
+
+    .overlay h2 {
+      margin-bottom: 10px;
+      font-size: 1.3rem;
+    }
+
+    .overlay p {
+      margin-bottom: 18px;
+      font-size: 0.9rem;
+      opacity: 0.85;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 9px 18px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #4f8bff, #6cc7ff);
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: 0.2s;
+    }
+
+    .btn:hover {
+      filter: brightness(1.15);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Joystick mobile */
+    .joystick {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(0,0,0,0.35);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: none;
+    }
+
+    .joystick-base {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: radial-gradient(circle, rgba(255,255,255,0.08), rgba(0,0,0,0.6));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .joystick-thumb {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4f8bff, #6cc7ff);
+      box-shadow: 0 0 10px #4f8bff99;
+    }
+
+    /* Level badge + achievements */
+    .hud-top-center {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .level-badge {
+      background: rgba(0,0,0,0.6);
+      border-radius: 999px;
+      padding: 6px 14px;
+      border: 1px solid rgba(255,255,255,0.35);
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .level-up-flash {
+      animation: levelUp 0.6s ease-out;
+    }
+
+    @keyframes levelUp {
+      0%   { transform: translateX(-50%) scale(1);   filter: brightness(1); }
+      50%  { transform: translateX(-50%) scale(1.2); filter: brightness(1.6); }
+      100% { transform: translateX(-50%) scale(1);   filter: brightness(1); }
+    }
+
+    .achievement {
+      background: rgba(23, 35, 10, 0.95);
+      border-radius: 10px;
+      padding: 6px 12px;
+      border: 1px solid #a5ff6b;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      animation: achievementShow 0.5s ease-out, achievementHide 0.5s ease-in 3s forwards;
+    }
+
+    .achievement span:first-child {
+      font-size: 1rem;
+    }
+
+    @keyframes achievementShow {
+      from { opacity: 0; transform: translate(-50%, -10px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    @keyframes achievementHide {
+      from { opacity: 1; transform: translate(-50%, 0); }
+      to   { opacity: 0; transform: translate(-50%, -10px); }
+    }
+
+    @media (max-width: 600px) {
+      .panel {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .panel-right {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="panel">
+      <div class="panel-left">
+        <h1>🚀 Space Dodger+</h1>
+        <p>Survis le plus longtemps possible. Le danger augmente avec le temps&nbsp;!</p>
+      </div>
+      <div class="panel-right">
+        <div>Temps : <span id="score">0</span>s</div>
+        <div>Meilleur : <span id="best">0</span>s</div>
+      </div>
+    </div>
+
+    <div class="wrapper-relative">
+      <canvas id="game" width="700" height="400"></canvas>
+
+      <div class="hud-top-center">
+        <div class="level-badge" id="levelBadge">Niveau 1</div>
+        <div class="achievement hidden" id="achievementBox">
+          <span>🏆</span>
+          <span id="achievementText">Achievement débloqué</span>
+        </div>
+      </div>
+
+      <!-- Start screen -->
+      <div class="overlay" id="startScreen">
+        <div class="overlay-inner">
+          <h2>Prêt à jouer ?</h2>
+          <p>
+            PC : flèches du clavier pour bouger.<br>
+            Mobile : joystick virtuel en bas à gauche.<br><br>
+            Survis, monte de niveau et débloque des succès&nbsp;!
+          </p>
+          <button class="btn" id="startBtn">Commencer</button>
+        </div>
+      </div>
+
+      <!-- Game Over -->
+      <div class="overlay hidden" id="gameOverScreen">
+        <div class="overlay-inner">
+          <h2>Game Over</h2>
+          <p>
+            Temps : <span id="finalScore">0</span>s<br>
+            Meilleur temps : <span id="finalBest">0</span>s
+          </p>
+          <button class="btn" id="restartBtn">Rejouer</button>
+        </div>
+      </div>
+
+      <!-- Joystick -->
+      <div class="joystick" id="joystick">
+        <div class="joystick-base">
+          <div class="joystick-thumb" id="joystickThumb"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreEl = document.getElementById('finalScore');
+    const finalBestEl = document.getElementById('finalBest');
+    const levelBadge = document.getElementById('levelBadge');
+    const achievementBox = document.getElementById('achievementBox');
+    const achievementText = document.getElementById('achievementText');
+
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+    const joystick = document.getElementById('joystick');
+    const joystickThumb = document.getElementById('joystickThumb');
+
+    let player, meteors, scoreTime, bestScore, lastTime, running, spawnTimer;
+    const keys = {};
+    let level = 1;
+
+    // explosion particules
+    let particles = [];
+    let showExplosion = false;
+
+    // joystick data
+    let joystickCenter = { x: 0, y: 0 };
+    let joystickPointerId = null;
+    let joystickVector = { x: 0, y: 0 };
+
+    // achievements
+    const achievementThresholds = [20, 40, 60];
+    const unlockedAchievements = new Set();
+
+    // initial best score
+    bestScore = parseInt(localStorage.getItem('spaceDodgerPlusBest') || '0', 10);
+    bestEl.textContent = bestScore;
+
+    function resetGame() {
+      player = {
+        x: canvas.width / 2 - 15,
+        y: canvas.height - 70,
+        size: 30,
+        baseSpeed: 3.5
+      };
+
+      meteors = [];
+      particles = [];
+      scoreTime = 0;
+      lastTime = 0;
+      spawnTimer = 0;
+      running = true;
+      level = 1;
+      levelBadge.textContent = 'Niveau ' + level;
+      levelBadge.classList.remove('level-up-flash');
+      setTimeout(() => levelBadge.classList.remove('level-up-flash'), 10);
+
+      Object.keys(keys).forEach(k => delete keys[k]);
+      joystickVector.x = 0;
+      joystickVector.y = 0;
+      showExplosion = false;
+    }
+
+    function spawnMeteor() {
+      // difficulté en fonction du niveau
+      const baseSize = 20 + Math.random() * 20;
+      const size = baseSize + level * 1.2;
+      const speed = 1.5 + Math.random() * 1.5 + level * 0.2;
+
+      meteors.push({
+        x: Math.random() * (canvas.width - size),
+        y: -size,
+        size,
+        speed
+      });
+    }
+
+    function update(dt) {
+      const dtSec = dt / 1000;
+      scoreTime += dtSec;
+      const displayScore = Math.floor(scoreTime);
+      scoreEl.textContent = displayScore;
+
+      // level up tous les 15s
+      const newLevel = 1 + Math.floor(scoreTime / 15);
+      if (newLevel !== level) {
+        level = newLevel;
+        levelBadge.textContent = 'Niveau ' + level;
+        levelBadge.classList.add('level-up-flash');
+        setTimeout(() => levelBadge.classList.remove('level-up-flash'), 600);
+      }
+
+      // achievements
+      achievementThresholds.forEach(t => {
+        if (displayScore >= t && !unlockedAchievements.has(t)) {
+          unlockedAchievements.add(t);
+          showAchievement('Survécu ' + t + 's');
+        }
+      });
+
+      // vitesse joueur
+      const speed = player.baseSpeed + (level - 1) * 0.3;
+
+      // joystick movement
+      let moveX = 0;
+      let moveY = 0;
+
+      if (keys['ArrowLeft']) moveX -= 1;
+      if (keys['ArrowRight']) moveX += 1;
+      if (keys['ArrowUp']) moveY -= 1;
+      if (keys['ArrowDown']) moveY += 1;
+
+      // joystick vector (mobile) combiné
+      moveX += joystickVector.x;
+      moveY += joystickVector.y;
+
+      if (moveX !== 0 || moveY !== 0) {
+        const len = Math.hypot(moveX, moveY) || 1;
+        player.x += (moveX / len) * speed;
+        player.y += (moveY / len) * speed;
+      }
+
+      // limites écran
+      player.x = Math.max(0, Math.min(canvas.width - player.size, player.x));
+      player.y = Math.max(0, Math.min(canvas.height - player.size, player.y));
+
+      // spawn plus fréquent avec le niveau
+      spawnTimer += dt;
+      const baseInterval = 800; // ms
+      const minInterval = 250;
+      const interval = Math.max(minInterval, baseInterval - (level - 1) * 60);
+
+      if (spawnTimer > interval) {
+        spawnMeteor();
+        spawnTimer = 0;
+      }
+
+      // update meteors
+      meteors.forEach(m => {
+        m.y += m.speed;
+      });
+
+      meteors = meteors.filter(m => m.y < canvas.height + m.size);
+
+      // collision
+      for (const m of meteors) {
+        if (rectsCollide(player, m)) {
+          triggerExplosion(player.x + player.size / 2, player.y + player.size / 2);
+          endGame();
+          break;
+        }
+      }
+
+      // update explosion particles
+      particles.forEach(p => {
+        p.x += p.vx * dtSec;
+        p.y += p.vy * dtSec;
+        p.life -= dtSec;
+      });
+      particles = particles.filter(p => p.life > 0);
+    }
+
+    function rectsCollide(a, b) {
+      return (
+        a.x < b.x + b.size &&
+        a.x + a.size > b.x &&
+        a.y < b.y + b.size &&
+        a.y + a.size > b.y
+      );
+    }
+
+    function triggerExplosion(cx, cy) {
+      particles = [];
+      const count = 50;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 80 + Math.random() * 180;
+        particles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 0.6 + Math.random() * 0.4,
+          size: 3 + Math.random() * 4
+        });
+      }
+      showExplosion = true;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#050812';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // étoiles
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      for (let i = 0; i < 40; i++) {
+        const x = (i * 53) % canvas.width;
+        const y = (i * 97 + (Date.now() * 0.02)) % canvas.height;
+        ctx.fillRect(x, y, 2, 2);
+      }
+
+      // joueur (si pas en explosion finale)
+      if (!showExplosion || particles.length === 0) {
+        ctx.fillStyle = '#4f8bff';
+        ctx.fillRect(player.x, player.y, player.size, player.size);
+
+        ctx.strokeStyle = 'rgba(108,199,255,0.6)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(player.x - 2, player.y - 2, player.size + 4, player.size + 4);
+      }
+
+      // météorites
+      meteors.forEach(m => {
+        const gradient = ctx.createRadialGradient(
+          m.x + m.size / 2,
+          m.y + m.size / 2,
+          m.size / 6,
+          m.x + m.size / 2,
+          m.y + m.size / 2,
+          m.size / 2
+        );
+        gradient.addColorStop(0, '#ffe7a3');
+        gradient.addColorStop(0.4, '#ffb36b');
+        gradient.addColorStop(1, '#ff5b3a');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(m.x + m.size / 2, m.y + m.size / 2, m.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // explosion particules
+      if (particles.length > 0) {
+        particles.forEach(p => {
+          const alpha = Math.max(0, p.life);
+          const grad = ctx.createRadialGradient(
+            p.x, p.y, 0,
+            p.x, p.y, p.size
+          );
+          grad.addColorStop(0, `rgba(255, 240, 200, ${alpha})`);
+          grad.addColorStop(0.5, `rgba(255, 150, 80, ${alpha * 0.9})`);
+          grad.addColorStop(1, `rgba(120, 30, 10, 0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+    }
+
+    function loop(timestamp) {
+      if (!running && particles.length === 0) return;
+
+      if (!lastTime) lastTime = timestamp;
+      const dt = timestamp - lastTime;
+      lastTime = timestamp;
+
+      if (running) {
+        update(dt);
+      } else if (showExplosion && particles.length > 0) {
+        // continue à animer l'explosion même après la mort
+        update(0);
+      }
+
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function endGame() {
+      running = false;
+      const final = Math.floor(scoreTime);
+      if (final > bestScore) {
+        bestScore = final;
+        localStorage.setItem('spaceDodgerPlusBest', bestScore);
+      }
+      scoreEl.textContent = final;
+      bestEl.textContent = bestScore;
+
+      finalScoreEl.textContent = final;
+      finalBestEl.textContent = bestScore;
+
+      // petit délai pour voir l'explosion avant le game over
+      setTimeout(() => {
+        gameOverScreen.classList.remove('hidden');
+      }, 600);
+    }
+
+    function showAchievement(text) {
+      achievementText.textContent = text;
+      achievementBox.classList.remove('hidden');
+      // il est déjà animé via CSS
+      setTimeout(() => {
+        achievementBox.classList.add('hidden');
+      }, 3500);
+    }
+
+    // clavier
+    window.addEventListener('keydown', e => {
+      keys[e.key] = true;
+    });
+
+    window.addEventListener('keyup', e => {
+      keys[e.key] = false;
+    });
+
+    // joystick logic
+    function updateJoystickCenter() {
+      const rect = joystick.getBoundingClientRect();
+      joystickCenter.x = rect.left + rect.width / 2;
+      joystickCenter.y = rect.top + rect.height / 2;
+    }
+
+    updateJoystickCenter();
+    window.addEventListener('resize', updateJoystickCenter);
+
+    function handleJoystickStart(e) {
+      const touch = e.changedTouches ? e.changedTouches[0] : e;
+      joystickPointerId = touch.identifier ?? 'mouse';
+      updateJoystickCenter();
+      handleJoystickMove(e);
+    }
+
+    function handleJoystickMove(e) {
+      const touchList = e.changedTouches ? [...e.changedTouches] : [e];
+      const touch = touchList.find(t => (t.identifier ?? 'mouse') === joystickPointerId);
+      if (!touch) return;
+
+      const dx = touch.clientX - joystickCenter.x;
+      const dy = touch.clientY - joystickCenter.y;
+      const maxDist = 40;
+      const dist = Math.min(maxDist, Math.hypot(dx, dy));
+      const angle = Math.atan2(dy, dx);
+
+      const nx = (dist / maxDist) * Math.cos(angle);
+      const ny = (dist / maxDist) * Math.sin(angle);
+
+      joystickVector.x = nx;
+      joystickVector.y = ny;
+
+      joystickThumb.style.transform = `translate(${nx * 26}px, ${ny * 26}px)`;
+    }
+
+    function handleJoystickEnd(e) {
+      const touchList = e.changedTouches ? [...e.changedTouches] : [e];
+      const touch = touchList.find(t => (t.identifier ?? 'mouse') === joystickPointerId);
+      if (!touch) return;
+
+      joystickPointerId = null;
+      joystickVector.x = 0;
+      joystickVector.y = 0;
+      joystickThumb.style.transform = 'translate(0, 0)';
+    }
+
+    // events joystick (touch + souris)
+    joystick.addEventListener('touchstart', e => {
+      e.preventDefault();
+      handleJoystickStart(e);
+    }, { passive: false });
+
+    joystick.addEventListener('touchmove', e => {
+      e.preventDefault();
+      handleJoystickMove(e);
+    }, { passive: false });
+
+    joystick.addEventListener('touchend', e => {
+      e.preventDefault();
+      handleJoystickEnd(e);
+    }, { passive: false });
+
+    joystick.addEventListener('mousedown', e => {
+      e.preventDefault();
+      handleJoystickStart(e);
+      window.addEventListener('mousemove', handleJoystickMoveMouse);
+      window.addEventListener('mouseup', handleJoystickEndMouse);
+    });
+
+    function handleJoystickMoveMouse(e) {
+      handleJoystickMove(e);
+    }
+
+    function handleJoystickEndMouse(e) {
+      handleJoystickEnd(e);
+      window.removeEventListener('mousemove', handleJoystickMoveMouse);
+      window.removeEventListener('mouseup', handleJoystickEndMouse);
+    }
+
+    // boutons
+    startBtn.addEventListener('click', () => {
+      startScreen.classList.add('hidden');
+      resetGame();
+      requestAnimationFrame(loop);
+    });
+
+    restartBtn.addEventListener('click', () => {
+      gameOverScreen.classList.add('hidden');
+      resetGame();
+      requestAnimationFrame(loop);
+    });
+  </script>
+</body>
+</html>
