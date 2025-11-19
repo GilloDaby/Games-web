@@ -76,11 +76,24 @@ export default class NeuralNetwork {
     if (!data) {
       throw new Error("Invalid neural network payload");
     }
-    const network = new NeuralNetwork(data.inputSize, data.hiddenSize, data.outputSize);
-    network.hiddenWeights = NeuralNetwork.deepCopyMatrix(data.hiddenWeights || []);
-    network.hiddenBiases = [...(data.hiddenBiases || [])];
-    network.outputWeights = NeuralNetwork.deepCopyMatrix(data.outputWeights || []);
-    network.outputBiases = [...(data.outputBiases || [])];
+    const expectedInput = BRAIN_LAYOUT.inputs;
+    const expectedHidden = BRAIN_LAYOUT.hidden;
+    const expectedOutput = BRAIN_LAYOUT.outputs;
+
+    const layoutMatches =
+      data.inputSize === expectedInput &&
+      data.hiddenSize === expectedHidden &&
+      data.outputSize === expectedOutput;
+
+    const network = new NeuralNetwork(expectedInput, expectedHidden, expectedOutput);
+
+    if (layoutMatches) {
+      network.hiddenWeights = NeuralNetwork.deepCopyMatrix(data.hiddenWeights || []);
+      network.hiddenBiases = [...(data.hiddenBiases || [])];
+      network.outputWeights = NeuralNetwork.deepCopyMatrix(data.outputWeights || []);
+      network.outputBiases = [...(data.outputBiases || [])];
+    }
+
     return network;
   }
 
