@@ -596,25 +596,41 @@ export default class Creature {
     }
 
     ctx.save();
-    let fillColor = this.color;
-    if (this.stateFlags.inDanger) {
-      fillColor = "#ff7575";
-    } else if (this.stateFlags.boosted) {
-      fillColor = "#a7d6ff";
-    }
-    ctx.fillStyle = fillColor;
-    if (this.stateFlags.boosted) {
-      ctx.shadowColor = "rgba(140, 205, 255, 0.7)";
-      ctx.shadowBlur = 12;
-    }
-    ctx.beginPath();
-    ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
-    ctx.fill();
-    if (this.stateFlags.boosted) {
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "rgba(160, 215, 255, 0.9)";
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+    const hasSkin = Boolean(this.skin);
+    if (!hasSkin) {
+      let fillColor = this.color;
+      if (this.stateFlags.inDanger) {
+        fillColor = "#ff7575";
+      } else if (this.stateFlags.boosted) {
+        fillColor = "#a7d6ff";
+      }
+      ctx.fillStyle = fillColor;
+      if (this.stateFlags.boosted) {
+        ctx.shadowColor = "rgba(140, 205, 255, 0.7)";
+        ctx.shadowBlur = 12;
+      }
+      ctx.beginPath();
+      ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      if (this.stateFlags.boosted) {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(160, 215, 255, 0.9)";
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+    } else {
+      // Draw outline only to signal states when a skin is present.
+      ctx.beginPath();
+      ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+      if (this.stateFlags.inDanger) {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ff7575";
+        ctx.stroke();
+      } else if (this.stateFlags.boosted) {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(160, 215, 255, 0.9)";
+        ctx.stroke();
+      }
     }
 
     if (this.skin) {
