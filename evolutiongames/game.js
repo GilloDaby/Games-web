@@ -4,8 +4,58 @@ const ARENA_CONFIG = {
   creatureCount: 10,
   minSpeed: 40,
   maxSpeed: 90,
+  maxAcceleration: 70,
+  directionResponsiveness: 6,
   creatureRadius: 12,
 };
+
+class NeuralNetwork {
+  constructor(inputSize, hiddenSize, outputSize) {
+    this.inputSize = inputSize;
+    this.hiddenSize = hiddenSize;
+    this.outputSize = outputSize;
+
+    this.hiddenWeights = Array.from({ length: hiddenSize }, () =>
+      Array.from({ length: inputSize }, NeuralNetwork.randomWeight),
+    );
+    this.hiddenBiases = Array.from({ length: hiddenSize }, NeuralNetwork.randomWeight);
+
+    this.outputWeights = Array.from({ length: outputSize }, () =>
+      Array.from({ length: hiddenSize }, NeuralNetwork.randomWeight),
+    );
+    this.outputBiases = Array.from({ length: outputSize }, NeuralNetwork.randomWeight);
+  }
+
+  static randomWeight() {
+    return Math.random() * 2 - 1;
+  }
+
+  feedforward(inputs) {
+    if (inputs.length !== this.inputSize) {
+      throw new Error(`Invalid input length: expected ${this.inputSize}, got ${inputs.length}`);
+    }
+
+    const hiddenLayer = new Array(this.hiddenSize);
+    for (let i = 0; i < this.hiddenSize; i += 1) {
+      let sum = this.hiddenBiases[i];
+      for (let j = 0; j < this.inputSize; j += 1) {
+        sum += this.hiddenWeights[i][j] * inputs[j];
+      }
+      hiddenLayer[i] = Math.tanh(sum);
+    }
+
+    const outputs = new Array(this.outputSize);
+    for (let k = 0; k < this.outputSize; k += 1) {
+      let sum = this.outputBiases[k];
+      for (let j = 0; j < this.hiddenSize; j += 1) {
+        sum += this.outputWeights[k][j] * hiddenLayer[j];
+      }
+      outputs[k] = Math.tanh(sum);
+    }
+
+    return outputs;
+  }
+}
 
 class Creature {
   constructor({ x, y, speed, direction, radius, color }) {
@@ -14,11 +64,23 @@ class Creature {
     this.direction = direction;
     this.radius = radius;
     this.color = color;
+    this.brain = new NeuralNetwork(7, 4, 2);
   }
 
   update(deltaSeconds, bounds) {
-    // Add subtle randomness so movement feels organic before AI exists.
-    this.direction += (Math.random() - 0.5) * 0.6;
+    const brainInputs = this.buildBrainInputs(bounds);
+    const [directionSignal, accelerationSignal] = this.brain.feedforward(brainInputs);
+
+    const targetDirection = mapSignalToAngle(directionSignal);
+    const lerpAmount = clamp(deltaSeconds * ARENA_CONFIG.directionResponsiveness, 0, 1);
+    this.direction = lerpAngle(this.direction, targetDirection, lerpAmount);
+
+    const acceleration = accelerationSignal * ARENA_CONFIG.maxAcceleration;
+    this.speed = clamp(
+      this.speed + acceleration * deltaSeconds,
+      ARENA_CONFIG.minSpeed,
+      ARENA_CONFIG.maxSpeed,
+    );
 
     const velocityX = Math.cos(this.direction) * this.speed;
     const velocityY = Math.sin(this.direction) * this.speed;
@@ -51,6 +113,28 @@ class Creature {
       this.position.y = maxY;
       this.direction = -this.direction;
     }
+  }
+
+  buildBrainInputs({ width, height }) {
+    const normalizedDirection = normalizeAngle(this.direction) / Math.PI - 1;
+
+    const leftDistance = clamp((this.position.x - this.radius) / width, 0, 1);
+    const rightDistance = clamp((width - this.radius - this.position.x) / width, 0, 1);
+    const topDistance = clamp((this.position.y - this.radius) / height, 0, 1);
+    const bottomDistance = clamp((height - this.radius - this.position.y) / height, 0, 1);
+
+    const xNormalized = clamp(this.position.x / width, 0, 1);
+    const yNormalized = clamp(this.position.y / height, 0, 1);
+
+    return [
+      normalizedDirection,
+      leftDistance,
+      rightDistance,
+      topDistance,
+      bottomDistance,
+      xNormalized,
+      yNormalized,
+    ];
   }
 
   draw(ctx) {
@@ -167,6 +251,33 @@ function randomBetween(min, max) {
 function randomPastel() {
   const hue = Math.floor(Math.random() * 360);
   return `hsl(${hue} 70% 65%)`;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function normalizeAngle(angle) {
+  const twoPi = Math.PI * 2;
+  return ((angle % twoPi) + twoPi) % twoPi;
+}
+
+function mapSignalToAngle(signal) {
+  const normalized = clamp(signal, -1, 1);
+  return (normalized + 1) * Math.PI;
+}
+
+function lerpAngle(current, target, t) {
+  const twoPi = Math.PI * 2;
+  const normalizedCurrent = normalizeAngle(current);
+  const normalizedTarget = normalizeAngle(target);
+  let diff = normalizedTarget - normalizedCurrent;
+  if (diff > Math.PI) {
+    diff -= twoPi;
+  } else if (diff < -Math.PI) {
+    diff += twoPi;
+  }
+  return normalizeAngle(normalizedCurrent + diff * t);
 }
 
 window.addEventListener("DOMContentLoaded", () => {
