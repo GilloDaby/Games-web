@@ -1,0 +1,57 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #050607;
+  color: #f2f5f9;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, #131f3c, #050607 70%);
+  padding: 2rem;
+}
+
+.layout {
+  width: min(1100px, 100%);
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hero p {
+  color: #93a7c8;
+  margin-top: 0.4rem;
+}
+
+.arena-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  background: rgba(12, 18, 30, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.55);
+}
+
+.arena-canvas {
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: #050f17;
+  border-radius: 0.75rem;
+}
