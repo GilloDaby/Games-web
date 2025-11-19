@@ -36,6 +36,7 @@ export default class Creature {
     this.lastAttackTime = -Infinity;
     this.alive = true;
     this.nearEnemyDistance = this.attackRange * NEAR_ENEMY_DISTANCE_MULTIPLIER;
+    this.targetDirection = null;
   }
 
   get fitness() {
@@ -59,6 +60,8 @@ export default class Creature {
     if (detection.hasEnemy && detection.distance <= this.nearEnemyDistance) {
       this.proximityTime += deltaSeconds;
     }
+
+    this.targetDirection = detection.hasEnemy ? detection.enemyDirection : null;
 
     const inputs = this.buildBrainInputs(bounds, detection);
     const [directionSignal, accelerationSignal, attackSignal, moveSignal] =
@@ -264,11 +267,36 @@ export default class Creature {
       return;
     }
 
+    if (this.targetDirection !== null) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 95, 95, 0.65)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(this.position.x, this.position.y);
+      ctx.lineTo(
+        this.position.x + Math.cos(this.targetDirection) * this.radius * 1.8,
+        this.position.y + Math.sin(this.targetDirection) * this.radius * 1.8,
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
+
+    const barWidth = this.radius * 2.1;
+    const barHeight = 4;
+    const hpRatio = clamp(this.hp / this.maxHp, 0, 1);
+    const barX = this.position.x - barWidth / 2;
+    const barY = this.position.y - this.radius - 8;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+    ctx.fillStyle = hpRatio > 0.5 ? "#79ff95" : "#ff7979";
+    ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
     ctx.restore();
   }
 }

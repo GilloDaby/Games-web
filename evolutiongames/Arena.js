@@ -26,10 +26,11 @@ const ARENA_SETTINGS = {
 const STORAGE_KEY = "genetic-ai-battle-state";
 
 export default class Arena {
-  constructor(canvas, statsElements) {
+  constructor(canvas, statsElements, uiManager = null) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.statsElements = statsElements;
+    this.uiManager = uiManager;
     this.config = ARENA_SETTINGS;
     this.bounds = { width: this.config.width, height: this.config.height };
     this.canvas.width = this.config.width;
@@ -40,6 +41,7 @@ export default class Arena {
       mutationRate: this.config.mutationRate,
       selectionRatio: this.config.selectionRatio,
     });
+    this.ga.populationSize = this.config.populationSize;
 
     this.creatures = [];
     this.elapsedGenerationTime = 0;
@@ -58,6 +60,7 @@ export default class Arena {
     this.recordBestFitness = 0;
     this.prevBestFitness = 0;
     this.stagnationCounter = 0;
+    this.pendingGenerationSkip = false;
     this.storageAvailable = typeof window !== "undefined" && "localStorage" in window;
     this.persistenceKey = STORAGE_KEY;
     this.ga.setMutationPressure(0);
@@ -66,6 +69,19 @@ export default class Arena {
     if (persisted && Array.isArray(persisted.brains) && persisted.brains.length) {
       try {
         this.generation = persisted.generation ?? 1;
+        if (typeof persisted.populationSize === "number") {
+          this.config.populationSize = Math.max(5, Math.round(persisted.populationSize));
+          this.ga.populationSize = this.config.populationSize;
+        }
+        if (typeof persisted.generationDuration === "number") {
+          this.config.generationDuration = Math.max(5, Number(persisted.generationDuration));
+        }
+        if (typeof persisted.mutationRate === "number") {
+          this.config.mutationRate = Math.max(0.005, Number(persisted.mutationRate));
+          this.ga.baseMutationRate = this.config.mutationRate;
+          this.ga.maxMutationRate = Math.min(0.5, this.config.mutationRate * 4);
+        }
+
         this.bestHistory = persisted.bestHistory ?? [];
         const historyKillRecord = this.bestHistory.reduce(
           (max, entry) => Math.max(max, entry.kills ?? 0),
@@ -96,6 +112,14 @@ export default class Arena {
     const brainInstances = sourceBrains.map((brain) =>
       brain instanceof NeuralNetwork ? brain : NeuralNetwork.fromJSON(brain),
     );
+    const desiredCount = this.config.populationSize;
+    if (brainInstances.length > desiredCount) {
+      brainInstances.length = desiredCount;
+    } else if (brainInstances.length < desiredCount) {
+      const needed = desiredCount - brainInstances.length;
+      const filler = this.ga.createInitialBrains().slice(0, needed);
+      brainInstances.push(...filler);
+    }
     this.creatures = this.createCreaturesFromBrains(brainInstances);
     this.elapsedGenerationTime = 0;
     this.bestFitness = 0;
@@ -110,6 +134,10 @@ export default class Arena {
       this.ga.setMutationPressure(0);
     }
     this.persistState(brainInstances);
+    this.updateHud();
+    if (this.uiManager) {
+      this.uiManager.syncControlsFromArena();
+    }
   }
 
   createCreaturesFromBrains(brains) {
@@ -192,15 +220,15 @@ export default class Arena {
     this.recordBestFitness = Math.max(this.recordBestFitness, bestFitness);
     this.elapsedGenerationTime += deltaSeconds;
 
-    this.hudUpdateAccumulator += deltaSeconds;
-    if (this.hudUpdateAccumulator >= this.hudUpdateInterval) {
-      this.updateHud();
-      this.hudUpdateAccumulator = 0;
-    }
-
+    this.updateHud();
     this.updateAttackEffects(deltaSeconds);
 
-    if (aliveCount <= 1 || this.elapsedGenerationTime >= this.config.generationDuration) {
+    if (
+      this.pendingGenerationSkip ||
+      aliveCount <= 1 ||
+      this.elapsedGenerationTime >= this.config.generationDuration
+    ) {
+      this.pendingGenerationSkip = false;
       this.evolvePopulation();
     }
   }
@@ -282,39 +310,52 @@ export default class Arena {
   }
 
   updateHud() {
+    const timeRemaining = Math.max(0, this.config.generationDuration - this.elapsedGenerationTime);
+    const hudData = {
+      generation: this.generation,
+      best: this.bestFitness,
+      average: this.averageFitness,
+      alive: this.currentAlive,
+      timeRemaining,
+      kills: this.totalKills,
+      recordKills: this.bestKillRecord,
+      recordFitness: this.recordBestFitness,
+    };
+
+    if (this.uiManager) {
+      this.uiManager.updateHud(hudData);
+      return;
+    }
+
     if (!this.statsElements) {
       return;
     }
 
-    const {
-      generation,
-      best,
-      average,
-      alive,
-      kills,
-      recordKills,
-      recordFitness,
-    } = this.statsElements;
+    const { generation, best, average, alive, kills, recordKills, recordFitness, time } =
+      this.statsElements;
     if (generation) {
-      generation.textContent = this.generation.toString();
+      generation.textContent = hudData.generation.toString();
     }
     if (best) {
-      best.textContent = this.bestFitness.toFixed(1);
+      best.textContent = hudData.best.toFixed(1);
     }
     if (average) {
-      average.textContent = this.averageFitness.toFixed(1);
+      average.textContent = hudData.average.toFixed(1);
     }
     if (alive) {
-      alive.textContent = this.currentAlive.toString();
+      alive.textContent = hudData.alive.toString();
+    }
+    if (time) {
+      time.textContent = `${Math.max(0, Math.floor(timeRemaining)).toString()}s`;
     }
     if (kills) {
-      kills.textContent = this.totalKills.toString();
+      kills.textContent = hudData.kills.toString();
     }
     if (recordKills) {
-      recordKills.textContent = this.bestKillRecord.toString();
+      recordKills.textContent = hudData.recordKills.toString();
     }
     if (recordFitness) {
-      recordFitness.textContent = this.recordBestFitness.toFixed(1);
+      recordFitness.textContent = hudData.recordFitness.toFixed(1);
     }
   }
 
@@ -362,6 +403,48 @@ export default class Arena {
     this.ga.setMutationPressure(this.stagnationCounter);
   }
 
+  setPopulationSize(size) {
+    const newSize = Math.max(10, Math.min(80, Math.round(size)));
+    if (newSize === this.config.populationSize) {
+      return;
+    }
+    this.config.populationSize = newSize;
+    this.ga.populationSize = newSize;
+    this.spawnPopulation();
+    this.uiManager?.syncControlsFromArena();
+  }
+
+  setMutationRate(rate) {
+    const clamped = clamp(rate, 0.005, 0.6);
+    this.config.mutationRate = clamped;
+    this.ga.baseMutationRate = clamped;
+    this.ga.maxMutationRate = Math.min(0.6, clamped * 4);
+    this.ga.setMutationPressure(this.stagnationCounter);
+    this.persistState();
+    this.updateHud();
+    this.uiManager?.syncControlsFromArena();
+  }
+
+  setGenerationDuration(seconds) {
+    const clamped = clamp(seconds, 5, 120);
+    this.config.generationDuration = clamped;
+    this.persistState();
+    this.updateHud();
+    this.uiManager?.syncControlsFromArena();
+  }
+
+  skipGeneration() {
+    this.pendingGenerationSkip = true;
+  }
+
+  getSimulationSettings() {
+    return {
+      populationSize: this.config.populationSize,
+      mutationRate: this.ga.baseMutationRate,
+      generationDuration: this.config.generationDuration,
+    };
+  }
+
   loadPersistedState() {
     if (!this.storageAvailable) {
       return null;
@@ -388,6 +471,9 @@ export default class Arena {
         bestKillRecord: this.bestKillRecord,
         recordBestFitness: this.recordBestFitness,
         prevBestFitness: this.prevBestFitness,
+        populationSize: this.config.populationSize,
+        generationDuration: this.config.generationDuration,
+        mutationRate: this.ga.baseMutationRate,
       };
       window.localStorage.setItem(this.persistenceKey, JSON.stringify(payload));
     } catch (error) {
@@ -406,8 +492,10 @@ export default class Arena {
     this.prevBestFitness = 0;
     this.stagnationCounter = 0;
     this.ga.setMutationPressure(0);
+    this.pendingGenerationSkip = false;
     this.spawnPopulation();
     this.updateHud();
+    this.uiManager?.syncControlsFromArena();
   }
 
   getBestHistory() {
