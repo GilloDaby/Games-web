@@ -14,6 +14,7 @@ window.addEventListener("DOMContentLoaded", () => {
     kills: document.getElementById("statKills"),
     recordKills: document.getElementById("statRecordKills"),
     recordFitness: document.getElementById("statRecordFitness"),
+    zones: document.getElementById("statZones"),
   };
   const controlElements = {
     population: document.getElementById("controlPopulation"),

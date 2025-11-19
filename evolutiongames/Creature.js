@@ -1,9 +1,12 @@
 import NeuralNetwork, { BRAIN_LAYOUT } from "./NeuralNetwork.js";
+import { ZONE_TYPES } from "./Zone.js";
 
 const ATTACK_ACTIVATION_THRESHOLD = 0.25;
 const NEAR_ENEMY_DISTANCE_MULTIPLIER = 1.5;
 const DANGER_RADIUS_MULTIPLIER = 2.5;
 const DANGER_NORMALIZATION = 5;
+const ZONE_TYPE_INDEX = Object.fromEntries(ZONE_TYPES.map((type, index) => [type, index]));
+const ZONE_ONE_HOT_LENGTH = ZONE_TYPES.length;
 
 export default class Creature {
   constructor({
@@ -37,39 +40,68 @@ export default class Creature {
     this.alive = true;
     this.nearEnemyDistance = this.attackRange * NEAR_ENEMY_DISTANCE_MULTIPLIER;
     this.targetDirection = null;
+    this.zonePositiveTime = 0;
+    this.zoneDangerTime = 0;
+    this.zoneLearningTime = 0;
+    this.zoneBonusesAcquired = 0;
+    this.uniqueZoneTypes = new Set();
+    this.learningMultiplierPeak = 1;
+    this.activeBuffs = [];
+    this.buffMultipliers = { speed: 1, damage: 1, range: 1, cooldown: 1 };
+    this.stateFlags = { inDanger: false, boosted: false };
   }
 
   get fitness() {
-    return (
+    const baseFitness =
       this.distanceTravelled +
       this.survivalTime +
       this.proximityTime +
       this.attackSuccessCount * 5 +
-      this.killCount * 20
-    );
+      this.killCount * 20 +
+      this.zonePositiveTime * 1.5 +
+      this.zoneBonusesAcquired * 15 +
+      this.zoneLearningTime * 0.75 -
+      this.zoneDangerTime * 1.5;
+
+    const explorationBonus = 1 + Math.min(this.uniqueZoneTypes.size * 0.15, 0.6);
+    const learningBonus = Math.max(1, this.learningMultiplierPeak);
+
+    return baseFitness * explorationBonus * learningBonus;
   }
 
-  update(deltaSeconds, bounds, population, currentTime, effectEmitter) {
+  update(deltaSeconds, bounds, population, currentTime, effectEmitter, zones = []) {
     if (!this.alive) {
       return;
     }
 
+    this.updateBuffs(deltaSeconds);
     this.survivalTime += deltaSeconds;
+    this.stateFlags.inDanger = false;
+
+    const effectiveRange = this.attackRange * this.buffMultipliers.range;
+    this.nearEnemyDistance = effectiveRange * NEAR_ENEMY_DISTANCE_MULTIPLIER;
 
     const detection = this.detectEnemies(population, bounds);
     if (detection.hasEnemy && detection.distance <= this.nearEnemyDistance) {
       this.proximityTime += deltaSeconds;
     }
 
+    const zoneInfo = this.detectZones(zones, bounds, deltaSeconds);
     this.targetDirection = detection.hasEnemy ? detection.enemyDirection : null;
+    if (!this.targetDirection && zoneInfo.hasZone) {
+      this.targetDirection = zoneInfo.zoneDirection;
+    }
 
-    const inputs = this.buildBrainInputs(bounds, detection);
-    const [directionSignal, accelerationSignal, attackSignal, moveSignal] =
+    const inputs = this.buildBrainInputs(bounds, detection, zoneInfo);
+    const [directionSignal, accelerationSignal, attackSignal, moveSignal, towardZoneSignal, avoidZoneSignal] =
       this.brain.feedforward(inputs);
 
     const hasEnemy = detection.hasEnemy;
     const shouldAttack = hasEnemy && attackSignal > ATTACK_ACTIVATION_THRESHOLD;
     const moveToward = hasEnemy ? moveSignal >= 0 : false;
+    const zoneDesire = zoneInfo.hasZone;
+    const moveTowardZone = zoneDesire && towardZoneSignal > 0.4;
+    const avoidZone = zoneDesire && avoidZoneSignal > 0.4;
 
     let desiredDirection = mapSignalToAngle(directionSignal);
     if (hasEnemy) {
@@ -77,6 +109,14 @@ export default class Creature {
         ? detection.enemyDirection
         : normalizeAngle(detection.enemyDirection + Math.PI);
       desiredDirection = shouldAttack ? detection.enemyDirection : pursuitDirection;
+    }
+
+    if (zoneDesire) {
+      if (avoidZone && zoneInfo.zoneType === "danger") {
+        desiredDirection = normalizeAngle(zoneInfo.zoneDirection + Math.PI);
+      } else if (moveTowardZone && zoneInfo.zoneType !== "danger") {
+        desiredDirection = zoneInfo.zoneDirection;
+      }
     }
 
     desiredDirection += (Math.random() - 0.5) * 0.05;
@@ -88,7 +128,7 @@ export default class Creature {
     this.speed = clamp(
       this.speed + acceleration * deltaSeconds,
       this.settings.minSpeed,
-      this.settings.maxSpeed,
+      this.settings.maxSpeed * this.buffMultipliers.speed,
     );
 
     const velocityX = Math.cos(this.direction) * this.speed;
@@ -178,7 +218,152 @@ export default class Creature {
     return detection;
   }
 
-  buildBrainInputs({ width, height }, detection) {
+  detectZones(zones, bounds, deltaSeconds) {
+    const info = {
+      hasZone: false,
+      zoneDirection: this.direction,
+      distanceRatio: 1,
+      angleDelta: 0,
+      isInside: 0,
+      valueNormalized: 0,
+      typeEncoding: Array.from({ length: ZONE_ONE_HOT_LENGTH }, () => 0),
+      zoneType: null,
+    };
+
+    if (!zones?.length) {
+      return info;
+    }
+
+    let closest = null;
+    let closestDistance = Infinity;
+    const arenaDiag = Math.hypot(bounds.width, bounds.height);
+
+    for (const zone of zones) {
+      if (!zone?.active) {
+        continue;
+      }
+      const dx = zone.x - this.position.x;
+      const dy = zone.y - this.position.y;
+      const centerDistance = Math.hypot(dx, dy);
+      const edgeDistance = Math.max(0, centerDistance - zone.radius);
+
+      if (edgeDistance < closestDistance) {
+        closestDistance = edgeDistance;
+        closest = { zone, dx, dy, centerDistance };
+      }
+
+      if (zone.containsPoint(this.position.x, this.position.y, this.radius)) {
+        info.isInside = 1;
+        info.zoneType = info.zoneType ?? zone.type;
+        this.processZoneImpact(zone, deltaSeconds);
+      }
+    }
+
+    if (closest) {
+      info.hasZone = true;
+      info.zoneType = info.zoneType ?? closest.zone.type;
+      info.zoneDirection = Math.atan2(closest.dy, closest.dx);
+      info.distanceRatio = clamp(closest.centerDistance / arenaDiag, 0, 1);
+      info.angleDelta = clamp(normalizeAngle(info.zoneDirection - this.direction) / Math.PI, -1, 1);
+      info.valueNormalized = closest.zone.normalizedValue ?? 0;
+      const typeIndex = ZONE_TYPE_INDEX[closest.zone.type];
+      if (typeIndex >= 0) {
+        info.typeEncoding[typeIndex] = 1;
+      }
+    }
+
+    if (info.zoneType && info.typeEncoding.every((value) => value === 0)) {
+      const fallbackIndex = ZONE_TYPE_INDEX[info.zoneType];
+      if (fallbackIndex >= 0) {
+        info.typeEncoding[fallbackIndex] = 1;
+      }
+    }
+
+    return info;
+  }
+
+  processZoneImpact(zone, deltaSeconds) {
+    if (!zone?.active) {
+      return;
+    }
+    this.uniqueZoneTypes.add(zone.type);
+
+    switch (zone.type) {
+      case "heal": {
+        this.hp = Math.min(this.maxHp, this.hp + zone.value * deltaSeconds);
+        this.zonePositiveTime += deltaSeconds;
+        break;
+      }
+      case "danger": {
+        this.stateFlags.inDanger = true;
+        this.zoneDangerTime += deltaSeconds;
+        this.takeDamage(zone.value * deltaSeconds);
+        break;
+      }
+      case "boost": {
+        if (zone.markBoostApplied(this)) {
+          this.applyBoost(zone.payload);
+          this.zoneBonusesAcquired += 1;
+        }
+        this.zonePositiveTime += deltaSeconds * 0.5;
+        break;
+      }
+      case "learning": {
+        const multiplier = zone.value ?? 1;
+        this.zoneLearningTime += deltaSeconds * multiplier;
+        this.learningMultiplierPeak = Math.max(this.learningMultiplierPeak, multiplier);
+        this.zonePositiveTime += deltaSeconds * 0.4;
+        break;
+      }
+      default: {
+        this.zonePositiveTime += deltaSeconds * 0.2;
+        break;
+      }
+    }
+  }
+
+  applyBoost(payload) {
+    if (!payload) {
+      return;
+    }
+    this.activeBuffs.push({
+      speed: payload.speed ?? 1,
+      damage: payload.damage ?? 1,
+      range: payload.range ?? 1,
+      cooldown: payload.cooldown ?? 1,
+      remaining: payload.duration ?? 6,
+    });
+    this.updateBuffs(0);
+  }
+
+  updateBuffs(deltaSeconds) {
+    if (!this.activeBuffs.length) {
+      this.buffMultipliers = { speed: 1, damage: 1, range: 1, cooldown: 1 };
+      this.stateFlags.boosted = false;
+      return;
+    }
+
+    const multipliers = { speed: 1, damage: 1, range: 1, cooldown: 1 };
+    this.activeBuffs = this.activeBuffs
+      .map((buff) => ({ ...buff, remaining: buff.remaining - deltaSeconds }))
+      .filter((buff) => buff.remaining > 0);
+
+    for (const buff of this.activeBuffs) {
+      multipliers.speed *= buff.speed ?? 1;
+      multipliers.damage *= buff.damage ?? 1;
+      multipliers.range *= buff.range ?? 1;
+      multipliers.cooldown *= buff.cooldown ?? 1;
+    }
+
+    this.buffMultipliers = multipliers;
+    this.stateFlags.boosted =
+      multipliers.speed > 1.05 ||
+      multipliers.damage > 1.05 ||
+      multipliers.range > 1.05 ||
+      multipliers.cooldown > 1.05;
+  }
+
+  buildBrainInputs({ width, height }, detection, zoneInfo) {
     const normalizedDirection = normalizeAngle(this.direction) / Math.PI - 1;
 
     const leftDistance = clamp((this.position.x - this.radius) / width, 0, 1);
@@ -196,6 +381,21 @@ export default class Creature {
     const angleToEnemy = detection.angleDelta;
     const danger = detection.dangerLevel;
 
+    const zoneData =
+      zoneInfo ??
+      {
+        distanceRatio: 1,
+        angleDelta: 0,
+        isInside: 0,
+        valueNormalized: 0,
+        typeEncoding: Array.from({ length: ZONE_ONE_HOT_LENGTH }, () => 0),
+      };
+    const zoneDistance = zoneData.distanceRatio;
+    const zoneAngle = zoneData.angleDelta;
+    const zoneInside = zoneData.isInside ? 1 : 0;
+    const zoneValue = clamp(zoneData.valueNormalized ?? 0, -1, 1);
+    const zoneTypes = zoneData.typeEncoding ?? Array.from({ length: ZONE_ONE_HOT_LENGTH }, () => 0);
+
     return [
       normalizedDirection,
       leftDistance,
@@ -209,13 +409,18 @@ export default class Creature {
       hpNormalized,
       hpRatio,
       danger,
+      zoneDistance,
+      zoneAngle,
+      zoneInside,
+      zoneValue,
+      ...zoneTypes,
     ];
   }
 
   tryAttack(currentTime, effectEmitter, detection, shouldAttack) {
     if (
       !shouldAttack ||
-      currentTime - this.lastAttackTime < this.attackCooldown ||
+      currentTime - this.lastAttackTime < this.attackCooldown / this.buffMultipliers.cooldown ||
       !detection ||
       !detection.enemy
     ) {
@@ -227,12 +432,14 @@ export default class Creature {
     const dy = target.position.y - this.position.y;
     const distance = Math.hypot(dx, dy);
 
-    if (distance > this.attackRange + target.radius) {
+    const attackRange = this.attackRange * this.buffMultipliers.range;
+    if (distance > attackRange + target.radius) {
       return;
     }
 
     this.lastAttackTime = currentTime;
-    const targetDied = target.takeDamage(this.damage);
+    const attackDamage = this.damage * this.buffMultipliers.damage;
+    const targetDied = target.takeDamage(attackDamage);
     this.attackSuccessCount += 1;
     if (targetDied) {
       this.killCount += 1;
@@ -282,10 +489,26 @@ export default class Creature {
     }
 
     ctx.save();
-    ctx.fillStyle = this.color;
+    let fillColor = this.color;
+    if (this.stateFlags.inDanger) {
+      fillColor = "#ff7575";
+    } else if (this.stateFlags.boosted) {
+      fillColor = "#a7d6ff";
+    }
+    ctx.fillStyle = fillColor;
+    if (this.stateFlags.boosted) {
+      ctx.shadowColor = "rgba(140, 205, 255, 0.7)";
+      ctx.shadowBlur = 12;
+    }
     ctx.beginPath();
     ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
+    if (this.stateFlags.boosted) {
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(160, 215, 255, 0.9)";
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
 
     const barWidth = this.radius * 2.1;
     const barHeight = 4;

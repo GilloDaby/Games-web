@@ -1,7 +1,7 @@
 export const BRAIN_LAYOUT = {
-  inputs: 12,
-  hidden: 4,
-  outputs: 4,
+  inputs: 20,
+  hidden: 6,
+  outputs: 6,
 };
 
 export default class NeuralNetwork {

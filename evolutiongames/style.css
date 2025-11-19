@@ -91,6 +91,7 @@ body {
   background: rgba(1, 3, 8, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 1rem;
+  overflow: auto;
 }
 
 .arena-canvas {
@@ -98,7 +99,8 @@ body {
   background: #03060b;
   border-radius: 0.75rem;
   display: block;
-  width: 800px;
+  width: 100%;
+  height: auto;
   max-width: 100%;
 }
 

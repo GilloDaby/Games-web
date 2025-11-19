@@ -25,6 +25,7 @@ export default class UIManager {
     kills,
     recordKills,
     recordFitness,
+    zones,
   }) {
     if (this.hud.generation) {
       this.hud.generation.textContent = generation.toString();
@@ -50,6 +51,9 @@ export default class UIManager {
     }
     if (this.records.recordFitness) {
       this.records.recordFitness.textContent = recordFitness.toFixed(1);
+    }
+    if (this.records.zones) {
+      this.records.zones.textContent = (zones ?? 0).toString();
     }
   }
 

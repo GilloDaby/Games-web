@@ -1,11 +1,12 @@
 import Creature from "./Creature.js";
 import GeneticAlgorithm from "./GeneticAlgorithm.js";
 import NeuralNetwork from "./NeuralNetwork.js";
+import Zone, { pickZoneType } from "./Zone.js";
 
 const ARENA_SETTINGS = {
-  width: 800,
-  height: 600,
-  gridSize: 50,
+  width: 1600,
+  height: 1200,
+  gridSize: 80,
   populationSize: 30,
   generationDuration: 25, // seconds
   mutationRate: 0.05,
@@ -53,6 +54,7 @@ export default class Arena {
     this.hudUpdateAccumulator = 0;
     this.hudUpdateInterval = 0.25;
     this.attackEffects = [];
+    this.zones = [];
     this.totalKills = 0;
     this.currentAlive = 0;
     this.bestHistory = [];
@@ -127,6 +129,7 @@ export default class Arena {
     this.totalKills = 0;
     this.currentAlive = this.creatures.length;
     this.attackEffects = [];
+    this.generateZones();
     this.hudUpdateAccumulator = 0;
     if (!brains || !brains.length) {
       this.stagnationCounter = 0;
@@ -191,6 +194,8 @@ export default class Arena {
     let aliveCount = 0;
     const generationTime = this.elapsedGenerationTime;
 
+    this.updateZones(deltaSeconds);
+
     for (const creature of this.creatures) {
       creature.update(
         deltaSeconds,
@@ -198,6 +203,7 @@ export default class Arena {
         this.creatures,
         generationTime,
         (effect) => this.spawnAttackEffect(effect),
+        this.zones,
       );
       totalFitness += creature.fitness;
       if (creature.fitness > bestFitness) {
@@ -236,6 +242,7 @@ export default class Arena {
   draw() {
     this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
     this.drawArena();
+    this.drawZones();
 
     for (const creature of this.creatures) {
       creature.draw(this.ctx);
@@ -269,6 +276,15 @@ export default class Arena {
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, this.bounds.width - 4, this.bounds.height - 4);
     ctx.restore();
+  }
+
+  drawZones() {
+    if (!this.zones?.length) {
+      return;
+    }
+    for (const zone of this.zones) {
+      zone.draw(this.ctx);
+    }
   }
 
   evolvePopulation() {
@@ -305,6 +321,7 @@ export default class Arena {
     this.currentAlive = this.creatures.length;
     this.hudUpdateAccumulator = 0;
     this.attackEffects = [];
+    this.generateZones();
     this.persistState(brains);
     this.updateHud();
   }
@@ -320,6 +337,7 @@ export default class Arena {
       kills: this.totalKills,
       recordKills: this.bestKillRecord,
       recordFitness: this.recordBestFitness,
+      zones: this.getActiveZoneCount(),
     };
 
     if (this.uiManager) {
@@ -331,7 +349,7 @@ export default class Arena {
       return;
     }
 
-    const { generation, best, average, alive, kills, recordKills, recordFitness, time } =
+    const { generation, best, average, alive, kills, recordKills, recordFitness, time, zones } =
       this.statsElements;
     if (generation) {
       generation.textContent = hudData.generation.toString();
@@ -357,6 +375,9 @@ export default class Arena {
     if (recordFitness) {
       recordFitness.textContent = hudData.recordFitness.toFixed(1);
     }
+    if (zones) {
+      zones.textContent = hudData.zones.toString();
+    }
   }
 
   spawnAttackEffect(effect) {
@@ -379,6 +400,16 @@ export default class Arena {
       .filter((effect) => effect.remaining > 0);
   }
 
+  updateZones(deltaSeconds) {
+    if (!this.zones?.length) {
+      return;
+    }
+    for (const zone of this.zones) {
+      zone.update(deltaSeconds);
+    }
+    this.zones = this.zones.filter((zone) => zone.active);
+  }
+
   drawAttackEffects() {
     const ctx = this.ctx;
     ctx.save();
@@ -391,6 +422,16 @@ export default class Arena {
       ctx.stroke();
     }
     ctx.restore();
+  }
+
+  generateZones() {
+    const zoneCount = Math.floor(randomBetween(3, 8));
+    this.zones = [];
+    for (let i = 0; i < zoneCount; i += 1) {
+      const type = pickZoneType();
+      const zone = Zone.createRandom(type, this.bounds);
+      this.zones.push(zone);
+    }
   }
 
   updateMutationPressure(currentBest) {
@@ -443,6 +484,10 @@ export default class Arena {
       mutationRate: this.ga.baseMutationRate,
       generationDuration: this.config.generationDuration,
     };
+  }
+
+  getActiveZoneCount() {
+    return this.zones?.filter((zone) => zone.active).length ?? 0;
   }
 
   loadPersistedState() {
