@@ -1,3 +1,16 @@
+const TILE_TEXTURES = {
+  grass: null,
+  sand: null,
+  snow: null,
+  water: null,
+};
+
+export function registerTileTexture(type, image) {
+  if (TILE_TEXTURES[type] !== undefined) {
+    TILE_TEXTURES[type] = image;
+  }
+}
+
 export default class Tile {
   constructor(x, y, size, type = "grass") {
     this.x = x;
@@ -15,11 +28,26 @@ export default class Tile {
     const px = this.x * this.size;
     const py = this.y * this.size;
 
-    if (texture && texture.complete && texture.naturalWidth > 0) {
-      ctx.drawImage(texture, px, py, this.size, this.size);
+    const typeTexture = texture || TILE_TEXTURES[this.type];
+    if (typeTexture && typeTexture.complete && typeTexture.naturalWidth > 0) {
+      ctx.drawImage(typeTexture, px, py, this.size, this.size);
     } else {
-      ctx.fillStyle = "#2b6c3f";
+      ctx.fillStyle = this.fallbackColor();
       ctx.fillRect(px, py, this.size, this.size);
+    }
+  }
+
+  fallbackColor() {
+    switch (this.type) {
+      case "sand":
+        return "#c4a45a";
+      case "snow":
+        return "#dfe8f3";
+      case "water":
+        return "#3a6ea5";
+      case "grass":
+      default:
+        return "#2b6c3f";
     }
   }
 }

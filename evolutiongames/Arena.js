@@ -42,7 +42,7 @@ export default class Arena {
     const tileMapWidth = Math.ceil(this.config.width / tileSize);
     const tileMapHeight = Math.ceil(this.config.height / tileSize);
     this.tileMap = new TileMap(tileMapWidth, tileMapHeight, tileSize);
-    this.tileMap.generateFlat("grass");
+    this.tileMap.generateBiomes();
 
     this.ga = new GeneticAlgorithm({
       populationSize: this.config.populationSize,
