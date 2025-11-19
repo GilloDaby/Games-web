@@ -19,13 +19,27 @@ export default class Creature {
     this.brain = brain ?? new NeuralNetwork(7, 4, 2);
     this.settings = settings;
     this.distanceTravelled = 0;
+    this.survivalTime = 0;
+    this.killCount = 0;
+    this.hp = settings.hp;
+    this.damage = settings.damage;
+    this.attackRange = settings.attackRange;
+    this.attackCooldown = settings.attackCooldown;
+    this.lastAttackTime = -Infinity;
+    this.alive = true;
   }
 
   get fitness() {
-    return this.distanceTravelled;
+    return this.distanceTravelled + this.survivalTime + this.killCount * 10;
   }
 
-  update(deltaSeconds, bounds) {
+  update(deltaSeconds, bounds, population, currentTime, effectEmitter) {
+    if (!this.alive) {
+      return;
+    }
+
+    this.survivalTime += deltaSeconds;
+
     const inputs = this.buildBrainInputs(bounds);
     const [directionSignal, accelerationSignal] = this.brain.feedforward(inputs);
 
@@ -43,11 +57,14 @@ export default class Creature {
     const velocityX = Math.cos(this.direction) * this.speed;
     const velocityY = Math.sin(this.direction) * this.speed;
 
-    this.position.x += velocityX * deltaSeconds;
-    this.position.y += velocityY * deltaSeconds;
-    this.distanceTravelled += Math.hypot(velocityX, velocityY) * deltaSeconds;
+    const deltaX = velocityX * deltaSeconds;
+    const deltaY = velocityY * deltaSeconds;
+    this.position.x += deltaX;
+    this.position.y += deltaY;
+    this.distanceTravelled += Math.hypot(deltaX, deltaY);
 
     this.handleWallBounce(bounds);
+    this.tryAttack(population, currentTime, effectEmitter);
   }
 
   handleWallBounce({ width, height }) {
@@ -96,7 +113,66 @@ export default class Creature {
     ];
   }
 
+  tryAttack(population, currentTime, effectEmitter) {
+    if (currentTime - this.lastAttackTime < this.attackCooldown) {
+      return;
+    }
+
+    let target = null;
+    let closestDistanceSq = this.attackRange ** 2;
+
+    for (const other of population) {
+      if (other === this || !other.alive) {
+        continue;
+      }
+      const dx = other.position.x - this.position.x;
+      const dy = other.position.y - this.position.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq <= closestDistanceSq) {
+        closestDistanceSq = distSq;
+        target = other;
+      }
+    }
+
+    if (!target) {
+      return;
+    }
+
+    this.lastAttackTime = currentTime;
+    const targetDied = target.takeDamage(this.damage);
+    if (targetDied) {
+      this.killCount += 1;
+    }
+
+    if (effectEmitter) {
+      effectEmitter({
+        x: target.position.x,
+        y: target.position.y,
+        radius: this.attackRange * 0.8,
+        duration: 0.25,
+      });
+    }
+  }
+
+  takeDamage(amount) {
+    if (!this.alive) {
+      return false;
+    }
+
+    this.hp -= amount;
+    if (this.hp <= 0) {
+      this.hp = 0;
+      this.alive = false;
+      return true;
+    }
+    return false;
+  }
+
   draw(ctx) {
+    if (!this.alive) {
+      return;
+    }
+
     ctx.save();
     ctx.fillStyle = this.color;
     ctx.beginPath();
