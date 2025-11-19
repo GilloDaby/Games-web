@@ -12,6 +12,20 @@
         <h1>Genetic AI Battle Simulator</h1>
         <p>Prototype d'arène 2D — déplacement aléatoire avant l'IA génétique.</p>
       </header>
+      <section class="hud" aria-live="polite">
+        <div class="stat">
+          <span class="stat-label">Génération</span>
+          <span class="stat-value" id="statGeneration">1</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Meilleur score</span>
+          <span class="stat-value" id="statBest">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Moyenne</span>
+          <span class="stat-value" id="statAverage">0</span>
+        </div>
+      </section>
       <section class="arena-wrapper">
         <canvas
           id="arenaCanvas"
