@@ -68,7 +68,7 @@ export default class Creature {
       this.proximityTime +
       this.attackSuccessCount * 5 +
       this.killCount * 20 +
-      this.zonePositiveTime * 1.5 +
+      this.zonePositiveTime * 0.5 +
       this.zoneBonusesAcquired * 15 +
       this.zoneLearningTime * 0.75 -
       this.zoneDangerTime * 1.5 +
@@ -161,6 +161,9 @@ export default class Creature {
       this.blockedByWaterTime += deltaSeconds;
       this.recordTerrainUsage(terrainInfo, deltaSeconds);
       this.takeDamage(15 * deltaSeconds);
+      this.direction = normalizeAngle(
+        this.direction + Math.PI / 2 + (Math.random() - 0.5) * 0.8,
+      );
       return;
     }
 
@@ -388,7 +391,7 @@ export default class Creature {
     switch (zone.type) {
       case "heal": {
         this.hp = Math.min(this.maxHp, this.hp + zone.value * deltaSeconds);
-        this.zonePositiveTime += deltaSeconds;
+        this.zonePositiveTime += deltaSeconds * 0.4;
         break;
       }
       case "danger": {

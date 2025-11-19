@@ -57,6 +57,9 @@ export default class TileMap {
         const dx = x - cx;
         const dy = y - cy;
         if (dx * dx + dy * dy <= rSquared) {
+          if (this.grid[y][x].type === "river" || this.grid[y][x].type === "bridge") {
+            continue;
+          }
           this.grid[y][x].type = type;
         }
       }

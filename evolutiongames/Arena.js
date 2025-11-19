@@ -9,7 +9,7 @@ const ARENA_SETTINGS = {
   width: 1600,
   height: 1200,
   gridSize: 80,
-  populationSize: 30,
+  populationSize: 60,
   generationDuration: 25, // seconds
   mutationRate: 0.05,
   selectionRatio: 0.2,
@@ -46,6 +46,15 @@ export default class Arena {
     this.tileMap.generateBiomes();
     this.tileMap.generateRiver();
     this.playerSkins = new PlayerSkinManager();
+    this.camera = {
+      zoom: 1,
+      targetZoom: 1,
+      minZoom: 0.4,
+      maxZoom: 4,
+      focusX: this.bounds.width / 2,
+      focusY: this.bounds.height / 2,
+      follow: null,
+    };
 
     this.ga = new GeneticAlgorithm({
       populationSize: this.config.populationSize,
@@ -115,6 +124,12 @@ export default class Arena {
     } else {
       this.spawnPopulation();
     }
+
+    this.playerSkins.ready.then(() => {
+      for (const creature of this.creatures) {
+        creature.skin = this.playerSkins.getRandomSkin();
+      }
+    });
 
     this.updateHud();
   }
@@ -258,6 +273,7 @@ export default class Arena {
 
     this.updateHud();
     this.updateAttackEffects(deltaSeconds);
+    this.updateCamera(deltaSeconds);
 
     if (
       this.pendingGenerationSkip ||
@@ -271,6 +287,8 @@ export default class Arena {
 
   draw() {
     this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
+    this.ctx.save();
+    this.applyCameraTransform();
     this.drawTileMap();
     this.drawArena();
     this.drawZones();
@@ -280,6 +298,7 @@ export default class Arena {
     }
 
     this.drawAttackEffects();
+    this.ctx.restore();
   }
 
   drawArena() {
@@ -462,8 +481,77 @@ export default class Arena {
     ctx.restore();
   }
 
+  applyCameraTransform() {
+    this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+    this.ctx.scale(this.camera.zoom, this.camera.zoom);
+    this.ctx.translate(-this.camera.focusX, -this.camera.focusY);
+  }
+
+  updateCamera(deltaSeconds) {
+    // Smooth zoom
+    this.camera.zoom += (this.camera.targetZoom - this.camera.zoom) * 0.15;
+    this.camera.zoom = clamp(this.camera.zoom, this.camera.minZoom, this.camera.maxZoom);
+
+    let targetX = this.camera.focusX;
+    let targetY = this.camera.focusY;
+    if (this.camera.follow && this.camera.follow.alive) {
+      targetX = this.camera.follow.position.x;
+      targetY = this.camera.follow.position.y;
+    } else if (this.camera.follow && !this.camera.follow.alive) {
+      this.camera.follow = null;
+    }
+
+    this.camera.focusX += (targetX - this.camera.focusX) * Math.min(1, deltaSeconds * 5);
+    this.camera.focusY += (targetY - this.camera.focusY) * Math.min(1, deltaSeconds * 5);
+    this.camera.focusX = clamp(this.camera.focusX, 0, this.bounds.width);
+    this.camera.focusY = clamp(this.camera.focusY, 0, this.bounds.height);
+  }
+
+  screenToWorld(screenX, screenY) {
+    const x =
+      (screenX - this.canvas.width / 2) / this.camera.zoom + this.camera.focusX;
+    const y =
+      (screenY - this.canvas.height / 2) / this.camera.zoom + this.camera.focusY;
+    return { x, y };
+  }
+
+  handleCanvasClick(screenX, screenY) {
+    const { x, y } = this.screenToWorld(screenX, screenY);
+    let closest = null;
+    let minDist = Infinity;
+    for (const creature of this.creatures) {
+      if (!creature.alive) {
+        continue;
+      }
+      const dist = Math.hypot(creature.position.x - x, creature.position.y - y);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = creature;
+      }
+    }
+
+    if (closest && minDist <= 60) {
+      this.camera.follow = closest;
+      this.camera.targetZoom = clamp(2, this.camera.minZoom, this.camera.maxZoom);
+      this.camera.focusX = closest.position.x;
+      this.camera.focusY = closest.position.y;
+    } else {
+      this.camera.follow = null;
+    }
+  }
+
+  handleWheel(event) {
+    event.preventDefault();
+    const delta = event.deltaY > 0 ? -0.1 : 0.1;
+    this.camera.targetZoom = clamp(
+      this.camera.targetZoom + delta,
+      this.camera.minZoom,
+      this.camera.maxZoom,
+    );
+  }
+
   generateZones() {
-    const zoneCount = Math.max(1, Math.floor(randomBetween(2, 4)));
+    const zoneCount = Math.max(1, Math.floor(randomBetween(2, 3.5)));
     this.zones = [];
     let attempts = 0;
     while (this.zones.length < zoneCount && attempts < 50) {
@@ -494,7 +582,7 @@ export default class Arena {
   }
 
   setPopulationSize(size) {
-    const newSize = Math.max(10, Math.min(80, Math.round(size)));
+    const newSize = Math.max(10, Math.min(240, Math.round(size)));
     if (newSize === this.config.populationSize) {
       return;
     }

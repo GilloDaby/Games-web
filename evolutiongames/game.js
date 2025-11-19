@@ -40,5 +40,20 @@ window.addEventListener("DOMContentLoaded", () => {
   uiManager.bindArena(arena);
   arena.start();
 
+  canvas.addEventListener(
+    "wheel",
+    (event) => {
+      arena.handleWheel(event);
+    },
+    { passive: false },
+  );
+
+  canvas.addEventListener("click", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const screenX = event.clientX - rect.left;
+    const screenY = event.clientY - rect.top;
+    arena.handleCanvasClick(screenX, screenY);
+  });
+
   window.geneticArena = arena;
 });
