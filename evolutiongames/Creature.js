@@ -49,6 +49,13 @@ export default class Creature {
     this.activeBuffs = [];
     this.buffMultipliers = { speed: 1, damage: 1, range: 1, cooldown: 1 };
     this.stateFlags = { inDanger: false, boosted: false };
+    this.biomesVisited = new Set();
+    this.bridgeCrossings = 0;
+    this.blockedByWaterTime = 0;
+    this.difficultTerrainTime = 0;
+    this.currentTerrainType = "grass";
+    this.wasOnBridge = false;
+    this.bridgeEntryFromLand = false;
   }
 
   get fitness() {
@@ -61,7 +68,11 @@ export default class Creature {
       this.zonePositiveTime * 1.5 +
       this.zoneBonusesAcquired * 15 +
       this.zoneLearningTime * 0.75 -
-      this.zoneDangerTime * 1.5;
+      this.zoneDangerTime * 1.5 +
+      this.bridgeCrossings * 5 -
+      this.blockedByWaterTime * 2 -
+      this.difficultTerrainTime +
+      this.biomesVisited.size * 1;
 
     const explorationBonus = 1 + Math.min(this.uniqueZoneTypes.size * 0.15, 0.6);
     const learningBonus = Math.max(1, this.learningMultiplierPeak);
@@ -78,6 +89,9 @@ export default class Creature {
     this.survivalTime += deltaSeconds;
     this.stateFlags.inDanger = false;
 
+    const terrainInfo = this.getTerrainInfo(tileMap);
+    this.biomesVisited.add(terrainInfo.type);
+
     const effectiveRange = this.attackRange * this.buffMultipliers.range;
     this.nearEnemyDistance = effectiveRange * NEAR_ENEMY_DISTANCE_MULTIPLIER;
 
@@ -92,7 +106,7 @@ export default class Creature {
       this.targetDirection = zoneInfo.zoneDirection;
     }
 
-    const inputs = this.buildBrainInputs(bounds, detection, zoneInfo);
+    const inputs = this.buildBrainInputs(bounds, detection, zoneInfo, terrainInfo);
     const [directionSignal, accelerationSignal, attackSignal, moveSignal, towardZoneSignal, avoidZoneSignal] =
       this.brain.feedforward(inputs);
 
@@ -124,12 +138,11 @@ export default class Creature {
     const lerpAmount = clamp(deltaSeconds * this.settings.directionResponsiveness, 0, 1);
     this.direction = lerpAngle(this.direction, desiredDirection, lerpAmount);
 
+    const terrainModifier = this.getTerrainSpeedModifier(terrainInfo.type);
     const acceleration = accelerationSignal * this.settings.maxAcceleration;
-    this.speed = clamp(
-      this.speed + acceleration * deltaSeconds,
-      this.settings.minSpeed,
-      this.settings.maxSpeed * this.buffMultipliers.speed,
-    );
+    const minSpeed = this.settings.minSpeed * terrainModifier;
+    const maxSpeed = this.settings.maxSpeed * this.buffMultipliers.speed * terrainModifier;
+    this.speed = clamp(this.speed + acceleration * deltaSeconds, minSpeed, maxSpeed);
 
     const velocityX = Math.cos(this.direction) * this.speed;
     const velocityY = Math.sin(this.direction) * this.speed;
@@ -141,12 +154,16 @@ export default class Creature {
 
     const blockingTile = tileMap?.getTileAt(nextX, nextY);
     if (blockingTile && blockingTile.type === "river") {
+      this.blockedByWaterTime += deltaSeconds;
+      this.recordTerrainUsage(terrainInfo, deltaSeconds);
       return;
     }
 
     this.position.x = nextX;
     this.position.y = nextY;
     this.distanceTravelled += Math.hypot(deltaX, deltaY);
+    const postMoveTerrain = tileMap ? this.getTerrainInfo(tileMap) : terrainInfo;
+    this.recordTerrainUsage(postMoveTerrain, deltaSeconds);
 
     this.handleWallBounce(bounds);
     this.tryAttack(currentTime, effectEmitter, detection, shouldAttack);
@@ -290,6 +307,72 @@ export default class Creature {
     return info;
   }
 
+  getTerrainInfo(tileMap) {
+    if (!tileMap) {
+      return {
+        type: this.currentTerrainType,
+        isWater: this.currentTerrainType === "water" || this.currentTerrainType === "river",
+        isBridge: this.currentTerrainType === "bridge",
+        isSand: this.currentTerrainType === "sand",
+        isSnow: this.currentTerrainType === "snow",
+        isGrass: this.currentTerrainType === "grass",
+      };
+    }
+    const tile = tileMap.getTileAt(this.position.x, this.position.y);
+    const type = tile?.type ?? "grass";
+    return {
+      type,
+      isWater: type === "water" || type === "river",
+      isBridge: type === "bridge",
+      isSand: type === "sand",
+      isSnow: type === "snow",
+      isGrass: type === "grass",
+    };
+  }
+
+  getTerrainSpeedModifier(type) {
+    switch (type) {
+      case "sand":
+        return 0.75;
+      case "snow":
+        return 0.65;
+      case "bridge":
+        return 1.05;
+      case "water":
+      case "river":
+        return 0.3;
+      default:
+        return 1;
+    }
+  }
+
+  recordTerrainUsage(info, deltaSeconds) {
+    if (!info) {
+      return;
+    }
+    if (info.isWater) {
+      this.blockedByWaterTime += deltaSeconds;
+    }
+    if (info.isSand || info.isSnow) {
+      this.difficultTerrainTime += deltaSeconds;
+    }
+
+    if (info.isBridge) {
+      if (!this.wasOnBridge) {
+        this.bridgeEntryFromLand = this.currentTerrainType !== "river" && this.currentTerrainType !== "water";
+      }
+      this.wasOnBridge = true;
+    } else if (this.wasOnBridge) {
+      if (info.type !== "river" && info.type !== "water" && this.bridgeEntryFromLand) {
+        this.bridgeCrossings += 1;
+      }
+      this.wasOnBridge = false;
+      this.bridgeEntryFromLand = false;
+    }
+
+    this.currentTerrainType = info.type;
+  }
+
   processZoneImpact(zone, deltaSeconds) {
     if (!zone?.active) {
       return;
@@ -371,7 +454,7 @@ export default class Creature {
       multipliers.cooldown > 1.05;
   }
 
-  buildBrainInputs({ width, height }, detection, zoneInfo) {
+  buildBrainInputs({ width, height }, detection, zoneInfo, terrainInfo) {
     const normalizedDirection = normalizeAngle(this.direction) / Math.PI - 1;
 
     const leftDistance = clamp((this.position.x - this.radius) / width, 0, 1);
@@ -404,6 +487,15 @@ export default class Creature {
     const zoneValue = clamp(zoneData.valueNormalized ?? 0, -1, 1);
     const zoneTypes = zoneData.typeEncoding ?? Array.from({ length: ZONE_ONE_HOT_LENGTH }, () => 0);
 
+    const terrain = terrainInfo ?? this.getTerrainInfo(null);
+    const terrainFlags = [
+      terrain.isWater ? 1 : 0,
+      terrain.isBridge ? 1 : 0,
+      terrain.isSand ? 1 : 0,
+      terrain.isSnow ? 1 : 0,
+      terrain.isGrass ? 1 : 0,
+    ];
+
     return [
       normalizedDirection,
       leftDistance,
@@ -422,6 +514,7 @@ export default class Creature {
       zoneInside,
       zoneValue,
       ...zoneTypes,
+      ...terrainFlags,
     ];
   }
 

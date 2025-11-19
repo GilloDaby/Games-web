@@ -1,5 +1,5 @@
 export const BRAIN_LAYOUT = {
-  inputs: 20,
+  inputs: 25,
   hidden: 6,
   outputs: 6,
 };
