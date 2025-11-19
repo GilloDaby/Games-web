@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
+    <title>Mémo Légendes</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: linear-gradient(135deg, #041028 0%, #111f3f 50%, #1a2b54 100%);
+        --card-back: #1c2748;
+        --card-front: #f7f8fc;
+        --accent: #ffb347;
+        --accent-strong: #ff8833;
+        --text-light: #f8f9ff;
+        --text-muted: #8fa2cc;
+        --shadow: rgba(0, 0, 0, 0.25);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", "Nunito", system-ui, sans-serif;
+        min-height: 100vh;
+        margin: 0;
+        background: var(--bg) fixed;
+        color: var(--text-light);
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 2rem 1rem 4rem;
+      }
+
+      .app {
+        width: min(1100px, 100%);
+        background: rgba(12, 19, 41, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        box-shadow: 0 25px 60px var(--shadow);
+        padding: clamp(1.2rem, 2vw, 2.25rem);
+        backdrop-filter: blur(16px);
+      }
+
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-bottom: 1.5rem;
+      }
+
+      header h1 {
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        margin: 0;
+      }
+
+      header p {
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .control {
+        background: rgba(255, 255, 255, 0.04);
+        padding: 0.75rem 1.2rem;
+        border-radius: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      label {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+      }
+
+      select {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 0.55rem 0.75rem;
+        background: rgba(0, 0, 0, 0.4);
+        color: var(--text-light);
+        font-size: 1rem;
+        outline: none;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 0.8rem 1.6rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        color: #041028;
+        background: linear-gradient(140deg, var(--accent), var(--accent-strong));
+        box-shadow: 0 12px 25px rgba(255, 136, 51, 0.35);
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 15px 30px rgba(255, 136, 51, 0.5);
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .stats .stat {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 0.85rem 1rem;
+      }
+
+      .stats .value {
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+
+      .message {
+        min-height: 2.5rem;
+        display: flex;
+        align-items: center;
+        font-size: 1rem;
+        color: var(--text-muted);
+      }
+
+      .game-board {
+        display: grid;
+        gap: clamp(0.5rem, 1.5vw, 0.85rem);
+        justify-items: center;
+        margin-top: 1rem;
+      }
+
+      .card {
+        width: 100%;
+        aspect-ratio: 4 / 5.3;
+        position: relative;
+        cursor: pointer;
+        border: none;
+        perspective: 1000px;
+        background: transparent;
+      }
+
+      .card-inner {
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        transition: transform 0.6s cubic-bezier(0.4, 0.2, 0, 1);
+      }
+
+      .card.flipped .card-inner,
+      .card.matched .card-inner {
+        transform: rotateY(180deg);
+      }
+
+      .card-face {
+        position: absolute;
+        inset: 0;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backface-visibility: hidden;
+        font-size: clamp(1.5rem, 4vw, 2.75rem);
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .card-face.back {
+        background: var(--card-back);
+        box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.03);
+      }
+
+      .card-face.front {
+        background: var(--card-front);
+        color: #17233d;
+        transform: rotateY(180deg);
+      }
+
+      .card.matched .card-face.front {
+        box-shadow: 0 0 15px rgba(50, 205, 110, 0.65);
+      }
+
+      .tips {
+        margin-top: 1.5rem;
+        padding: 1rem 1.2rem;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+
+      .tips strong {
+        color: var(--text-light);
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 1rem;
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>Mémo Légendes</h1>
+        <p>
+          Retournez les cartes par paire, domptez les difficultés enchaînées et
+          signez votre meilleur chrono !
+        </p>
+      </header>
+
+      <section class="controls">
+        <div class="control">
+          <label for="difficulty">Difficulté</label>
+          <select id="difficulty">
+            <option value="novice">Novice (4x4)</option>
+            <option value="aventurier">Aventurier (5x4)</option>
+            <option value="heroique">Héroïque (6x4)</option>
+            <option value="mythique">Mythique (6x6)</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label for="mode">Mode de jeu</label>
+          <select id="mode">
+            <option value="detente">Détente – pas de limite</option>
+            <option value="chrono">Chrono – battez le temps cible</option>
+          </select>
+        </div>
+
+        <button id="start-btn">Nouvelle Partie</button>
+      </section>
+
+      <section class="stats">
+        <div class="stat">
+          <div class="value" id="timer">00:00</div>
+          <div>Temps</div>
+        </div>
+
+        <div class="stat">
+          <div class="value" id="moves">0</div>
+          <div>Mouvements</div>
+        </div>
+
+        <div class="stat">
+          <div class="value" id="matches">0</div>
+          <div>Paires trouvées</div>
+        </div>
+
+        <div class="stat">
+          <div class="value" id="best">–</div>
+          <div>Meilleur chrono</div>
+        </div>
+      </section>
+
+      <div class="message" id="message">Choisissez vos options et lancez-vous !</div>
+
+      <section class="game-board" id="board"></section>
+
+      <div class="tips">
+        <strong>Astuce :</strong> alternez les difficultés pour entraîner votre
+        mémoire. Le mode <em>Chrono</em> vous défie avec un temps cible propre à
+        chaque niveau.
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const difficulties = {
+          novice: {
+            label: "Novice",
+            rows: 4,
+            cols: 4,
+            pairs: 8,
+            targetTime: 80,
+          },
+          aventurier: {
+            label: "Aventurier",
+            rows: 5,
+            cols: 4,
+            pairs: 10,
+            targetTime: 110,
+          },
+          heroique: {
+            label: "Héroïque",
+            rows: 6,
+            cols: 4,
+            pairs: 12,
+            targetTime: 150,
+          },
+          mythique: {
+            label: "Mythique",
+            rows: 6,
+            cols: 6,
+            pairs: 18,
+            targetTime: 210,
+          },
+        };
+
+        const symbols = [
+          "🗡️",
+          "🛡️",
+          "🐲",
+          "🧝",
+          "🦄",
+          "🧙",
+          "🔥",
+          "⚡",
+          "🌙",
+          "🍃",
+          "💎",
+          "🌊",
+          "🌀",
+          "🎲",
+          "🏹",
+          "🛸",
+          "👑",
+          "☄️",
+        ];
+
+        const state = {
+          firstCard: null,
+          secondCard: null,
+          lock: false,
+          matches: 0,
+          moves: 0,
+          timer: 0,
+          timerId: null,
+          deckDifficulty: null,
+          mode: "detente",
+        };
+
+        const els = {
+          board: document.getElementById("board"),
+          difficulty: document.getElementById("difficulty"),
+          mode: document.getElementById("mode"),
+          startBtn: document.getElementById("start-btn"),
+          message: document.getElementById("message"),
+          timer: document.getElementById("timer"),
+          moves: document.getElementById("moves"),
+          matches: document.getElementById("matches"),
+          best: document.getElementById("best"),
+        };
+
+        const storageKey = "memoLegend-bestTimes";
+        const bestTimes = JSON.parse(localStorage.getItem(storageKey) || "{}");
+
+        function formatTime(seconds) {
+          const m = Math.floor(seconds / 60)
+            .toString()
+            .padStart(2, "0");
+          const s = (seconds % 60).toString().padStart(2, "0");
+          return `${m}:${s}`;
+        }
+
+        function shuffle(array) {
+          for (let i = array.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+          }
+          return array;
+        }
+
+        function buildDeck(pairs) {
+          const available = [...symbols];
+          if (pairs > available.length) {
+            const cycles = Math.ceil(pairs / available.length);
+            for (let i = 1; i < cycles; i += 1) {
+              available.push(...symbols);
+            }
+          }
+          const selection = available.slice(0, pairs);
+          const deck = [...selection, ...selection];
+          return shuffle(deck);
+        }
+
+        function stopTimer() {
+          if (state.timerId) {
+            clearInterval(state.timerId);
+            state.timerId = null;
+          }
+        }
+
+        function startTimer() {
+          stopTimer();
+          state.timer = 0;
+          els.timer.textContent = "00:00";
+          state.timerId = setInterval(() => {
+            state.timer += 1;
+            els.timer.textContent = formatTime(state.timer);
+            if (
+              state.mode === "chrono" &&
+              state.timer === state.deckDifficulty.targetTime
+            ) {
+              els.message.textContent =
+                "⏳ Il faut accélérer pour battre le chrono !";
+            }
+          }, 1000);
+        }
+
+        function updateStats() {
+          els.moves.textContent = state.moves;
+          els.matches.textContent = `${state.matches}/${state.deckDifficulty.pairs}`;
+          const best = bestTimes[state.deckDifficultyKey];
+          els.best.textContent = best ? formatTime(best) : "–";
+        }
+
+        function setMessage(text, celebrate = false) {
+          els.message.textContent = text;
+          els.message.style.color = celebrate ? "#8df5a3" : "var(--text-muted)";
+        }
+
+        function resetState() {
+          state.firstCard = null;
+          state.secondCard = null;
+          state.lock = false;
+          state.matches = 0;
+          state.moves = 0;
+        }
+
+        function renderBoard(deck, difficulty) {
+          els.board.innerHTML = "";
+          els.board.style.gridTemplateColumns = `repeat(${difficulty.cols}, minmax(70px, 1fr))`;
+          deck.forEach((symbol, index) => {
+            const card = document.createElement("button");
+            card.className = "card";
+            card.type = "button";
+            card.dataset.symbol = symbol;
+            card.dataset.index = index;
+            card.innerHTML = `
+              <div class="card-inner">
+                <div class="card-face back">🜂</div>
+                <div class="card-face front">${symbol}</div>
+              </div>
+            `;
+            card.addEventListener("click", () => onCardClick(card));
+            els.board.appendChild(card);
+          });
+        }
+
+        function onCardClick(card) {
+          if (
+            state.lock ||
+            card === state.firstCard ||
+            card.classList.contains("matched")
+          ) {
+            return;
+          }
+
+          card.classList.add("flipped");
+
+          if (!state.firstCard) {
+            state.firstCard = card;
+            return;
+          }
+
+          state.secondCard = card;
+          state.lock = true;
+          state.moves += 1;
+          updateStats();
+
+          const isMatch =
+            state.firstCard.dataset.symbol === state.secondCard.dataset.symbol;
+
+          if (isMatch) {
+            handleMatch();
+          } else {
+            setTimeout(() => {
+              state.firstCard.classList.remove("flipped");
+              state.secondCard.classList.remove("flipped");
+              resetSelection();
+            }, 900);
+          }
+        }
+
+        function handleMatch() {
+          state.firstCard.classList.add("matched");
+          state.secondCard.classList.add("matched");
+          state.matches += 1;
+          updateStats();
+          if (state.matches === state.deckDifficulty.pairs) {
+            onWin();
+          } else {
+            setMessage("Belle mémoire, continuez !", true);
+          }
+          resetSelection();
+        }
+
+        function resetSelection() {
+          state.firstCard = null;
+          state.secondCard = null;
+          state.lock = false;
+        }
+
+        function onWin() {
+          stopTimer();
+          const time = state.timer;
+          const difficultyKey = state.deckDifficultyKey;
+          const target = state.deckDifficulty.targetTime;
+          const chronoBonus =
+            state.mode === "chrono" && time <= target
+              ? " 🔥 Chrono maîtrisé !"
+              : "";
+          setMessage(
+            `Victoire en ${formatTime(time)} avec ${state.moves} mouvements.${chronoBonus}`,
+            true
+          );
+          if (!bestTimes[difficultyKey] || time < bestTimes[difficultyKey]) {
+            bestTimes[difficultyKey] = time;
+            localStorage.setItem(storageKey, JSON.stringify(bestTimes));
+            updateStats();
+          }
+        }
+
+        function startGame() {
+          const difficultyKey = els.difficulty.value;
+          const difficulty = difficulties[difficultyKey];
+          state.deckDifficultyKey = difficultyKey;
+          state.deckDifficulty = difficulty;
+          state.mode = els.mode.value;
+          resetState();
+          const deck = buildDeck(difficulty.pairs);
+          renderBoard(deck, difficulty);
+          updateStats();
+          startTimer();
+          const targetMsg =
+            state.mode === "chrono"
+              ? `Chrono cible : ${formatTime(difficulty.targetTime)}`
+              : "Mode détente activé";
+          setMessage(`${difficulty.label} sélectionné. ${targetMsg}`);
+        }
+
+        els.startBtn.addEventListener("click", startGame);
+        els.difficulty.addEventListener("change", () => {
+          const key = els.difficulty.value;
+          const diff = difficulties[key];
+          els.best.textContent = bestTimes[key]
+            ? formatTime(bestTimes[key])
+            : "–";
+          setMessage(
+            `Prêt pour ${diff.label} ? Lancez une nouvelle partie pour commencer.`
+          );
+        });
+
+        window.addEventListener("beforeunload", () => {
+          stopTimer();
+        });
+
+        // Démarrage automatique sur la première visite
+        startGame();
+      })();
+    </script>
+  </body>
+</html>
