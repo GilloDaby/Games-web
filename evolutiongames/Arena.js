@@ -43,6 +43,7 @@ export default class Arena {
     const tileMapHeight = Math.ceil(this.config.height / tileSize);
     this.tileMap = new TileMap(tileMapWidth, tileMapHeight, tileSize);
     this.tileMap.generateBiomes();
+    this.tileMap.generateRiver();
 
     this.ga = new GeneticAlgorithm({
       populationSize: this.config.populationSize,
@@ -211,6 +212,7 @@ export default class Arena {
         generationTime,
         (effect) => this.spawnAttackEffect(effect),
         this.zones,
+        this.tileMap,
       );
       totalFitness += creature.fitness;
       if (creature.fitness > bestFitness) {

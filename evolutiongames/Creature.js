@@ -69,7 +69,7 @@ export default class Creature {
     return baseFitness * explorationBonus * learningBonus;
   }
 
-  update(deltaSeconds, bounds, population, currentTime, effectEmitter, zones = []) {
+  update(deltaSeconds, bounds, population, currentTime, effectEmitter, zones = [], tileMap = null) {
     if (!this.alive) {
       return;
     }
@@ -136,8 +136,16 @@ export default class Creature {
 
     const deltaX = velocityX * deltaSeconds;
     const deltaY = velocityY * deltaSeconds;
-    this.position.x += deltaX;
-    this.position.y += deltaY;
+    const nextX = this.position.x + deltaX;
+    const nextY = this.position.y + deltaY;
+
+    const blockingTile = tileMap?.getTileAt(nextX, nextY);
+    if (blockingTile && blockingTile.type === "river") {
+      return;
+    }
+
+    this.position.x = nextX;
+    this.position.y = nextY;
     this.distanceTravelled += Math.hypot(deltaX, deltaY);
 
     this.handleWallBounce(bounds);

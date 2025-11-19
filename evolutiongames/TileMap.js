@@ -6,6 +6,8 @@ const TILE_TEXTURE_PATHS = {
   sand: "img/tiles/sand.png",
   snow: "img/tiles/snow.png",
   water: "img/tiles/water.png",
+  river: "img/tiles/river.png",
+  bridge: "img/tiles/bridge.png",
 };
 
 export default class TileMap {
@@ -58,6 +60,38 @@ export default class TileMap {
           this.grid[y][x].type = type;
         }
       }
+    }
+  }
+
+  generateRiver() {
+    if (!this.grid.length) {
+      return;
+    }
+    let currentX = Math.floor(Math.random() * this.width);
+    let currentY = 0;
+    const riverTiles = [];
+
+    while (currentY < this.height) {
+      riverTiles.push({ x: currentX, y: currentY });
+      this.grid[currentY][currentX].type = "river";
+
+      const direction = Math.random();
+      if (direction < 0.2 && currentX > 0) {
+        currentX -= 1;
+      } else if (direction > 0.8 && currentX < this.width - 1) {
+        currentX += 1;
+      }
+      currentY += 1;
+    }
+
+    this.generateBridges(riverTiles);
+  }
+
+  generateBridges(riverTiles) {
+    const bridgeInterval = 10 + Math.floor(Math.random() * 6);
+    for (let i = bridgeInterval; i < riverTiles.length; i += bridgeInterval) {
+      const tile = riverTiles[i];
+      this.grid[tile.y][tile.x].type = "bridge";
     }
   }
 
