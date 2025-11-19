@@ -264,7 +264,8 @@ export default class Arena {
   drawArena() {
     const ctx = this.ctx;
     ctx.save();
-    ctx.fillStyle = "#04111c";
+    // Background is now handled by the tilemap; keep a subtle overlay/grid only.
+    ctx.fillStyle = "rgba(4, 17, 28, 0.2)";
     ctx.fillRect(0, 0, this.bounds.width, this.bounds.height);
 
     ctx.strokeStyle = "rgba(255,255,255,0.05)";
