@@ -88,10 +88,26 @@ export default class TileMap {
   }
 
   generateBridges(riverTiles) {
-    const bridgeInterval = 10 + Math.floor(Math.random() * 6);
-    for (let i = bridgeInterval; i < riverTiles.length; i += bridgeInterval) {
-      const tile = riverTiles[i];
+    if (!riverTiles.length) {
+      return;
+    }
+    const desired = Math.max(3, Math.floor(riverTiles.length / 8));
+    for (let i = 1; i <= desired; i += 1) {
+      const index = Math.min(
+        riverTiles.length - 1,
+        Math.floor((i * riverTiles.length) / (desired + 1)),
+      );
+      const tile = riverTiles[index];
       this.grid[tile.y][tile.x].type = "bridge";
+      // small chance to widen bridge
+      if (Math.random() < 0.5) {
+        if (tile.x + 1 < this.width) {
+          this.grid[tile.y][tile.x + 1].type = "bridge";
+        }
+        if (tile.x - 1 >= 0) {
+          this.grid[tile.y][tile.x - 1].type = "bridge";
+        }
+      }
     }
   }
 

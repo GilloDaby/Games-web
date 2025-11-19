@@ -69,8 +69,8 @@ export default class Creature {
       this.zoneBonusesAcquired * 15 +
       this.zoneLearningTime * 0.75 -
       this.zoneDangerTime * 1.5 +
-      this.bridgeCrossings * 5 -
-      this.blockedByWaterTime * 2 -
+      this.bridgeCrossings * 10 -
+      this.blockedByWaterTime * 4 -
       this.difficultTerrainTime +
       this.biomesVisited.size * 1;
 
@@ -153,9 +153,10 @@ export default class Creature {
     const nextY = this.position.y + deltaY;
 
     const blockingTile = tileMap?.getTileAt(nextX, nextY);
-    if (blockingTile && blockingTile.type === "river") {
+    if (blockingTile && (blockingTile.type === "river" || blockingTile.type === "water")) {
       this.blockedByWaterTime += deltaSeconds;
       this.recordTerrainUsage(terrainInfo, deltaSeconds);
+      this.takeDamage(15 * deltaSeconds);
       return;
     }
 
@@ -352,6 +353,7 @@ export default class Creature {
     }
     if (info.isWater) {
       this.blockedByWaterTime += deltaSeconds;
+      this.takeDamage(12 * deltaSeconds);
     }
     if (info.isSand || info.isSnow) {
       this.difficultTerrainTime += deltaSeconds;

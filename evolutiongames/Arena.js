@@ -157,9 +157,10 @@ export default class Arena {
 
   createCreature(brain) {
     const radius = this.config.creatureSettings.radius;
+    const spawn = this.getSafeSpawnPosition(radius);
     return new Creature({
-      x: randomBetween(radius, this.bounds.width - radius),
-      y: randomBetween(radius, this.bounds.height - radius),
+      x: spawn.x,
+      y: spawn.y,
       speed: randomBetween(
         this.config.creatureSettings.minSpeed,
         this.config.creatureSettings.maxSpeed,
@@ -170,6 +171,23 @@ export default class Arena {
       brain,
       settings: this.config.creatureSettings,
     });
+  }
+
+  getSafeSpawnPosition(radius) {
+    const maxAttempts = 200;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const x = randomBetween(radius, this.bounds.width - radius);
+      const y = randomBetween(radius, this.bounds.height - radius);
+      const tile = this.tileMap?.getTileAt(x, y);
+      if (!tile || (tile.type !== "river" && tile.type !== "water")) {
+        return { x, y };
+      }
+    }
+    // fallback
+    return {
+      x: radius + (this.bounds.width - radius * 2) * Math.random(),
+      y: radius + (this.bounds.height - radius * 2) * Math.random(),
+    };
   }
 
   start() {
@@ -442,12 +460,23 @@ export default class Arena {
   }
 
   generateZones() {
-    const zoneCount = Math.floor(randomBetween(3, 8));
+    const zoneCount = Math.max(1, Math.floor(randomBetween(2, 4)));
     this.zones = [];
-    for (let i = 0; i < zoneCount; i += 1) {
+    let attempts = 0;
+    while (this.zones.length < zoneCount && attempts < 50) {
+      attempts += 1;
       const type = pickZoneType();
-      const zone = Zone.createRandom(type, this.bounds);
-      this.zones.push(zone);
+      const candidate = Zone.createRandom(type, this.bounds);
+      if (
+        this.zones.some(
+          (existing) =>
+            Math.hypot(existing.x - candidate.x, existing.y - candidate.y) <
+            existing.radius + candidate.radius + 80,
+        )
+      ) {
+        continue;
+      }
+      this.zones.push(candidate);
     }
   }
 
