@@ -2,6 +2,7 @@ import Creature from "./Creature.js";
 import GeneticAlgorithm from "./GeneticAlgorithm.js";
 import NeuralNetwork from "./NeuralNetwork.js";
 import Zone, { pickZoneType } from "./Zone.js";
+import TileMap from "./TileMap.js";
 
 const ARENA_SETTINGS = {
   width: 1600,
@@ -36,6 +37,12 @@ export default class Arena {
     this.bounds = { width: this.config.width, height: this.config.height };
     this.canvas.width = this.config.width;
     this.canvas.height = this.config.height;
+    // Simple tilemap d'arrière-plan
+    const tileSize = 32;
+    const tileMapWidth = Math.ceil(this.config.width / tileSize);
+    const tileMapHeight = Math.ceil(this.config.height / tileSize);
+    this.tileMap = new TileMap(tileMapWidth, tileMapHeight, tileSize);
+    this.tileMap.generateFlat("grass");
 
     this.ga = new GeneticAlgorithm({
       populationSize: this.config.populationSize,
@@ -241,6 +248,7 @@ export default class Arena {
 
   draw() {
     this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
+    this.drawTileMap();
     this.drawArena();
     this.drawZones();
 
@@ -276,6 +284,12 @@ export default class Arena {
     ctx.lineWidth = 4;
     ctx.strokeRect(2, 2, this.bounds.width - 4, this.bounds.height - 4);
     ctx.restore();
+  }
+
+  drawTileMap() {
+    if (this.tileMap) {
+      this.tileMap.draw(this.ctx);
+    }
   }
 
   drawZones() {
