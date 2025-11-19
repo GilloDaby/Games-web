@@ -54,6 +54,10 @@ export default class Arena {
       focusX: this.bounds.width / 2,
       focusY: this.bounds.height / 2,
       follow: null,
+      isDragging: false,
+      dragStart: { x: 0, y: 0 },
+      focusStart: { x: 0, y: 0 },
+      wasDragging: false,
     };
 
     this.ga = new GeneticAlgorithm({
@@ -273,6 +277,9 @@ export default class Arena {
 
     this.updateHud();
     this.updateAttackEffects(deltaSeconds);
+    this.updateCamera(deltaSeconds);
+    this.maintainFollowTarget();
+    this.maintainFollowTarget();
     this.updateCamera(deltaSeconds);
 
     if (
@@ -507,6 +514,24 @@ export default class Arena {
     this.camera.focusY = clamp(this.camera.focusY, 0, this.bounds.height);
   }
 
+  maintainFollowTarget() {
+    if (!this.camera.follow) {
+      return;
+    }
+    if (this.camera.follow.alive) {
+      return;
+    }
+    const killer = this.camera.follow.killedBy;
+    if (killer && killer.alive) {
+      this.camera.follow = killer;
+      return;
+    }
+    const alive = this.creatures.filter((creature) => creature.alive);
+    this.camera.follow = alive.length
+      ? alive[Math.floor(Math.random() * alive.length)]
+      : null;
+  }
+
   screenToWorld(screenX, screenY) {
     const x =
       (screenX - this.canvas.width / 2) / this.camera.zoom + this.camera.focusX;
@@ -515,7 +540,36 @@ export default class Arena {
     return { x, y };
   }
 
+  startCameraDrag(screenX, screenY) {
+    this.camera.isDragging = true;
+    this.camera.dragStart = { x: screenX, y: screenY };
+    this.camera.focusStart = { x: this.camera.focusX, y: this.camera.focusY };
+    this.camera.wasDragging = false;
+    this.camera.follow = null;
+  }
+
+  dragCamera(screenX, screenY) {
+    if (!this.camera.isDragging) {
+      return;
+    }
+    const dx = (screenX - this.camera.dragStart.x) / this.camera.zoom;
+    const dy = (screenY - this.camera.dragStart.y) / this.camera.zoom;
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+      this.camera.wasDragging = true;
+    }
+    this.camera.focusX = clamp(this.camera.focusStart.x - dx, 0, this.bounds.width);
+    this.camera.focusY = clamp(this.camera.focusStart.y - dy, 0, this.bounds.height);
+  }
+
+  endCameraDrag() {
+    this.camera.isDragging = false;
+  }
+
   handleCanvasClick(screenX, screenY) {
+    if (this.camera.wasDragging) {
+      this.camera.wasDragging = false;
+      return;
+    }
     const { x, y } = this.screenToWorld(screenX, screenY);
     let closest = null;
     let minDist = Infinity;

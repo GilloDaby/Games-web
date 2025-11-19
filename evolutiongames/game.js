@@ -48,6 +48,25 @@ window.addEventListener("DOMContentLoaded", () => {
     { passive: false },
   );
 
+  canvas.addEventListener("mousedown", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    arena.startCameraDrag(event.clientX - rect.left, event.clientY - rect.top);
+  });
+
+  canvas.addEventListener("mousemove", (event) => {
+    if (!arena.camera?.isDragging) {
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    arena.dragCamera(event.clientX - rect.left, event.clientY - rect.top);
+  });
+
+  const endDrag = () => {
+    arena.endCameraDrag();
+  };
+  canvas.addEventListener("mouseup", endDrag);
+  canvas.addEventListener("mouseleave", endDrag);
+
   canvas.addEventListener("click", (event) => {
     const rect = canvas.getBoundingClientRect();
     const screenX = event.clientX - rect.left;

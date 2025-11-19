@@ -59,6 +59,7 @@ export default class Creature {
     this.bridgeEntryFromLand = false;
     this.skin = skin;
     this.animationTime = Math.random() * 3;
+    this.killedBy = null;
   }
 
   get fitness() {
@@ -549,7 +550,7 @@ export default class Creature {
 
     this.lastAttackTime = currentTime;
     const attackDamage = this.damage * this.buffMultipliers.damage;
-    const targetDied = target.takeDamage(attackDamage);
+    const targetDied = target.takeDamage(attackDamage, this);
     this.attackSuccessCount += 1;
     if (targetDied) {
       this.killCount += 1;
@@ -565,7 +566,7 @@ export default class Creature {
     }
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, attacker = null) {
     if (!this.alive) {
       return false;
     }
@@ -574,6 +575,7 @@ export default class Creature {
     if (this.hp <= 0) {
       this.hp = 0;
       this.alive = false;
+      this.killedBy = attacker;
       return true;
     }
     return false;
