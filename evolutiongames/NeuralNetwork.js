@@ -1,3 +1,9 @@
+export const BRAIN_LAYOUT = {
+  inputs: 12,
+  hidden: 4,
+  outputs: 4,
+};
+
 export default class NeuralNetwork {
   constructor(inputSize, hiddenSize, outputSize) {
     this.inputSize = inputSize;

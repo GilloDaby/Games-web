@@ -1,4 +1,9 @@
-import NeuralNetwork from "./NeuralNetwork.js";
+import NeuralNetwork, { BRAIN_LAYOUT } from "./NeuralNetwork.js";
+
+const ATTACK_ACTIVATION_THRESHOLD = 0.25;
+const NEAR_ENEMY_DISTANCE_MULTIPLIER = 1.5;
+const DANGER_RADIUS_MULTIPLIER = 2.5;
+const DANGER_NORMALIZATION = 5;
 
 export default class Creature {
   constructor({
@@ -16,21 +21,31 @@ export default class Creature {
     this.direction = direction;
     this.radius = radius;
     this.color = color;
-    this.brain = brain ?? new NeuralNetwork(7, 4, 2);
+    this.brain = brain ?? new NeuralNetwork(BRAIN_LAYOUT.inputs, BRAIN_LAYOUT.hidden, BRAIN_LAYOUT.outputs);
     this.settings = settings;
     this.distanceTravelled = 0;
     this.survivalTime = 0;
     this.killCount = 0;
+    this.attackSuccessCount = 0;
+    this.proximityTime = 0;
+    this.maxHp = settings.hp;
     this.hp = settings.hp;
     this.damage = settings.damage;
     this.attackRange = settings.attackRange;
     this.attackCooldown = settings.attackCooldown;
     this.lastAttackTime = -Infinity;
     this.alive = true;
+    this.nearEnemyDistance = this.attackRange * NEAR_ENEMY_DISTANCE_MULTIPLIER;
   }
 
   get fitness() {
-    return this.distanceTravelled + this.survivalTime + this.killCount * 10;
+    return (
+      this.distanceTravelled +
+      this.survivalTime +
+      this.proximityTime +
+      this.attackSuccessCount * 5 +
+      this.killCount * 20
+    );
   }
 
   update(deltaSeconds, bounds, population, currentTime, effectEmitter) {
@@ -40,12 +55,31 @@ export default class Creature {
 
     this.survivalTime += deltaSeconds;
 
-    const inputs = this.buildBrainInputs(bounds);
-    const [directionSignal, accelerationSignal] = this.brain.feedforward(inputs);
+    const detection = this.detectEnemies(population, bounds);
+    if (detection.hasEnemy && detection.distance <= this.nearEnemyDistance) {
+      this.proximityTime += deltaSeconds;
+    }
 
-    const targetDirection = mapSignalToAngle(directionSignal);
+    const inputs = this.buildBrainInputs(bounds, detection);
+    const [directionSignal, accelerationSignal, attackSignal, moveSignal] =
+      this.brain.feedforward(inputs);
+
+    const hasEnemy = detection.hasEnemy;
+    const shouldAttack = hasEnemy && attackSignal > ATTACK_ACTIVATION_THRESHOLD;
+    const moveToward = hasEnemy ? moveSignal >= 0 : false;
+
+    let desiredDirection = mapSignalToAngle(directionSignal);
+    if (hasEnemy) {
+      const pursuitDirection = moveToward
+        ? detection.enemyDirection
+        : normalizeAngle(detection.enemyDirection + Math.PI);
+      desiredDirection = shouldAttack ? detection.enemyDirection : pursuitDirection;
+    }
+
+    desiredDirection += (Math.random() - 0.5) * 0.05;
+
     const lerpAmount = clamp(deltaSeconds * this.settings.directionResponsiveness, 0, 1);
-    this.direction = lerpAngle(this.direction, targetDirection, lerpAmount);
+    this.direction = lerpAngle(this.direction, desiredDirection, lerpAmount);
 
     const acceleration = accelerationSignal * this.settings.maxAcceleration;
     this.speed = clamp(
@@ -64,7 +98,7 @@ export default class Creature {
     this.distanceTravelled += Math.hypot(deltaX, deltaY);
 
     this.handleWallBounce(bounds);
-    this.tryAttack(population, currentTime, effectEmitter);
+    this.tryAttack(currentTime, effectEmitter, detection, shouldAttack);
   }
 
   handleWallBounce({ width, height }) {
@@ -91,7 +125,57 @@ export default class Creature {
     }
   }
 
-  buildBrainInputs({ width, height }) {
+  detectEnemies(population, bounds) {
+    const detection = {
+      hasEnemy: false,
+      enemy: null,
+      distance: Math.hypot(bounds.width, bounds.height),
+      distanceRatio: 1,
+      enemyDirection: this.direction,
+      angleDelta: 0,
+      dangerLevel: 0,
+    };
+
+    let closest = null;
+    let closestDistSq = Infinity;
+    let threatCount = 0;
+    const dangerRadius = this.attackRange * DANGER_RADIUS_MULTIPLIER;
+    const dangerRadiusSq = dangerRadius * dangerRadius;
+
+    for (const other of population) {
+      if (other === this || !other.alive) {
+        continue;
+      }
+      const dx = other.position.x - this.position.x;
+      const dy = other.position.y - this.position.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < closestDistSq) {
+        closestDistSq = distSq;
+        closest = { ref: other, dx, dy, distSq };
+      }
+      if (distSq <= dangerRadiusSq) {
+        threatCount += 1;
+      }
+    }
+
+    if (closest) {
+      const distance = Math.sqrt(closest.distSq);
+      const direction = Math.atan2(closest.dy, closest.dx);
+      const normalizedAngleDiff = clamp(normalizeAngle(direction - this.direction) / Math.PI, -1, 1);
+      const arenaDiag = Math.hypot(bounds.width, bounds.height);
+      detection.hasEnemy = true;
+      detection.enemy = closest.ref;
+      detection.distance = distance;
+      detection.distanceRatio = clamp(distance / arenaDiag, 0, 1);
+      detection.enemyDirection = direction;
+      detection.angleDelta = normalizedAngleDiff;
+    }
+
+    detection.dangerLevel = clamp(threatCount / DANGER_NORMALIZATION, 0, 1);
+    return detection;
+  }
+
+  buildBrainInputs({ width, height }, detection) {
     const normalizedDirection = normalizeAngle(this.direction) / Math.PI - 1;
 
     const leftDistance = clamp((this.position.x - this.radius) / width, 0, 1);
@@ -102,6 +186,13 @@ export default class Creature {
     const xNormalized = clamp(this.position.x / width, 0, 1);
     const yNormalized = clamp(this.position.y / height, 0, 1);
 
+    const hpNormalized = clamp(this.hp / this.maxHp, 0, 1);
+    const hpRatio = hpNormalized; // ratio HP / HPmax (identique mais dédié aux évolutions futures)
+
+    const distanceToEnemy = detection.distanceRatio;
+    const angleToEnemy = detection.angleDelta;
+    const danger = detection.dangerLevel;
+
     return [
       normalizedDirection,
       leftDistance,
@@ -110,36 +201,36 @@ export default class Creature {
       bottomDistance,
       xNormalized,
       yNormalized,
+      distanceToEnemy,
+      angleToEnemy,
+      hpNormalized,
+      hpRatio,
+      danger,
     ];
   }
 
-  tryAttack(population, currentTime, effectEmitter) {
-    if (currentTime - this.lastAttackTime < this.attackCooldown) {
+  tryAttack(currentTime, effectEmitter, detection, shouldAttack) {
+    if (
+      !shouldAttack ||
+      currentTime - this.lastAttackTime < this.attackCooldown ||
+      !detection ||
+      !detection.enemy
+    ) {
       return;
     }
 
-    let target = null;
-    let closestDistanceSq = this.attackRange ** 2;
+    const target = detection.enemy;
+    const dx = target.position.x - this.position.x;
+    const dy = target.position.y - this.position.y;
+    const distance = Math.hypot(dx, dy);
 
-    for (const other of population) {
-      if (other === this || !other.alive) {
-        continue;
-      }
-      const dx = other.position.x - this.position.x;
-      const dy = other.position.y - this.position.y;
-      const distSq = dx * dx + dy * dy;
-      if (distSq <= closestDistanceSq) {
-        closestDistanceSq = distSq;
-        target = other;
-      }
-    }
-
-    if (!target) {
+    if (distance > this.attackRange + target.radius) {
       return;
     }
 
     this.lastAttackTime = currentTime;
     const targetDied = target.takeDamage(this.damage);
+    this.attackSuccessCount += 1;
     if (targetDied) {
       this.killCount += 1;
     }

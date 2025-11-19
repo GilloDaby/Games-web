@@ -56,22 +56,28 @@ export default class Arena {
     this.bestHistory = [];
     this.bestKillRecord = 0;
     this.recordBestFitness = 0;
+    this.prevBestFitness = 0;
+    this.stagnationCounter = 0;
     this.storageAvailable = typeof window !== "undefined" && "localStorage" in window;
     this.persistenceKey = STORAGE_KEY;
+    this.ga.setMutationPressure(0);
 
     const persisted = this.loadPersistedState();
     if (persisted && Array.isArray(persisted.brains) && persisted.brains.length) {
       try {
         this.generation = persisted.generation ?? 1;
         this.bestHistory = persisted.bestHistory ?? [];
-        this.bestKillRecord = this.bestHistory.reduce(
+        const historyKillRecord = this.bestHistory.reduce(
           (max, entry) => Math.max(max, entry.kills ?? 0),
           0,
         );
-        this.recordBestFitness = this.bestHistory.reduce(
+        const historyFitnessRecord = this.bestHistory.reduce(
           (max, entry) => Math.max(max, entry.fitness ?? 0),
           0,
         );
+        this.bestKillRecord = persisted.bestKillRecord ?? historyKillRecord;
+        this.recordBestFitness = persisted.recordBestFitness ?? historyFitnessRecord;
+        this.prevBestFitness = persisted.prevBestFitness ?? this.recordBestFitness ?? 0;
         const brains = persisted.brains.map((brain) => NeuralNetwork.fromJSON(brain));
         this.spawnPopulation(brains);
       } catch (error) {
@@ -98,6 +104,11 @@ export default class Arena {
     this.currentAlive = this.creatures.length;
     this.attackEffects = [];
     this.hudUpdateAccumulator = 0;
+    if (!brains || !brains.length) {
+      this.stagnationCounter = 0;
+      this.prevBestFitness = 0;
+      this.ga.setMutationPressure(0);
+    }
     this.persistState(brainInstances);
   }
 
@@ -261,6 +272,7 @@ export default class Arena {
     this.elapsedGenerationTime = 0;
     this.bestFitness = stats.best;
     this.averageFitness = stats.average;
+    this.updateMutationPressure(stats.best);
     this.totalKills = 0;
     this.currentAlive = this.creatures.length;
     this.hudUpdateAccumulator = 0;
@@ -340,6 +352,16 @@ export default class Arena {
     ctx.restore();
   }
 
+  updateMutationPressure(currentBest) {
+    if (currentBest > this.prevBestFitness + 0.5) {
+      this.prevBestFitness = currentBest;
+      this.stagnationCounter = 0;
+    } else {
+      this.stagnationCounter += 1;
+    }
+    this.ga.setMutationPressure(this.stagnationCounter);
+  }
+
   loadPersistedState() {
     if (!this.storageAvailable) {
       return null;
@@ -363,6 +385,9 @@ export default class Arena {
         generation: this.generation,
         brains: sourceBrains.map((brain) => brain.toJSON()),
         bestHistory: this.bestHistory,
+        bestKillRecord: this.bestKillRecord,
+        recordBestFitness: this.recordBestFitness,
+        prevBestFitness: this.prevBestFitness,
       };
       window.localStorage.setItem(this.persistenceKey, JSON.stringify(payload));
     } catch (error) {
@@ -378,6 +403,9 @@ export default class Arena {
     this.bestHistory = [];
     this.bestKillRecord = 0;
     this.recordBestFitness = 0;
+    this.prevBestFitness = 0;
+    this.stagnationCounter = 0;
+    this.ga.setMutationPressure(0);
     this.spawnPopulation();
     this.updateHud();
   }
