@@ -3,7 +3,7 @@ import GeneticAlgorithm from "./GeneticAlgorithm.js";
 import NeuralNetwork from "./NeuralNetwork.js";
 import Zone, { pickZoneType } from "./Zone.js";
 import TileMap from "./TileMap.js";
-import PlayerSkinManager from "./PlayerSkins.js";
+import PlayerSkinManager from "./PlayerSkinManager.js";
 
 const ARENA_SETTINGS = {
   width: 1600,

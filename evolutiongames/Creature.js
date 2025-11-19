@@ -58,6 +58,7 @@ export default class Creature {
     this.wasOnBridge = false;
     this.bridgeEntryFromLand = false;
     this.skin = skin;
+    this.animationTime = Math.random() * 3;
   }
 
   get fitness() {
@@ -90,6 +91,7 @@ export default class Creature {
     this.updateBuffs(deltaSeconds);
     this.survivalTime += deltaSeconds;
     this.stateFlags.inDanger = false;
+    this.animationTime += deltaSeconds;
 
     const terrainInfo = this.getTerrainInfo(tileMap);
     this.biomesVisited.add(terrainInfo.type);
@@ -615,19 +617,9 @@ export default class Creature {
       ctx.shadowBlur = 0;
     }
 
-    if (this.skin && this.skin.complete && this.skin.naturalWidth > 0) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.drawImage(
-        this.skin,
-        this.position.x - this.radius,
-        this.position.y - this.radius,
-        this.radius * 2,
-        this.radius * 2,
-      );
-      ctx.restore();
+    if (this.skin) {
+      const directionIndex = this.getSpriteDirectionIndex();
+      this.skin.draw(ctx, this.position.x, this.position.y, directionIndex, this.animationTime, this.radius);
     }
 
     const barWidth = this.radius * 2.1;
@@ -641,6 +633,15 @@ export default class Creature {
     ctx.fillStyle = hpRatio > 0.5 ? "#79ff95" : "#ff7979";
     ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
     ctx.restore();
+  }
+
+  getSpriteDirectionIndex() {
+    const dx = Math.cos(this.direction);
+    const dy = Math.sin(this.direction);
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return dx > 0 ? 2 : 1;
+    }
+    return dy > 0 ? 0 : 3;
   }
 }
 
