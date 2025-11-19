@@ -54,6 +54,30 @@ export default class NeuralNetwork {
     return outputs;
   }
 
+  toJSON() {
+    return {
+      inputSize: this.inputSize,
+      hiddenSize: this.hiddenSize,
+      outputSize: this.outputSize,
+      hiddenWeights: NeuralNetwork.deepCopyMatrix(this.hiddenWeights),
+      hiddenBiases: [...this.hiddenBiases],
+      outputWeights: NeuralNetwork.deepCopyMatrix(this.outputWeights),
+      outputBiases: [...this.outputBiases],
+    };
+  }
+
+  static fromJSON(data) {
+    if (!data) {
+      throw new Error("Invalid neural network payload");
+    }
+    const network = new NeuralNetwork(data.inputSize, data.hiddenSize, data.outputSize);
+    network.hiddenWeights = NeuralNetwork.deepCopyMatrix(data.hiddenWeights || []);
+    network.hiddenBiases = [...(data.hiddenBiases || [])];
+    network.outputWeights = NeuralNetwork.deepCopyMatrix(data.outputWeights || []);
+    network.outputBiases = [...(data.outputBiases || [])];
+    return network;
+  }
+
   static crossover(parentA, parentB, mutationRate) {
     const child = new NeuralNetwork(parentA.inputSize, parentA.hiddenSize, parentA.outputSize);
 
@@ -92,6 +116,6 @@ export default class NeuralNetwork {
   }
 
   static deepCopyMatrix(matrix) {
-    return matrix.map((row) => [...row]);
+    return (matrix || []).map((row) => [...row]);
   }
 }

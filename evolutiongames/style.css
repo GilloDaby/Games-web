@@ -42,7 +42,7 @@ body {
 
 .hud {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -68,6 +68,36 @@ body {
   margin-top: 0.35rem;
   font-size: 1.6rem;
   font-weight: 600;
+}
+
+.controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.reset-button {
+  background: linear-gradient(120deg, #ff5d73, #f7529d);
+  border: none;
+  border-radius: 0.75rem;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+}
+
+.reset-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(247, 82, 157, 0.45);
+}
+
+.reset-button:active {
+  transform: translateY(0);
+  opacity: 0.9;
 }
 
 .arena-wrapper {

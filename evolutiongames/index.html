@@ -25,7 +25,28 @@
           <span class="stat-label">Moyenne</span>
           <span class="stat-value" id="statAverage">0</span>
         </div>
+        <div class="stat">
+          <span class="stat-label">Vivants</span>
+          <span class="stat-value" id="statAlive">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Kills ce round</span>
+          <span class="stat-value" id="statKills">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Record kills</span>
+          <span class="stat-value" id="statRecordKills">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Record score</span>
+          <span class="stat-value" id="statRecordFitness">0</span>
+        </div>
       </section>
+      <div class="controls">
+        <button type="button" id="resetSimulation" class="reset-button">
+          Réinitialiser l'évolution
+        </button>
+      </div>
       <section class="arena-wrapper">
         <canvas
           id="arenaCanvas"
