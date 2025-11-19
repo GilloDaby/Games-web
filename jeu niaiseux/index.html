@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/style.css">
+  <title>Page Trop Cool</title>
+</head>
+<body>
+  <canvas id="fireworks" aria-hidden="true"></canvas>
+
+  <header class="hero">
+    <p class="hero__badge">Nouveau • 2025</p>
+    <h1>🚀 Page Trop Cool</h1>
+    <p class="hero__tagline">Animations, feux d’artifice et mini jeu intégrés.</p>
+    <div class="hero__actions">
+      <a class="btn btn--primary" href="#features">Découvrir</a>
+      <a class="btn btn--ghost" href="#game">Jouer</a>
+    </div>
+  </header>
+
+  <main>
+    <section id="features" class="section cards">
+      <h2>Ce qui la rend unique</h2>
+      <div class="cards__grid">
+        <article class="card">
+          <h3>Design dynamique</h3>
+          <p>Dégradés néon, ombres douces et typographies aérées donnent du relief.</p>
+        </article>
+        <article class="card">
+          <h3>Animations immersives</h3>
+          <p>Feux d’artifice CSS/JS qui réagissent à chaque clic de souris.</p>
+        </article>
+        <article class="card">
+          <h3>Mini jeu inclus</h3>
+          <p>Attrape les comètes en moins de 30 secondes et partage ton score.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section testimonial">
+      <blockquote>
+        “Depuis que j’ai cette page, tout le monde veut savoir comment je l’ai faite.”
+      </blockquote>
+      <p class="testimonial__author">— Rafoulab</p>
+    </section>
+
+    <section class="section gallery">
+      <h2>Mini galerie</h2>
+      <div class="gallery__grid">
+        <div class="gallery__item">✨</div>
+        <div class="gallery__item">🔥</div>
+        <div class="gallery__item">💡</div>
+      </div>
+    </section>
+
+    <section id="game" class="section game">
+      <div class="game__info">
+        <h2>Mini jeu : Attrape la comète</h2>
+        <p>Cliquer sur la comète rose pour gagner des points avant la fin du chrono.</p>
+        <div class="game__stats">
+          <span>Score : <strong data-score>0</strong></span>
+          <span>Temps : <strong data-timer>30</strong>s</span>
+        </div>
+        <button class="btn btn--primary" type="button" data-start>Lancer la partie</button>
+      </div>
+      <div class="game__arena">
+        <div class="game__orb" title="attrape-moi"></div>
+      </div>
+    </section>
+
+    <section id="extra-games" class="section mini-games">
+      <h2>5 mini jeux éclairs</h2>
+      <p class="mini-games__intro">Encore plus de défis rapides pour occuper tes doigts entre deux feux d’artifice.</p>
+      <div class="mini-games__grid">
+        <article class="mini-game" data-game="reaction">
+          <h3>Réflexes laser</h3>
+          <p>Appuie dès que le bouton crie GO! et découvre ta vitesse de réaction.</p>
+          <button type="button" class="mini-game__action">Prêt ?</button>
+          <p class="mini-game__status" aria-live="polite">Clique pour lancer une tentative.</p>
+        </article>
+
+        <article class="mini-game" data-game="tap">
+          <h3>Frénésie de clics</h3>
+          <p>Réalise un maximum de clics en 3 secondes chrono.</p>
+          <button type="button" class="mini-game__action">Lancer le défi</button>
+          <p class="mini-game__status" aria-live="polite">0 clic</p>
+        </article>
+
+        <article class="mini-game" data-game="guess">
+          <h3>Nombre mystère</h3>
+          <p>Devine le nombre cosmique entre 1 et 20 en moins de 5 essais.</p>
+          <div class="mini-game__controls">
+            <input type="number" min="1" max="20" placeholder="?" aria-label="Nombre entre 1 et 20">
+            <button type="button" class="mini-game__action">Proposer</button>
+          </div>
+          <p class="mini-game__status" aria-live="polite">Tu as 5 essais.</p>
+        </article>
+
+        <article class="mini-game" data-game="dice">
+          <h3>Duel de dés</h3>
+          <p>Lance deux dés et tente de battre l’IA.</p>
+          <div class="dice__visuals" aria-hidden="true">
+            <div class="dice" data-dice-player>🎲</div>
+            <div class="dice" data-dice-bot>🎲</div>
+          </div>
+          <button type="button" class="mini-game__action">Lancer</button>
+          <p class="mini-game__status" aria-live="polite">En attente d’un lancer.</p>
+        </article>
+
+        <article class="mini-game" data-game="quiz">
+          <h3>Quiz éclair</h3>
+          <p class="mini-game__question" data-question>Chargement de la question...</p>
+          <div class="mini-game__options">
+            <button type="button" class="mini-game__option" data-index="0">...</button>
+            <button type="button" class="mini-game__option" data-index="1">...</button>
+            <button type="button" class="mini-game__option" data-index="2">...</button>
+          </div>
+          <p class="mini-game__status" aria-live="polite">Choisis la bonne réponse.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="newsletter" class="section newsletter">
+      <h2>Ne rate rien</h2>
+      <p>Inscris-toi pour recevoir des inspirations web ultra stylées.</p>
+      <form class="newsletter__form">
+        <input type="email" placeholder="ton@email.com" required>
+        <button type="submit">Je veux être inspiré</button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>© 2025 Page Trop Cool — Créée avec ❤️ par toi.</p>
+  </footer>
+
+  <script>
+    // ---- Fireworks canvas ----
+    const canvas = document.getElementById('fireworks');
+    const ctx = canvas.getContext('2d');
+    const pageBody = document.body;
+    let w, h;
+    const particles = [];
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function random(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.radius = random(1, 3);
+        this.color = color;
+        this.velocity = {
+          x: random(-4, 4),
+          y: random(-4, 4)
+        };
+        this.alpha = 1;
+        this.decay = random(0.01, 0.02);
+      }
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      update() {
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+        this.alpha -= this.decay;
+      }
+    }
+
+    function clampToSides(desiredX = random(0, w)) {
+      const sideWidth = Math.max(200, w * 0.18);
+      if (desiredX < w / 2) {
+        return random(0, sideWidth);
+      }
+      return random(w - sideWidth, w);
+    }
+
+    function createFirework(x, y) {
+      const fireworkX = clampToSides(typeof x === 'number' ? x : undefined);
+      const fireworkY = typeof y === 'number' ? y : random(0, h * 0.7);
+      const colors = ['#f5317f', '#6a5af9', '#ffdd57', '#67f1ff'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const count = 60;
+      for (let i = 0; i < count; i++) {
+        particles.push(new Particle(fireworkX, fireworkY, color));
+      }
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      createFirework(e.clientX - rect.left, e.clientY - rect.top);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      ctx.fillStyle = 'rgba(8, 6, 26, 0.3)';
+      ctx.fillRect(0, 0, w, h);
+      particles.forEach((particle, index) => {
+        if (particle.alpha <= 0) {
+          particles.splice(index, 1);
+          return;
+        }
+        particle.update();
+        particle.draw();
+      });
+      if (particles.length < 100) {
+        createFirework();
+      }
+    }
+    animate();
+
+    // ---- Mini game ----
+    const startBtn = document.querySelector('[data-start]');
+    const scoreEl = document.querySelector('[data-score]');
+    const timerEl = document.querySelector('[data-timer]');
+    const orb = document.querySelector('.game__orb');
+    const arena = document.querySelector('.game__arena');
+
+    let score = 0;
+    let playing = false;
+    let timer = 30;
+    let countdown;
+
+    function moveOrb() {
+      const padding = 20;
+      const { width, height } = arena.getBoundingClientRect();
+      const x = random(padding, width - padding - 60);
+      const y = random(padding, height - padding - 60);
+      orb.style.transform = `translate(${x}px, ${y}px)`;
+    }
+
+    function startGame() {
+      if (playing) return;
+      playing = true;
+      score = 0;
+      timer = 30;
+      scoreEl.textContent = score;
+      timerEl.textContent = timer;
+      startBtn.textContent = 'Bonne chance !';
+      moveOrb();
+      orb.classList.add('game__orb--active');
+      countdown = setInterval(() => {
+        timer--;
+        timerEl.textContent = timer;
+        if (timer <= 0) endGame();
+      }, 1000);
+    }
+
+    function endGame() {
+      playing = false;
+      clearInterval(countdown);
+      orb.classList.remove('game__orb--active');
+      startBtn.textContent = 'Rejouer';
+      timerEl.textContent = 0;
+      alert(`Terminé ! Ton score : ${score}`);
+    }
+
+    startBtn.addEventListener('click', startGame);
+
+    orb.addEventListener('click', () => {
+      if (!playing) return;
+      score++;
+      scoreEl.textContent = score;
+      moveOrb();
+    });
+
+    // ---- Mini jeux supplémentaires ----
+    const reactionCard = document.querySelector('[data-game="reaction"]');
+    if (reactionCard) {
+      const button = reactionCard.querySelector('.mini-game__action');
+      const status = reactionCard.querySelector('.mini-game__status');
+      let readyToClick = false;
+      let goTime = 0;
+      let reactionTimeout;
+      const resetLaserOverlay = () => {
+        pageBody.classList.remove('laser-wait', 'laser-go');
+      };
+
+      function armReaction() {
+        clearTimeout(reactionTimeout);
+        readyToClick = false;
+        status.textContent = 'Prépare-toi...';
+        button.textContent = 'Patiente...';
+        button.disabled = true;
+        pageBody.classList.add('laser-wait');
+        pageBody.classList.remove('laser-go');
+        reactionTimeout = setTimeout(() => {
+          button.disabled = false;
+          button.textContent = 'Clique !';
+          status.textContent = 'GO !';
+          readyToClick = true;
+          goTime = performance.now();
+          pageBody.classList.add('laser-go');
+          pageBody.classList.remove('laser-wait');
+        }, random(800, 2500));
+      }
+
+      button.addEventListener('click', () => {
+        if (!readyToClick) {
+          armReaction();
+          return;
+        }
+        const reaction = Math.round(performance.now() - goTime);
+        status.textContent = `Réflexe : ${reaction} ms`;
+        button.textContent = 'Rejouer';
+        readyToClick = false;
+        resetLaserOverlay();
+      });
+
+      reactionCard.addEventListener('mouseleave', () => {
+        if (!readyToClick) {
+          pageBody.classList.remove('laser-wait');
+        }
+      });
+    }
+
+    const tapCard = document.querySelector('[data-game="tap"]');
+    if (tapCard) {
+      const button = tapCard.querySelector('.mini-game__action');
+      const status = tapCard.querySelector('.mini-game__status');
+      let tapScore = 0;
+      let tapTimer;
+      let tapPlaying = false;
+      let tapLocked = false;
+      let tapCooldownHandle;
+      const TAP_COOLDOWN = 1400;
+
+      function endTapRound() {
+        tapPlaying = false;
+        tapLocked = true;
+        const plural = tapScore > 1 ? 's' : '';
+        status.textContent = `${tapScore} clic${plural} en 3s — clique pour recommencer.`;
+        button.textContent = 'Respire...';
+        button.disabled = true;
+        tapCooldownHandle = setTimeout(() => {
+          tapLocked = false;
+          button.disabled = false;
+          button.textContent = 'Relancer';
+        }, TAP_COOLDOWN);
+      }
+
+      button.addEventListener('click', () => {
+        if (tapLocked) {
+          return;
+        }
+        if (!tapPlaying) {
+          tapPlaying = true;
+          tapScore = 0;
+          status.textContent = '0 clic';
+          button.textContent = 'Clique vite !';
+          button.disabled = false;
+          clearTimeout(tapTimer);
+          clearTimeout(tapCooldownHandle);
+          tapTimer = setTimeout(endTapRound, 3000);
+          return;
+        }
+        tapScore++;
+        const plural = tapScore > 1 ? 's' : '';
+        status.textContent = `${tapScore} clic${plural}`;
+      });
+    }
+
+    const guessCard = document.querySelector('[data-game="guess"]');
+    if (guessCard) {
+      const input = guessCard.querySelector('input');
+      const button = guessCard.querySelector('.mini-game__action');
+      const status = guessCard.querySelector('.mini-game__status');
+      let target = Math.floor(random(1, 21));
+      let attempts = 5;
+
+      function resetGuess(message) {
+        status.textContent = message;
+        target = Math.floor(random(1, 21));
+        attempts = 5;
+        input.value = '';
+      }
+
+      button.addEventListener('click', () => {
+        const guessValue = Number(input.value);
+        if (!guessValue || Number.isNaN(guessValue)) {
+          status.textContent = 'Entre un nombre entre 1 et 20.';
+          return;
+        }
+        if (guessValue < 1 || guessValue > 20) {
+          status.textContent = 'Le nombre doit rester entre 1 et 20.';
+          return;
+        }
+        attempts--;
+        if (guessValue === target) {
+          resetGuess(`Bravo ! ${target} était le bon nombre. Nouveau défi lancé.`);
+          return;
+        }
+        if (attempts <= 0) {
+          const answer = target;
+          resetGuess(`Perdu ! C’était ${answer}. Nouveau nombre généré.`);
+          return;
+        }
+        status.textContent = guessValue < target
+          ? `Plus haut ! Essais restants : ${attempts}`
+          : `Plus bas ! Essais restants : ${attempts}`;
+        input.focus();
+        input.select();
+      });
+    }
+
+    const diceCard = document.querySelector('[data-game="dice"]');
+    if (diceCard) {
+      const button = diceCard.querySelector('.mini-game__action');
+      const status = diceCard.querySelector('.mini-game__status');
+      const playerDice = diceCard.querySelector('[data-dice-player]');
+      const botDice = diceCard.querySelector('[data-dice-bot]');
+      const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+      let playerWins = 0;
+      let botWins = 0;
+      let draws = 0;
+      let rolling = false;
+
+      button.addEventListener('click', () => {
+        if (rolling) return;
+        rolling = true;
+        button.disabled = true;
+        status.textContent = 'Les dés roulent...';
+        playerDice.classList.add('is-rolling');
+        botDice.classList.add('is-rolling');
+        const shuffle = setInterval(() => {
+          playerDice.textContent = diceFaces[Math.floor(random(0, diceFaces.length))];
+          botDice.textContent = diceFaces[Math.floor(random(0, diceFaces.length))];
+        }, 90);
+        setTimeout(() => {
+          clearInterval(shuffle);
+          const playerRoll = Math.floor(random(1, 7));
+          const botRoll = Math.floor(random(1, 7));
+          playerDice.textContent = diceFaces[playerRoll - 1];
+          botDice.textContent = diceFaces[botRoll - 1];
+          playerDice.classList.remove('is-rolling');
+          botDice.classList.remove('is-rolling');
+          button.disabled = false;
+          rolling = false;
+          let resultText = '';
+          if (playerRoll > botRoll) {
+            playerWins++;
+            resultText = 'Tu gagnes !';
+          } else if (playerRoll < botRoll) {
+            botWins++;
+            resultText = 'Ça passe pas...';
+          } else {
+            draws++;
+            resultText = 'Égalité parfaite.';
+          }
+          status.textContent = `${resultText} Toi ${playerRoll} vs IA ${botRoll} — Score ${playerWins}-${botWins} (${draws} =).`;
+        }, 900);
+      });
+    }
+
+    const quizCard = document.querySelector('[data-game="quiz"]');
+    if (quizCard) {
+      const questionEl = quizCard.querySelector('[data-question]');
+      const status = quizCard.querySelector('.mini-game__status');
+      const optionButtons = Array.from(quizCard.querySelectorAll('.mini-game__option'));
+      const quizData = [
+        {
+          question: 'Quel trio représente les technologies de base du web ?',
+          options: ['HTML / CSS / JavaScript', 'Python / C++ / Java', 'SQL / PHP / Bash'],
+          answer: 0
+        },
+        {
+          question: 'Quelle propriété CSS gère la couleur de fond ?',
+          options: ['color', 'background-color', 'text-shadow'],
+          answer: 1
+        },
+        {
+          question: 'Que signifie le “H” dans HTTP ?',
+          options: ['Hyper', 'Hybrid', 'High'],
+          answer: 0
+        },
+        {
+          question: 'Quelle balise HTML contient le contenu principal ?',
+          options: ['<main>', '<footer>', '<meta>'],
+          answer: 0
+        },
+        {
+          question: 'Quel attribut HTML rend un champ obligatoire ?',
+          options: ['required', 'disabled', 'placeholder'],
+          answer: 0
+        },
+        {
+          question: 'Quelle unité CSS est relative à la taille de police du parent ?',
+          options: ['em', 'px', 'vh'],
+          answer: 0
+        },
+        {
+          question: 'Quel mot-clé JavaScript déclare une constante ?',
+          options: ['const', 'let', 'var'],
+          answer: 0
+        },
+        {
+          question: 'Quelle méthode JS sélectionne le premier élément correspondant à un sélecteur CSS ?',
+          options: ['querySelector', 'getElementById', 'getElementsByTagName'],
+          answer: 0
+        },
+        {
+          question: 'Quel outil est pensé pour le versionnement de code ?',
+          options: ['Git', 'Excel', 'Figma'],
+          answer: 0
+        },
+        {
+          question: 'Quelle propriété CSS crée un espace intérieur ?',
+          options: ['padding', 'margin', 'border'],
+          answer: 0
+        }
+      ];
+      let currentQuestion;
+
+      function loadQuestion() {
+        currentQuestion = quizData[Math.floor(Math.random() * quizData.length)];
+        questionEl.textContent = currentQuestion.question;
+        status.textContent = 'Choisis la bonne réponse.';
+        optionButtons.forEach((button, idx) => {
+          button.textContent = currentQuestion.options[idx];
+          button.dataset.index = idx;
+          button.disabled = false;
+          button.classList.remove('is-correct', 'is-wrong');
+        });
+      }
+
+      optionButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          if (!currentQuestion) return;
+          const choice = Number(button.dataset.index);
+          optionButtons.forEach((btn) => (btn.disabled = true));
+          if (choice === currentQuestion.answer) {
+            button.classList.add('is-correct');
+            status.textContent = '🔥 Bonne réponse !';
+          } else {
+            button.classList.add('is-wrong');
+            status.textContent = 'Raté... mais tu peux réessayer.';
+            const correctBtn = optionButtons[currentQuestion.answer];
+            if (correctBtn) {
+              correctBtn.classList.add('is-correct');
+            }
+          }
+          setTimeout(loadQuestion, 1500);
+        });
+      });
+
+      loadQuestion();
+    }
+
+    const miniGameCards = Array.from(document.querySelectorAll('.mini-game'));
+    const fullscreenSupported = typeof document.fullscreenEnabled === 'undefined' || document.fullscreenEnabled;
+
+    miniGameCards.forEach((card) => {
+      const fullscreenBtn = document.createElement('button');
+      fullscreenBtn.type = 'button';
+      fullscreenBtn.className = 'mini-game__fullscreen';
+      fullscreenBtn.textContent = 'Plein écran';
+      fullscreenBtn.setAttribute('aria-label', 'Activer le mode plein écran');
+      card.insertAdjacentElement('afterbegin', fullscreenBtn);
+
+      if (!fullscreenSupported || typeof card.requestFullscreen !== 'function') {
+        fullscreenBtn.hidden = true;
+        return;
+      }
+
+      fullscreenBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (document.fullscreenElement === card) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+          return;
+        }
+        if (document.fullscreenElement && document.exitFullscreen) {
+          const exitResult = document.exitFullscreen();
+          if (exitResult && typeof exitResult.then === 'function') {
+            exitResult.then(() => card.requestFullscreen());
+          } else {
+            card.requestFullscreen();
+          }
+          return;
+        }
+        card.requestFullscreen();
+      });
+    });
+
+    function syncFullscreenButtons() {
+      const active = document.fullscreenElement;
+      miniGameCards.forEach((card) => {
+        const btn = card.querySelector('.mini-game__fullscreen');
+        if (!btn || btn.hidden) return;
+        const isActive = active === card;
+        btn.classList.toggle('is-active', isActive);
+        btn.textContent = isActive ? 'Quitter plein écran' : 'Plein écran';
+        btn.setAttribute('aria-label', isActive ? 'Quitter le mode plein écran' : 'Activer le mode plein écran');
+      });
+    }
+
+    document.addEventListener('fullscreenchange', syncFullscreenButtons);
+    syncFullscreenButtons();
+  </script>
+</body>
+</html>
