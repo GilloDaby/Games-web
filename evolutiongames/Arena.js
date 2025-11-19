@@ -3,6 +3,7 @@ import GeneticAlgorithm from "./GeneticAlgorithm.js";
 import NeuralNetwork from "./NeuralNetwork.js";
 import Zone, { pickZoneType } from "./Zone.js";
 import TileMap from "./TileMap.js";
+import PlayerSkinManager from "./PlayerSkins.js";
 
 const ARENA_SETTINGS = {
   width: 1600,
@@ -44,6 +45,7 @@ export default class Arena {
     this.tileMap = new TileMap(tileMapWidth, tileMapHeight, tileSize);
     this.tileMap.generateBiomes();
     this.tileMap.generateRiver();
+    this.playerSkins = new PlayerSkinManager();
 
     this.ga = new GeneticAlgorithm({
       populationSize: this.config.populationSize,
@@ -170,6 +172,7 @@ export default class Arena {
       color: randomPastel(),
       brain,
       settings: this.config.creatureSettings,
+      skin: this.playerSkins.getRandomSkin(),
     });
   }
 

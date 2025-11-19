@@ -18,6 +18,7 @@ export default class Creature {
     color,
     brain,
     settings,
+    skin = null,
   }) {
     this.position = { x, y };
     this.speed = speed;
@@ -56,6 +57,7 @@ export default class Creature {
     this.currentTerrainType = "grass";
     this.wasOnBridge = false;
     this.bridgeEntryFromLand = false;
+    this.skin = skin;
   }
 
   get fitness() {
@@ -611,6 +613,21 @@ export default class Creature {
       ctx.strokeStyle = "rgba(160, 215, 255, 0.9)";
       ctx.stroke();
       ctx.shadowBlur = 0;
+    }
+
+    if (this.skin && this.skin.complete && this.skin.naturalWidth > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(
+        this.skin,
+        this.position.x - this.radius,
+        this.position.y - this.radius,
+        this.radius * 2,
+        this.radius * 2,
+      );
+      ctx.restore();
     }
 
     const barWidth = this.radius * 2.1;
