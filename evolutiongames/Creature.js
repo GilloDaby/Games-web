@@ -453,14 +453,14 @@ export default class Creature {
   getTerrainSpeedModifier(type) {
     switch (type) {
       case "sand":
-        return 0.75;
+        return 0.85;
       case "snow":
-        return 0.65;
+        return 0.75;
       case "bridge":
         return 1.05;
       case "water":
       case "river":
-        return 0.3;
+        return 0.45;
       default:
         return 1;
     }
