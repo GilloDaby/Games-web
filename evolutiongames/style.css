@@ -93,21 +93,16 @@ body {
   border-radius: 1rem;
   overflow: auto;
 }
+
 .arena-canvas {
   border: 2px solid rgba(255, 255, 255, 0.15);
   background: #03060b;
   border-radius: 0.75rem;
   display: block;
-
-  /* STOP redimensionnement automatique */
-  width: auto;
+  width: 100%;
   height: auto;
-  max-width: none;
-  max-height: none;
-
-  image-rendering: pixelated;
+  max-width: 100%;
 }
-
 
 .sidebar {
   background: rgba(8, 11, 18, 0.85);

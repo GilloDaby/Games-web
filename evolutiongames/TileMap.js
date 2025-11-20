@@ -13,7 +13,7 @@ const TILE_TEXTURE_PATHS = {
 };
 
 export default class TileMap {
-  constructor(width = 250, height = 250, tileSize = DEFAULT_TILE_SIZE) {
+  constructor(width = 8000, height = 8000, tileSize = DEFAULT_TILE_SIZE) {
     this.width = width;
     this.height = height;
     this.tileSize = tileSize;
