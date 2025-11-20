@@ -8,6 +8,8 @@ const TILE_TEXTURE_PATHS = {
   water: "img/tiles/water.png",
   river: "img/tiles/river.png",
   bridge: "img/tiles/bridge.png",
+  forest: "img/tiles/forest.png", 
+
 };
 
 export default class TileMap {
