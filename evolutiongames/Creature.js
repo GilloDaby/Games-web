@@ -1,5 +1,6 @@
 import NeuralNetwork, { BRAIN_LAYOUT } from "./NeuralNetwork.js";
 import { ZONE_TYPES } from "./Zone.js";
+import { clampGenome, createRandomGenome } from "./Genome.js";
 
 const ATTACK_ACTIVATION_THRESHOLD = 0.25;
 const NEAR_ENEMY_DISTANCE_MULTIPLIER = 1.5;
@@ -7,6 +8,15 @@ const DANGER_RADIUS_MULTIPLIER = 2.5;
 const DANGER_NORMALIZATION = 5;
 const ZONE_TYPE_INDEX = Object.fromEntries(ZONE_TYPES.map((type, index) => [type, index]));
 const ZONE_ONE_HOT_LENGTH = ZONE_TYPES.length;
+const BASE_VISION_RANGE = 260;
+const BASE_HEARING_RANGE = 210;
+const MIN_FOV = Math.PI * 0.55;
+const MAX_FOV = Math.PI * 1.15;
+const ENERGY_MAX_BASE = 120;
+const HYDRATION_MAX_BASE = 120;
+const METABOLIC_BASE_COST = 1.4;
+const MOVE_COST_MULTIPLIER = 0.95;
+const KILL_RECOVERY = { energy: 20, hydration: 10, hp: 6 };
 
 export default class Creature {
   constructor({
@@ -19,6 +29,7 @@ export default class Creature {
     brain,
     settings,
     skin = null,
+    genome = null,
   }) {
     this.position = { x, y };
     this.speed = speed;
@@ -27,6 +38,7 @@ export default class Creature {
     this.color = color;
     this.brain = brain ?? new NeuralNetwork(BRAIN_LAYOUT.inputs, BRAIN_LAYOUT.hidden, BRAIN_LAYOUT.outputs);
     this.settings = settings;
+    this.genome = clampGenome(genome ?? createRandomGenome());
     this.distanceTravelled = 0;
     this.survivalTime = 0;
     this.killCount = 0;
@@ -34,9 +46,15 @@ export default class Creature {
     this.proximityTime = 0;
     this.maxHp = settings.hp;
     this.hp = settings.hp;
-    this.damage = settings.damage;
+    const aggressionFactor = clamp(this.genome.aggression ?? 1, 0.6, 1.35);
+    this.damage = settings.damage * (0.9 + aggressionFactor * 0.25);
     this.attackRange = settings.attackRange;
-    this.attackCooldown = settings.attackCooldown;
+    this.attackCooldown = settings.attackCooldown / (0.9 + aggressionFactor * 0.2);
+    this.energyMax = ENERGY_MAX_BASE * this.genome.endurance;
+    this.hydrationMax = HYDRATION_MAX_BASE * this.genome.hydration;
+    this.energy = this.energyMax * 0.9;
+    this.hydration = this.hydrationMax * 0.9;
+    this.metabolicStress = 0;
     this.lastAttackTime = -Infinity;
     this.alive = true;
     this.nearEnemyDistance = this.attackRange * NEAR_ENEMY_DISTANCE_MULTIPLIER;
@@ -60,6 +78,7 @@ export default class Creature {
     this.skin = skin;
     this.animationTime = Math.random() * 3;
     this.killedBy = null;
+    this.fatigueAccum = 0;
   }
 
   get fitness() {
@@ -80,11 +99,22 @@ export default class Creature {
 
     const explorationBonus = 1 + Math.min(this.uniqueZoneTypes.size * 0.15, 0.6);
     const learningBonus = Math.max(1, this.learningMultiplierPeak);
+    const resourceBonus =
+      1 + Math.max(0, (this.energy / this.energyMax + this.hydration / this.hydrationMax) * 0.15);
 
-    return baseFitness * explorationBonus * learningBonus;
+    return baseFitness * explorationBonus * learningBonus * resourceBonus;
   }
 
-  update(deltaSeconds, bounds, population, currentTime, effectEmitter, zones = [], tileMap = null) {
+  update(
+    deltaSeconds,
+    bounds,
+    population,
+    currentTime,
+    effectEmitter,
+    zones = [],
+    tileMap = null,
+    weather = null,
+  ) {
     if (!this.alive) {
       return;
     }
@@ -93,6 +123,7 @@ export default class Creature {
     this.survivalTime += deltaSeconds;
     this.stateFlags.inDanger = false;
     this.animationTime += deltaSeconds;
+    const environment = this.getEnvironmentModifiers(weather);
 
     const terrainInfo = this.getTerrainInfo(tileMap);
     this.biomesVisited.add(terrainInfo.type);
@@ -100,7 +131,7 @@ export default class Creature {
     const effectiveRange = this.attackRange * this.buffMultipliers.range;
     this.nearEnemyDistance = effectiveRange * NEAR_ENEMY_DISTANCE_MULTIPLIER;
 
-    const detection = this.detectEnemies(population, bounds);
+    const detection = this.detectEnemies(population, bounds, tileMap, environment);
     if (detection.hasEnemy && detection.distance <= this.nearEnemyDistance) {
       this.proximityTime += deltaSeconds;
     }
@@ -143,10 +174,18 @@ export default class Creature {
     const lerpAmount = clamp(deltaSeconds * this.settings.directionResponsiveness, 0, 1);
     this.direction = lerpAngle(this.direction, desiredDirection, lerpAmount);
 
-    const terrainModifier = this.getTerrainSpeedModifier(terrainInfo.type);
-    const acceleration = accelerationSignal * this.settings.maxAcceleration;
-    const minSpeed = this.settings.minSpeed * terrainModifier;
-    const maxSpeed = this.settings.maxSpeed * this.buffMultipliers.speed * terrainModifier;
+    const terrainModifier = this.getTerrainSpeedModifier(terrainInfo.type) * (environment.speed ?? 1);
+    const resourceModifier = this.getResourceSpeedModifier();
+    const traitSpeedModifier = 0.9 + (this.genome.endurance - 0.75) * 0.35;
+    const acceleration =
+      accelerationSignal * this.settings.maxAcceleration * resourceModifier * this.genome.endurance;
+    const minSpeed = this.settings.minSpeed * terrainModifier * resourceModifier * 0.85;
+    const maxSpeed =
+      this.settings.maxSpeed *
+      this.buffMultipliers.speed *
+      terrainModifier *
+      resourceModifier *
+      traitSpeedModifier;
     this.speed = clamp(this.speed + acceleration * deltaSeconds, minSpeed, maxSpeed);
 
     const velocityX = Math.cos(this.direction) * this.speed;
@@ -161,7 +200,8 @@ export default class Creature {
     if (blockingTile && (blockingTile.type === "river" || blockingTile.type === "water")) {
       this.blockedByWaterTime += deltaSeconds;
       this.recordTerrainUsage(terrainInfo, deltaSeconds);
-      this.takeDamage(15 * deltaSeconds);
+      this.hydration = Math.min(this.hydrationMax, this.hydration + 4 * deltaSeconds);
+      this.takeDamage(10 * deltaSeconds);
       this.direction = normalizeAngle(
         this.direction + Math.PI / 2 + (Math.random() - 0.5) * 0.8,
       );
@@ -174,8 +214,55 @@ export default class Creature {
     const postMoveTerrain = tileMap ? this.getTerrainInfo(tileMap) : terrainInfo;
     this.recordTerrainUsage(postMoveTerrain, deltaSeconds);
 
+    this.updateMetabolism(deltaSeconds, postMoveTerrain, Math.hypot(deltaX, deltaY), environment);
+    if (!this.alive) {
+      return;
+    }
+
     this.handleWallBounce(bounds);
     this.tryAttack(currentTime, effectEmitter, detection, shouldAttack);
+  }
+
+  updateMetabolism(deltaSeconds, terrainInfo, distanceMoved, environment = null) {
+    const terrainPenalty = terrainInfo?.isSand ? 0.18 : terrainInfo?.isSnow ? 0.25 : 0;
+    const speedFactor = clamp(this.speed / Math.max(1, this.settings.maxSpeed), 0, 2);
+    const baseCost = METABOLIC_BASE_COST * this.genome.metabolism * (environment?.metabolism ?? 1);
+    const moveCost = MOVE_COST_MULTIPLIER * speedFactor * (1 + terrainPenalty);
+    const totalCost = (baseCost + moveCost) * deltaSeconds;
+
+    this.energy = clamp(this.energy - totalCost, 0, this.energyMax);
+    const hydrationDrain =
+      (0.6 + speedFactor * 0.65) *
+      this.genome.metabolism *
+      (environment?.hydration ?? 1) *
+      deltaSeconds;
+    this.hydration = clamp(this.hydration - hydrationDrain, 0, this.hydrationMax);
+
+    // micro-r�cup�ration si la cr�ature reste tr�s lente
+    if (speedFactor < 0.25) {
+      this.energy = clamp(this.energy + 1.2 * deltaSeconds, 0, this.energyMax);
+      this.hydration = clamp(this.hydration + 0.8 * deltaSeconds, 0, this.hydrationMax);
+    }
+
+    // boire dans l'eau avec un risque de d�g�ts l�ger d�j� appliqu�
+    if (terrainInfo?.isWater) {
+      this.hydration = clamp(this.hydration + 6 * deltaSeconds, 0, this.hydrationMax);
+    }
+
+    const lowEnergy = 1 - this.energy / this.energyMax;
+    const lowHydration = 1 - this.hydration / this.hydrationMax;
+    this.metabolicStress = clamp((lowEnergy + lowHydration) * 0.5, 0, 1);
+
+    if (this.energy <= 0 || this.hydration <= 0) {
+      this.takeDamage(8 * deltaSeconds);
+    }
+  }
+
+  getResourceSpeedModifier() {
+    const energyRatio = clamp(this.energy / this.energyMax, 0, 1);
+    const hydrationRatio = clamp(this.hydration / this.hydrationMax, 0, 1);
+    const stress = clamp(1 - (energyRatio * 0.55 + hydrationRatio * 0.45), 0, 1);
+    return clamp(1 - stress * 0.45, 0.55, 1.1);
   }
 
   handleWallBounce({ width, height }) {
@@ -202,7 +289,7 @@ export default class Creature {
     }
   }
 
-  detectEnemies(population, bounds) {
+  detectEnemies(population, bounds, tileMap, environment = null) {
     const detection = {
       hasEnemy: false,
       enemy: null,
@@ -211,12 +298,21 @@ export default class Creature {
       enemyDirection: this.direction,
       angleDelta: 0,
       dangerLevel: 0,
+      perceptionStrength: 0,
     };
 
+    const visionRange =
+      BASE_VISION_RANGE *
+      this.genome.visionRange *
+      this.genome.awareness *
+      (environment?.vision ?? 1);
+    const hearingRange = BASE_HEARING_RANGE * this.genome.hearingRange * (environment?.hearing ?? 1);
+    const fov = clamp(MIN_FOV + (MAX_FOV - MIN_FOV) * this.genome.visionAngle, MIN_FOV, MAX_FOV);
+
     let closest = null;
-    let closestDistSq = Infinity;
+    let closestScore = Infinity;
     let threatCount = 0;
-    const dangerRadius = this.attackRange * DANGER_RADIUS_MULTIPLIER;
+    const dangerRadius = visionRange * DANGER_RADIUS_MULTIPLIER;
     const dangerRadiusSq = dangerRadius * dangerRadius;
 
     for (const other of population) {
@@ -226,29 +322,44 @@ export default class Creature {
       const dx = other.position.x - this.position.x;
       const dy = other.position.y - this.position.y;
       const distSq = dx * dx + dy * dy;
-      if (distSq < closestDistSq) {
-        closestDistSq = distSq;
-        closest = { ref: other, dx, dy, distSq };
-      }
+      const distance = Math.sqrt(distSq);
       if (distSq <= dangerRadiusSq) {
         threatCount += 1;
+      }
+
+      const angle = Math.atan2(dy, dx);
+      const signedDiff = signedAngleDifference(angle, this.direction);
+      const inFov = Math.abs(signedDiff) <= fov / 2;
+      const camoFactor = other.genome ? other.genome.camouflage : 1;
+      const visibility = 1 / (1 + (camoFactor - 1) * 0.7);
+      const visionReach = visionRange * visibility * (1 + this.genome.awareness * 0.15);
+      const seenByVision = inFov && distance <= visionReach;
+      const heard = distance <= hearingRange && Math.abs(signedDiff) <= Math.PI;
+
+      if (!seenByVision && !heard) {
+        continue;
+      }
+
+      const weight = seenByVision ? distance : distance * 1.25;
+      if (weight < closestScore) {
+        closestScore = weight;
+        closest = { ref: other, distance, direction: angle, diff: signedDiff };
+        detection.perceptionStrength = clamp(visibility * (seenByVision ? 1 : 0.6), 0, 1);
       }
     }
 
     if (closest) {
-      const distance = Math.sqrt(closest.distSq);
-      const direction = Math.atan2(closest.dy, closest.dx);
-      const normalizedAngleDiff = clamp(normalizeAngle(direction - this.direction) / Math.PI, -1, 1);
       const arenaDiag = Math.hypot(bounds.width, bounds.height);
       detection.hasEnemy = true;
       detection.enemy = closest.ref;
-      detection.distance = distance;
-      detection.distanceRatio = clamp(distance / arenaDiag, 0, 1);
-      detection.enemyDirection = direction;
-      detection.angleDelta = normalizedAngleDiff;
+      detection.distance = closest.distance;
+      detection.distanceRatio = clamp(closest.distance / Math.max(visionRange, arenaDiag), 0, 1);
+      detection.enemyDirection = closest.direction;
+      detection.angleDelta = clamp(closest.diff / Math.PI, -1, 1);
     }
 
-    detection.dangerLevel = clamp(threatCount / DANGER_NORMALIZATION, 0, 1);
+    const socialComfort = clamp(1 - (this.genome.social ?? 0) * 0.4, 0.55, 1);
+    detection.dangerLevel = clamp((threatCount / DANGER_NORMALIZATION) * socialComfort, 0, 1);
     return detection;
   }
 
@@ -335,7 +446,7 @@ export default class Creature {
       isBridge: type === "bridge",
       isSand: type === "sand",
       isSnow: type === "snow",
-      isGrass: type === "grass",
+      isGrass: type === "grass" || type === "forest",
     };
   }
 
@@ -353,6 +464,14 @@ export default class Creature {
       default:
         return 1;
     }
+  }
+
+  getEnvironmentModifiers(weather) {
+    if (!weather?.modifiers) {
+      return { vision: 1, hearing: 1, metabolism: 1, speed: 1, hydration: 1 };
+    }
+    const { vision = 1, hearing = 1, metabolism = 1, speed = 1, hydration = 1 } = weather.modifiers;
+    return { vision, hearing, metabolism, speed, hydration };
   }
 
   recordTerrainUsage(info, deltaSeconds) {
@@ -392,6 +511,8 @@ export default class Creature {
     switch (zone.type) {
       case "heal": {
         this.hp = Math.min(this.maxHp, this.hp + zone.value * deltaSeconds);
+        this.energy = clamp(this.energy + zone.value * 0.6 * deltaSeconds, 0, this.energyMax);
+        this.hydration = clamp(this.hydration + zone.value * 0.4 * deltaSeconds, 0, this.hydrationMax);
         this.zonePositiveTime += deltaSeconds * 0.4;
         break;
       }
@@ -506,6 +627,12 @@ export default class Creature {
       terrain.isGrass ? 1 : 0,
     ];
 
+    const energyNormalized = clamp(this.energy / this.energyMax, 0, 1);
+    const hydrationNormalized = clamp(this.hydration / this.hydrationMax, 0, 1);
+    const metabolicStress = clamp(this.metabolicStress, 0, 1);
+    const resourceDrag = 1 - this.getResourceSpeedModifier();
+    const perception = clamp(detection?.perceptionStrength ?? 0, 0, 1);
+
     return [
       normalizedDirection,
       leftDistance,
@@ -525,6 +652,11 @@ export default class Creature {
       zoneValue,
       ...zoneTypes,
       ...terrainFlags,
+      energyNormalized,
+      hydrationNormalized,
+      resourceDrag,
+      metabolicStress,
+      perception,
     ];
   }
 
@@ -554,6 +686,7 @@ export default class Creature {
     this.attackSuccessCount += 1;
     if (targetDied) {
       this.killCount += 1;
+      this.recoverResourcesFromKill();
     }
 
     if (effectEmitter) {
@@ -579,6 +712,12 @@ export default class Creature {
       return true;
     }
     return false;
+  }
+
+  recoverResourcesFromKill() {
+    this.energy = clamp(this.energy + KILL_RECOVERY.energy, 0, this.energyMax);
+    this.hydration = clamp(this.hydration + KILL_RECOVERY.hydration, 0, this.hydrationMax);
+    this.hp = clamp(this.hp + KILL_RECOVERY.hp, 0, this.maxHp);
   }
 
   draw(ctx) {
@@ -653,6 +792,18 @@ export default class Creature {
     ctx.fillRect(barX, barY, barWidth, barHeight);
     ctx.fillStyle = hpRatio > 0.5 ? "#79ff95" : "#ff7979";
     ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+
+    const energyRatio = clamp(this.energy / this.energyMax, 0, 1);
+    const hydrationRatio = clamp(this.hydration / this.hydrationMax, 0, 1);
+    const energyY = barY - barHeight - 3;
+    const hydrationY = energyY - barHeight - 2;
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    ctx.fillRect(barX, energyY, barWidth, barHeight);
+    ctx.fillRect(barX, hydrationY, barWidth, barHeight);
+    ctx.fillStyle = "#f7c873";
+    ctx.fillRect(barX, energyY, barWidth * energyRatio, barHeight);
+    ctx.fillStyle = "#6fc3ff";
+    ctx.fillRect(barX, hydrationY, barWidth * hydrationRatio, barHeight);
     ctx.restore();
   }
 
@@ -673,6 +824,11 @@ function clamp(value, min, max) {
 function normalizeAngle(angle) {
   const twoPi = Math.PI * 2;
   return ((angle % twoPi) + twoPi) % twoPi;
+}
+
+function signedAngleDifference(angle, reference) {
+  const diff = normalizeAngle(angle - reference);
+  return diff > Math.PI ? diff - Math.PI * 2 : diff;
 }
 
 function mapSignalToAngle(signal) {

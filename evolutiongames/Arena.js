@@ -27,6 +27,33 @@ const ARENA_SETTINGS = {
 };
 
 const STORAGE_KEY = "genetic-ai-battle-state";
+const WEATHER_PRESETS = {
+  clear: {
+    label: "Clair",
+    duration: [22, 36],
+    modifiers: { vision: 1, hearing: 1, metabolism: 1, speed: 1, hydration: 1 },
+  },
+  rain: {
+    label: "Pluie",
+    duration: [20, 30],
+    modifiers: { vision: 0.85, hearing: 1.1, metabolism: 1.05, speed: 0.95, hydration: 0.9 },
+  },
+  night: {
+    label: "Nuit",
+    duration: [18, 28],
+    modifiers: { vision: 0.65, hearing: 1.2, metabolism: 0.95, speed: 0.9, hydration: 1 },
+  },
+  heatwave: {
+    label: "Canicule",
+    duration: [16, 24],
+    modifiers: { vision: 0.95, hearing: 1, metabolism: 1.2, speed: 0.92, hydration: 1.2 },
+  },
+  storm: {
+    label: "Tempête",
+    duration: [12, 20],
+    modifiers: { vision: 0.6, hearing: 0.9, metabolism: 1.1, speed: 0.85, hydration: 1 },
+  },
+};
 
 export default class Arena {
   constructor(canvas, statsElements, uiManager = null) {
@@ -84,11 +111,14 @@ export default class Arena {
     this.bestKillRecord = 0;
     this.recordBestFitness = 0;
     this.prevBestFitness = 0;
+    this.averageEnergy = 0;
+    this.averageHydration = 0;
     this.stagnationCounter = 0;
     this.pendingGenerationSkip = false;
     this.storageAvailable = typeof window !== "undefined" && "localStorage" in window;
     this.persistenceKey = STORAGE_KEY;
     this.ga.setMutationPressure(0);
+    this.weather = this.rollWeather();
 
     const persisted = this.loadPersistedState();
     if (persisted && Array.isArray(persisted.brains) && persisted.brains.length) {
@@ -120,7 +150,8 @@ export default class Arena {
         this.recordBestFitness = persisted.recordBestFitness ?? historyFitnessRecord;
         this.prevBestFitness = persisted.prevBestFitness ?? this.recordBestFitness ?? 0;
         const brains = persisted.brains.map((brain) => NeuralNetwork.fromJSON(brain));
-        this.spawnPopulation(brains);
+        const genomes = Array.isArray(persisted.genomes) ? persisted.genomes : null;
+        this.spawnPopulation(brains, genomes);
       } catch (error) {
         console.warn("Impossible de restaurer l'état précédent :", error);
         this.spawnPopulation();
@@ -138,11 +169,13 @@ export default class Arena {
     this.updateHud();
   }
 
-  spawnPopulation(brains) {
+  spawnPopulation(brains, genomes = null) {
     const sourceBrains = brains && brains.length ? brains : this.ga.createInitialBrains();
+    const sourceGenomes = genomes && genomes.length ? genomes : this.ga.createInitialGenomes();
     const brainInstances = sourceBrains.map((brain) =>
       brain instanceof NeuralNetwork ? brain : NeuralNetwork.fromJSON(brain),
     );
+    const genomeInstances = sourceGenomes.slice();
     const desiredCount = this.config.populationSize;
     if (brainInstances.length > desiredCount) {
       brainInstances.length = desiredCount;
@@ -151,7 +184,14 @@ export default class Arena {
       const filler = this.ga.createInitialBrains().slice(0, needed);
       brainInstances.push(...filler);
     }
-    this.creatures = this.createCreaturesFromBrains(brainInstances);
+    if (genomeInstances.length > desiredCount) {
+      genomeInstances.length = desiredCount;
+    } else if (genomeInstances.length < desiredCount) {
+      const needed = desiredCount - genomeInstances.length;
+      const filler = this.ga.createInitialGenomes().slice(0, needed);
+      genomeInstances.push(...filler);
+    }
+    this.creatures = this.createCreaturesFromBrains(brainInstances, genomeInstances);
     this.elapsedGenerationTime = 0;
     this.bestFitness = 0;
     this.averageFitness = 0;
@@ -165,18 +205,18 @@ export default class Arena {
       this.prevBestFitness = 0;
       this.ga.setMutationPressure(0);
     }
-    this.persistState(brainInstances);
+    this.persistState(brainInstances, genomeInstances);
     this.updateHud();
     if (this.uiManager) {
       this.uiManager.syncControlsFromArena();
     }
   }
 
-  createCreaturesFromBrains(brains) {
-    return brains.map((brain) => this.createCreature(brain));
+  createCreaturesFromBrains(brains, genomes = []) {
+    return brains.map((brain, index) => this.createCreature(brain, genomes[index]));
   }
 
-  createCreature(brain) {
+  createCreature(brain, genome) {
     const radius = this.config.creatureSettings.radius;
     const spawn = this.getSafeSpawnPosition(radius);
     return new Creature({
@@ -192,6 +232,7 @@ export default class Arena {
       brain,
       settings: this.config.creatureSettings,
       skin: this.playerSkins.getRandomSkin(),
+      genome,
     });
   }
 
@@ -240,9 +281,12 @@ export default class Arena {
     let totalFitness = 0;
     let bestFitness = 0;
     let aliveCount = 0;
+    let totalEnergy = 0;
+    let totalHydration = 0;
     const generationTime = this.elapsedGenerationTime;
 
     this.updateZones(deltaSeconds);
+    this.updateWeather(deltaSeconds);
 
     for (const creature of this.creatures) {
       creature.update(
@@ -253,6 +297,7 @@ export default class Arena {
         (effect) => this.spawnAttackEffect(effect),
         this.zones,
         this.tileMap,
+        this.weather,
       );
       totalFitness += creature.fitness;
       if (creature.fitness > bestFitness) {
@@ -260,11 +305,15 @@ export default class Arena {
       }
       if (creature.alive) {
         aliveCount += 1;
+        totalEnergy += creature.energy / creature.energyMax;
+        totalHydration += creature.hydration / creature.hydrationMax;
       }
     }
 
     this.bestFitness = bestFitness;
     this.averageFitness = totalFitness / this.creatures.length || 0;
+    this.averageEnergy = aliveCount ? totalEnergy / aliveCount : 0;
+    this.averageHydration = aliveCount ? totalHydration / aliveCount : 0;
     this.totalKills = this.creatures.reduce((sum, creature) => sum + creature.killCount, 0);
     const bestKillsThisFrame = this.creatures.reduce(
       (max, creature) => Math.max(max, creature.killCount),
@@ -374,9 +423,9 @@ export default class Arena {
       this.recordBestFitness = Math.max(this.recordBestFitness, entry.fitness ?? 0);
     }
 
-    const { brains, stats } = this.ga.evolve(this.creatures);
+    const { brains, genomes, stats } = this.ga.evolve(this.creatures);
     this.generation += 1;
-    this.creatures = this.createCreaturesFromBrains(brains);
+    this.creatures = this.createCreaturesFromBrains(brains, genomes);
     this.elapsedGenerationTime = 0;
     this.bestFitness = stats.best;
     this.averageFitness = stats.average;
@@ -386,7 +435,7 @@ export default class Arena {
     this.hudUpdateAccumulator = 0;
     this.attackEffects = [];
     this.generateZones();
-    this.persistState(brains);
+    this.persistState(brains, genomes);
     this.updateHud();
   }
 
@@ -402,6 +451,9 @@ export default class Arena {
       recordKills: this.bestKillRecord,
       recordFitness: this.recordBestFitness,
       zones: this.getActiveZoneCount(),
+      energy: this.averageEnergy,
+      hydration: this.averageHydration,
+      weatherLabel: this.weather?.label ?? "-",
     };
 
     if (this.uiManager) {
@@ -413,8 +465,20 @@ export default class Arena {
       return;
     }
 
-    const { generation, best, average, alive, kills, recordKills, recordFitness, time, zones } =
-      this.statsElements;
+    const {
+      generation,
+      best,
+      average,
+      alive,
+      kills,
+      recordKills,
+      recordFitness,
+      time,
+      zones,
+      energy,
+      hydration,
+      weather,
+    } = this.statsElements;
     if (generation) {
       generation.textContent = hudData.generation.toString();
     }
@@ -441,6 +505,15 @@ export default class Arena {
     }
     if (zones) {
       zones.textContent = hudData.zones.toString();
+    }
+    if (energy) {
+      energy.textContent = `${Math.round(hudData.energy * 100)}%`;
+    }
+    if (hydration) {
+      hydration.textContent = `${Math.round(hudData.hydration * 100)}%`;
+    }
+    if (weather) {
+      weather.textContent = hudData.weatherLabel ?? "-";
     }
   }
 
@@ -472,6 +545,36 @@ export default class Arena {
       zone.update(deltaSeconds);
     }
     this.zones = this.zones.filter((zone) => zone.active);
+  }
+
+  updateWeather(deltaSeconds) {
+    if (!this.weather) {
+      this.weather = this.rollWeather();
+      return;
+    }
+    this.weather.remaining -= deltaSeconds;
+    if (this.weather.remaining <= 0) {
+      const previous = this.weather.type;
+      this.weather = this.rollWeather(previous);
+    }
+  }
+
+  rollWeather(previousType = null) {
+    const entries = Object.keys(WEATHER_PRESETS);
+    const pool =
+      previousType && entries.length > 1
+        ? entries.filter((type) => type !== previousType || Math.random() < 0.35)
+        : entries;
+    const type = pool[Math.floor(Math.random() * pool.length)];
+    const preset = WEATHER_PRESETS[type] ?? WEATHER_PRESETS.clear;
+    const duration = randomBetween(preset.duration[0], preset.duration[1]);
+    return {
+      type,
+      label: preset.label,
+      duration,
+      remaining: duration,
+      modifiers: preset.modifiers,
+    };
   }
 
   drawAttackEffects() {
@@ -694,15 +797,17 @@ export default class Arena {
     }
   }
 
-  persistState(brains = null) {
+  persistState(brains = null, genomes = null) {
     if (!this.storageAvailable) {
       return;
     }
     const sourceBrains = brains && brains.length ? brains : this.creatures.map((c) => c.brain);
+    const sourceGenomes = genomes && genomes.length ? genomes : this.creatures.map((c) => c.genome);
     try {
       const payload = {
         generation: this.generation,
         brains: sourceBrains.map((brain) => brain.toJSON()),
+        genomes: sourceGenomes.map((genome) => ({ ...genome })),
         bestHistory: this.bestHistory,
         bestKillRecord: this.bestKillRecord,
         recordBestFitness: this.recordBestFitness,
@@ -729,6 +834,7 @@ export default class Arena {
     this.stagnationCounter = 0;
     this.ga.setMutationPressure(0);
     this.pendingGenerationSkip = false;
+    this.weather = this.rollWeather();
     this.spawnPopulation();
     this.updateHud();
     this.uiManager?.syncControlsFromArena();

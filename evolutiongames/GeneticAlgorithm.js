@@ -1,4 +1,5 @@
 import NeuralNetwork, { BRAIN_LAYOUT } from "./NeuralNetwork.js";
+import { clampGenome, createRandomGenome, crossoverGenomes } from "./Genome.js";
 
 export default class GeneticAlgorithm {
   constructor({ populationSize, mutationRate, selectionRatio }) {
@@ -16,6 +17,10 @@ export default class GeneticAlgorithm {
     );
   }
 
+  createInitialGenomes() {
+    return Array.from({ length: this.populationSize }, () => createRandomGenome());
+  }
+
   setMutationPressure(stagnationSteps) {
     const extra = stagnationSteps * 0.01;
     this.dynamicMutationRate = Math.min(this.maxMutationRate, this.baseMutationRate + extra);
@@ -27,6 +32,7 @@ export default class GeneticAlgorithm {
     const survivorsCount = Math.max(2, Math.floor(this.populationSize * this.selectionRatio));
     const parents = sorted.slice(0, survivorsCount).map((creature) => ({
       brain: creature.brain,
+      genome: clampGenome(creature.genome ?? createRandomGenome()),
       fitness: Math.max(0.001, creature.fitness),
     }));
 
@@ -38,9 +44,11 @@ export default class GeneticAlgorithm {
     const totalFitness = parents.reduce((sum, parent) => sum + parent.fitness, 0) || parents.length;
 
     const newBrains = [];
+    const newGenomes = [];
     const elites = Math.min(2, parents.length);
     for (let i = 0; i < elites; i += 1) {
       newBrains.push(parents[i].brain.clone());
+      newGenomes.push(clampGenome(parents[i].genome));
     }
 
     while (newBrains.length < this.populationSize) {
@@ -48,9 +56,14 @@ export default class GeneticAlgorithm {
       const parentB = this.pickParent(parents, totalFitness);
       const child = NeuralNetwork.crossover(parentA.brain, parentB.brain, mutationRate);
       newBrains.push(child);
+      newGenomes.push(crossoverGenomes(parentA.genome, parentB.genome, mutationRate));
     }
 
-    return { brains: newBrains.slice(0, this.populationSize), stats };
+    return {
+      brains: newBrains.slice(0, this.populationSize),
+      genomes: newGenomes.slice(0, this.populationSize),
+      stats,
+    };
   }
 
   pickParent(parents, totalFitness) {

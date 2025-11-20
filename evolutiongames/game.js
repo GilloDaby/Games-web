@@ -9,6 +9,9 @@ window.addEventListener("DOMContentLoaded", () => {
     average: document.getElementById("statAverage"),
     alive: document.getElementById("statAlive"),
     time: document.getElementById("statTime"),
+    energy: document.getElementById("statEnergy"),
+    hydration: document.getElementById("statHydration"),
+    weather: document.getElementById("statWeather"),
   };
   const recordElements = {
     kills: document.getElementById("statKills"),

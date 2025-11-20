@@ -26,6 +26,9 @@ export default class UIManager {
     recordKills,
     recordFitness,
     zones,
+    energy,
+    hydration,
+    weatherLabel,
   }) {
     if (this.hud.generation) {
       this.hud.generation.textContent = generation.toString();
@@ -42,6 +45,12 @@ export default class UIManager {
     if (this.hud.time) {
       this.hud.time.textContent = UIManager.formatTime(timeRemaining);
     }
+    if (this.hud.energy) {
+      this.hud.energy.textContent = UIManager.formatPercentage(energy ?? 0);
+    }
+    if (this.hud.hydration) {
+      this.hud.hydration.textContent = UIManager.formatPercentage(hydration ?? 0);
+    }
 
     if (this.records.kills) {
       this.records.kills.textContent = kills.toString();
@@ -54,6 +63,9 @@ export default class UIManager {
     }
     if (this.records.zones) {
       this.records.zones.textContent = (zones ?? 0).toString();
+    }
+    if (this.hud.weather) {
+      this.hud.weather.textContent = weatherLabel ?? "-";
     }
   }
 
