@@ -37,10 +37,10 @@ export default class TileMap {
   generateBiomes() {
     this.generateFlat("grass");
     const paintOperations = [
-      { type: "sand", radius: 8, count: 5 },
-      { type: "snow", radius: 10, count: 4 },
+      { type: "sand", radius: 7, count: 4 },
+      { type: "snow", radius: 7, count: 4 },
       { type: "forest", radius: 6, count: 6 },
-      { type: "water", radius: 5, count: 5 },
+      { type: "water", radius: 2, count: 4 },
     ];
 
     for (const op of paintOperations) {
