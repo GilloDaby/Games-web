@@ -7,9 +7,9 @@ import PlayerSkinManager from "./PlayerSkinManager.js";
 import HealthPickup from "./HealthPickup.js";
 
 const ARENA_SETTINGS = {
-  width: 1600,
-  height: 1200,
-  gridSize: 80,
+  width: 1920,
+  height: 1080,
+  gridSize: 64,
   populationSize: 60,
   generationDuration: 25, // seconds
   mutationRate: 0.05,
