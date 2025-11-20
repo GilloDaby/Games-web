@@ -4,6 +4,7 @@ import NeuralNetwork from "./NeuralNetwork.js";
 import Zone, { pickZoneType } from "./Zone.js";
 import TileMap from "./TileMap.js";
 import PlayerSkinManager from "./PlayerSkinManager.js";
+import HealthPickup from "./HealthPickup.js";
 
 const ARENA_SETTINGS = {
   width: 1600,
@@ -13,6 +14,12 @@ const ARENA_SETTINGS = {
   generationDuration: 25, // seconds
   mutationRate: 0.05,
   selectionRatio: 0.2,
+  healthPickup: {
+    minInterval: 7,
+    maxInterval: 16,
+    maxActive: 3,
+    radius: 14,
+  },
   creatureSettings: {
     minSpeed: 30,
     maxSpeed: 110,
@@ -119,6 +126,8 @@ export default class Arena {
     this.persistenceKey = STORAGE_KEY;
     this.ga.setMutationPressure(0);
     this.weather = this.rollWeather();
+    this.healthPickups = [];
+    this.nextHealthSpawn = this.rollHealthSpawnTime();
 
     const persisted = this.loadPersistedState();
     if (persisted && Array.isArray(persisted.brains) && persisted.brains.length) {
@@ -192,6 +201,8 @@ export default class Arena {
       genomeInstances.push(...filler);
     }
     this.creatures = this.createCreaturesFromBrains(brainInstances, genomeInstances);
+    this.healthPickups = [];
+    this.nextHealthSpawn = this.rollHealthSpawnTime();
     this.elapsedGenerationTime = 0;
     this.bestFitness = 0;
     this.averageFitness = 0;
@@ -287,6 +298,7 @@ export default class Arena {
 
     this.updateZones(deltaSeconds);
     this.updateWeather(deltaSeconds);
+    this.updateHealthPickups(deltaSeconds);
 
     for (const creature of this.creatures) {
       creature.update(
@@ -298,6 +310,7 @@ export default class Arena {
         this.zones,
         this.tileMap,
         this.weather,
+        this.healthPickups,
       );
       totalFitness += creature.fitness;
       if (creature.fitness > bestFitness) {
@@ -348,6 +361,7 @@ export default class Arena {
     this.drawTileMap();
     this.drawArena();
     this.drawZones();
+    this.drawHealthPickups();
 
     for (const creature of this.creatures) {
       creature.draw(this.ctx);
@@ -426,6 +440,8 @@ export default class Arena {
     const { brains, genomes, stats } = this.ga.evolve(this.creatures);
     this.generation += 1;
     this.creatures = this.createCreaturesFromBrains(brains, genomes);
+    this.healthPickups = [];
+    this.nextHealthSpawn = this.rollHealthSpawnTime();
     this.elapsedGenerationTime = 0;
     this.bestFitness = stats.best;
     this.averageFitness = stats.average;
@@ -547,6 +563,22 @@ export default class Arena {
     this.zones = this.zones.filter((zone) => zone.active);
   }
 
+  updateHealthPickups(deltaSeconds) {
+    this.nextHealthSpawn -= deltaSeconds;
+    if (
+      this.healthPickups.length < this.config.healthPickup.maxActive &&
+      this.nextHealthSpawn <= 0 &&
+      Math.random() < 0.9
+    ) {
+      this.spawnHealthPickup();
+      this.nextHealthSpawn = this.rollHealthSpawnTime();
+    }
+    for (const pickup of this.healthPickups) {
+      pickup.update(deltaSeconds);
+    }
+    this.healthPickups = this.healthPickups.filter((pickup) => !pickup.collected);
+  }
+
   updateWeather(deltaSeconds) {
     if (!this.weather) {
       this.weather = this.rollWeather();
@@ -577,6 +609,28 @@ export default class Arena {
     };
   }
 
+  rollHealthSpawnTime() {
+    return randomBetween(this.config.healthPickup.minInterval, this.config.healthPickup.maxInterval);
+  }
+
+  spawnHealthPickup() {
+    const radius = this.config.healthPickup.radius;
+    const maxAttempts = 80;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const x = randomBetween(radius + 10, this.bounds.width - radius - 10);
+      const y = randomBetween(radius + 10, this.bounds.height - radius - 10);
+      const tile = this.tileMap?.getTileAt(x, y);
+      if (tile && (tile.type === "river" || tile.type === "water")) {
+        continue;
+      }
+      if (this.healthPickups.some((p) => Math.hypot(p.x - x, p.y - y) < radius * 3)) {
+        continue;
+      }
+      this.healthPickups.push(new HealthPickup({ x, y, radius }));
+      return;
+    }
+  }
+
   drawAttackEffects() {
     const ctx = this.ctx;
     ctx.save();
@@ -589,6 +643,15 @@ export default class Arena {
       ctx.stroke();
     }
     ctx.restore();
+  }
+
+  drawHealthPickups() {
+    if (!this.healthPickups?.length) {
+      return;
+    }
+    for (const pickup of this.healthPickups) {
+      pickup.draw(this.ctx);
+    }
   }
 
   applyCameraTransform() {
@@ -835,6 +898,8 @@ export default class Arena {
     this.ga.setMutationPressure(0);
     this.pendingGenerationSkip = false;
     this.weather = this.rollWeather();
+    this.healthPickups = [];
+    this.nextHealthSpawn = this.rollHealthSpawnTime();
     this.spawnPopulation();
     this.updateHud();
     this.uiManager?.syncControlsFromArena();

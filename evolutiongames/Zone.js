@@ -160,13 +160,10 @@ export default class Zone {
 
 export function pickZoneType() {
   const roll = Math.random();
-  if (roll < 0.4) {
-    return "heal";
-  }
-  if (roll < 0.7) {
+  if (roll < 0.6) {
     return "danger";
   }
-  if (roll < 0.9) {
+  if (roll < 0.88) {
     return "boost";
   }
   return "learning";

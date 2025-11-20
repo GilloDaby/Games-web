@@ -114,6 +114,7 @@ export default class Creature {
     zones = [],
     tileMap = null,
     weather = null,
+    healthPickups = [],
   ) {
     if (!this.alive) {
       return;
@@ -137,9 +138,13 @@ export default class Creature {
     }
 
     const zoneInfo = this.detectZones(zones, bounds, deltaSeconds);
+    const pickupInfo = this.detectHealthPickups(healthPickups);
     this.targetDirection = detection.hasEnemy ? detection.enemyDirection : null;
     if (!this.targetDirection && zoneInfo.hasZone) {
       this.targetDirection = zoneInfo.zoneDirection;
+    }
+    if (!this.targetDirection && pickupInfo?.hasPickup) {
+      this.targetDirection = pickupInfo.direction;
     }
 
     const inputs = this.buildBrainInputs(bounds, detection, zoneInfo, terrainInfo);
@@ -167,6 +172,11 @@ export default class Creature {
       } else if (moveTowardZone && zoneInfo.zoneType !== "danger") {
         desiredDirection = zoneInfo.zoneDirection;
       }
+    }
+
+    const wantsPickup = pickupInfo?.hasPickup && (this.hp / this.maxHp < 0.75 || !hasEnemy);
+    if (wantsPickup) {
+      desiredDirection = pickupInfo.direction;
     }
 
     desiredDirection += (Math.random() - 0.5) * 0.05;
@@ -214,6 +224,7 @@ export default class Creature {
     const postMoveTerrain = tileMap ? this.getTerrainInfo(tileMap) : terrainInfo;
     this.recordTerrainUsage(postMoveTerrain, deltaSeconds);
 
+    this.handleHealthPickupCollision(healthPickups);
     this.updateMetabolism(deltaSeconds, postMoveTerrain, Math.hypot(deltaX, deltaY), environment);
     if (!this.alive) {
       return;
@@ -427,6 +438,34 @@ export default class Creature {
     return info;
   }
 
+  detectHealthPickups(pickups) {
+    const result = { hasPickup: false, direction: this.direction, distance: Infinity, target: null };
+    if (!pickups?.length) {
+      return result;
+    }
+    let closest = null;
+    let closestDist = Infinity;
+    for (const pickup of pickups) {
+      if (pickup.collected) {
+        continue;
+      }
+      const dx = pickup.x - this.position.x;
+      const dy = pickup.y - this.position.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < closestDist) {
+        closestDist = distance;
+        closest = { pickup, direction: Math.atan2(dy, dx), distance };
+      }
+    }
+    if (closest) {
+      result.hasPickup = true;
+      result.direction = closest.direction;
+      result.distance = closest.distance;
+      result.target = closest.pickup;
+    }
+    return result;
+  }
+
   getTerrainInfo(tileMap) {
     if (!tileMap) {
       return {
@@ -500,6 +539,21 @@ export default class Creature {
     }
 
     this.currentTerrainType = info.type;
+  }
+
+  handleHealthPickupCollision(pickups) {
+    if (!pickups?.length || !this.alive) {
+      return;
+    }
+    for (const pickup of pickups) {
+      if (pickup.collected) {
+        continue;
+      }
+      const distance = Math.hypot(pickup.x - this.position.x, pickup.y - this.position.y);
+      if (distance <= pickup.radius + this.radius * 0.8) {
+        pickup.collect(this);
+      }
+    }
   }
 
   processZoneImpact(zone, deltaSeconds) {
