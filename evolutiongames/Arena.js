@@ -802,7 +802,7 @@ export default class Arena {
   }
 
   setPopulationSize(size) {
-    const newSize = Math.max(10, Math.min(240, Math.round(size)));
+    const newSize = Math.max(10, Math.min(1000, Math.round(size)));
     if (newSize === this.config.populationSize) {
       return;
     }
