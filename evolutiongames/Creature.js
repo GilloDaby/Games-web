@@ -485,25 +485,31 @@ export default class Creature {
       isBridge: type === "bridge",
       isSand: type === "sand",
       isSnow: type === "snow",
-      isGrass: type === "grass" || type === "forest",
+      isGrass: type === "grass",
+      isForest: type === "forest", 
     };
   }
 
-  getTerrainSpeedModifier(type) {
-    switch (type) {
-      case "sand":
-        return 0.85;
-      case "snow":
-        return 0.75;
-      case "bridge":
-        return 1.05;
-      case "water":
-      case "river":
-        return 0.45;
-      default:
-        return 1;
-    }
+getTerrainSpeedModifier(type) {
+  switch (type) {
+    case "sand":
+      return 0.85;
+    case "snow":
+      return 0.75;
+    case "forest":          
+      return 0.90;         
+    case "bridge":
+      return 1.05;
+    case "water":
+    case "river":
+      return 0.45;
+    case "grass":
+      return 1;            
+    default:
+      return 1;
   }
+}
+
 
   getEnvironmentModifiers(weather) {
     if (!weather?.modifiers) {
