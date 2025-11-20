@@ -40,6 +40,8 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   const arena = new Arena(canvas, hudElements, uiManager);
+  canvas.width = arena.tileMap.width * arena.tileMap.tileSize;
+  canvas.height = arena.tileMap.height * arena.tileMap.tileSize;
   uiManager.bindArena(arena);
   arena.start();
 
