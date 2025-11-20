@@ -1,115 +1,140 @@
 <!DOCTYPE html>
 <html lang="fr">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Genetic AI Battle Simulator</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-
-<body>
-  <main class="layout">
-    <header class="hero">
-      <h1>Genetic AI Battle Simulator</h1>
-      <p>Prototype d'arène 2D — déplacement aléatoire avant l'IA génétique.</p>
-    </header>
-    <section class="arena-column">
-      <section class="hud" aria-live="polite">
-        <div class="stat">
-          <span class="stat-label">Génération</span>
-          <span class="stat-value" id="statGeneration">1</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Meilleur fitness</span>
-          <span class="stat-value" id="statBest">0</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Fitness moyenne</span>
-          <span class="stat-value" id="statAverage">0</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Vivants</span>
-          <span class="stat-value" id="statAlive">0</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Temps restant</span>
-          <span class="stat-value" id="statTime">00:00</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Énergie moy.</span>
-          <span class="stat-value" id="statEnergy">0%</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Hydratation moy.</span>
-          <span class="stat-value" id="statHydration">0%</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Météo</span>
-          <span class="stat-value" id="statWeather">-</span>
-        </div>
-      </section>
-      <section class="arena-wrapper">
-        <canvas id="arenaCanvas" class="arena-canvas"></canvas>
-      </section>
-    </section>
-    <aside class="sidebar">
-      <section>
-        <h2>Statistiques</h2>
-        <div class="records">
-          <div class="record-item">
-            <span class="record-label">Kills ce round</span>
-            <span class="record-value" id="statKills">0</span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Genetic AI Battle Simulator</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="hero">
+        <h1>Genetic AI Battle Simulator</h1>
+        <p>Prototype d'arène 2D — déplacement aléatoire avant l'IA génétique.</p>
+      </header>
+      <section class="arena-column">
+        <section class="hud" aria-live="polite">
+          <div class="stat">
+            <span class="stat-label">Génération</span>
+            <span class="stat-value" id="statGeneration">1</span>
           </div>
-          <div class="record-item">
-            <span class="record-label">Record kills</span>
-            <span class="record-value" id="statRecordKills">0</span>
+          <div class="stat">
+            <span class="stat-label">Meilleur fitness</span>
+            <span class="stat-value" id="statBest">0</span>
           </div>
-          <div class="record-item">
-            <span class="record-label">Record fitness</span>
-            <span class="record-value" id="statRecordFitness">0</span>
+          <div class="stat">
+            <span class="stat-label">Fitness moyenne</span>
+            <span class="stat-value" id="statAverage">0</span>
           </div>
-          <div class="record-item">
-            <span class="record-label">Zones actives</span>
-            <span class="record-value" id="statZones">0</span>
+          <div class="stat">
+            <span class="stat-label">Vivants</span>
+            <span class="stat-value" id="statAlive">0</span>
           </div>
-        </div>
+          <div class="stat">
+            <span class="stat-label">Temps restant</span>
+            <span class="stat-value" id="statTime">00:00</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Énergie moy.</span>
+            <span class="stat-value" id="statEnergy">0%</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Hydratation moy.</span>
+            <span class="stat-value" id="statHydration">0%</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Météo</span>
+            <span class="stat-value" id="statWeather">-</span>
+          </div>
+        </section>
+        <section class="arena-wrapper">
+          <canvas
+            id="arenaCanvas"
+            class="arena-canvas"
+            width="1600"
+            height="1200"
+          ></canvas>
+        </section>
       </section>
-      <section>
-        <h2>Paramètres</h2>
-        <div class="control-group">
-          <label class="control-label" for="controlPopulation">
-            Population
-            <span class="control-value" id="controlPopulationValue">60</span>
-          </label>
-          <input type="range" id="controlPopulation" class="control-input" min="10" max="1000" step="1" value="60" />
+      <aside class="sidebar">
+        <section>
+          <h2>Statistiques</h2>
+          <div class="records">
+            <div class="record-item">
+              <span class="record-label">Kills ce round</span>
+              <span class="record-value" id="statKills">0</span>
+            </div>
+            <div class="record-item">
+              <span class="record-label">Record kills</span>
+              <span class="record-value" id="statRecordKills">0</span>
+            </div>
+            <div class="record-item">
+              <span class="record-label">Record fitness</span>
+              <span class="record-value" id="statRecordFitness">0</span>
+            </div>
+            <div class="record-item">
+              <span class="record-label">Zones actives</span>
+              <span class="record-value" id="statZones">0</span>
+            </div>
+          </div>
+        </section>
+        <section>
+          <h2>Paramètres</h2>
+          <div class="control-group">
+            <label class="control-label" for="controlPopulation">
+              Population
+              <span class="control-value" id="controlPopulationValue">60</span>
+            </label>
+            <input
+              type="range"
+              id="controlPopulation"
+              class="control-input"
+              min="10"
+              max="1000"
+              step="1"
+              value="60"
+            />
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="controlMutation">
+              Mutation
+              <span class="control-value" id="controlMutationValue">5%</span>
+            </label>
+            <input
+              type="range"
+              id="controlMutation"
+              class="control-input"
+              min="0.01"
+              max="0.5"
+              step="0.01"
+              value="0.05"
+            />
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="controlGenerationTime">
+              Temps par génération
+            </label>
+            <input
+              type="number"
+              id="controlGenerationTime"
+              class="number-input"
+              min="5"
+              max="90"
+              step="1"
+              value="25"
+            />
+          </div>
+        </section>
+        <div class="button-stack">
+          <button type="button" id="controlRestart" class="button">
+            Redémarrer la simulation
+          </button>
+          <button type="button" id="controlSkipGeneration" class="button secondary">
+            Génération suivante
+          </button>
         </div>
-        <div class="control-group">
-          <label class="control-label" for="controlMutation">
-            Mutation
-            <span class="control-value" id="controlMutationValue">5%</span>
-          </label>
-          <input type="range" id="controlMutation" class="control-input" min="0.01" max="0.5" step="0.01"
-            value="0.05" />
-        </div>
-        <div class="control-group">
-          <label class="control-label" for="controlGenerationTime">
-            Temps par génération
-          </label>
-          <input type="number" id="controlGenerationTime" class="number-input" min="5" max="90" step="1" value="25" />
-        </div>
-      </section>
-      <div class="button-stack">
-        <button type="button" id="controlRestart" class="button">
-          Redémarrer la simulation
-        </button>
-        <button type="button" id="controlSkipGeneration" class="button secondary">
-          Génération suivante
-        </button>
-      </div>
-    </aside>
-  </main>
-  <script type="module" src="game.js"></script>
-</body>
-
+      </aside>
+    </main>
+    <script type="module" src="game.js"></script>
+  </body>
 </html>
