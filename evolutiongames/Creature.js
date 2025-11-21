@@ -226,11 +226,13 @@ export default class Creature {
     this.fatigueAccum = 0;
     this.resources = { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 };
     this.resourcesGathered = { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 };
+    this.resourceMemory = { nodeId: null, ttl: 0, direction: 0, distance: Infinity };
     this.structuresBuilt = 0;
     this.structuresDestroyed = 0;
     this.craftingScore = 0;
     this.resourceCapacity = RESOURCE_CAPACITY_BASE * this.genome.endurance;
     this.buildCooldown = 0;
+    this.buildDecisionCooldown = 0;
     this.snowballCooldown = 0;
     this.reaction = { emoji: null, ttl: 0 };
     this.reproductionCooldown = 0;
@@ -296,6 +298,7 @@ export default class Creature {
     this.stateFlags.inDanger = false;
     this.animationTime += deltaSeconds;
     this.buildCooldown = Math.max(0, this.buildCooldown - deltaSeconds);
+    this.buildDecisionCooldown = Math.max(0, this.buildDecisionCooldown - deltaSeconds);
     this.snowballCooldown = Math.max(0, this.snowballCooldown - deltaSeconds);
     this.reproductionCooldown = Math.max(0, this.reproductionCooldown - deltaSeconds);
     const environment = this.getEnvironmentModifiers(weather);
@@ -924,6 +927,21 @@ export default class Creature {
     if (!resourceSystem) {
       return { hasResource: false };
     }
+    if (this.resourceMemory?.ttl > 0) {
+      this.resourceMemory.ttl = Math.max(0, this.resourceMemory.ttl - 0.1);
+      const targetNode = resourceSystem.getNodeById(this.resourceMemory.nodeId);
+      if (targetNode && targetNode.amount > 0) {
+        const direction = Math.atan2(targetNode.y - this.position.y, targetNode.x - this.position.x);
+        const distance = Math.hypot(targetNode.x - this.position.x, targetNode.y - this.position.y);
+        return {
+          hasResource: true,
+          node: targetNode,
+          direction,
+          distance,
+          priority: this.shouldSeekResources(),
+        };
+      }
+    }
     const preferred = [];
     const lowEnergy = this.energy / this.energyMax < RESOURCE_NEED_THRESHOLD;
     const lowHydration = this.hydration / this.hydrationMax < RESOURCE_NEED_THRESHOLD;
@@ -946,6 +964,12 @@ export default class Creature {
     if (!chosen?.hasResource) {
       return { hasResource: false };
     }
+    this.resourceMemory = {
+      nodeId: chosen.node?.id ?? null,
+      ttl: 1.2,
+      direction: chosen.direction,
+      distance: chosen.distance,
+    };
     return {
       ...chosen,
       priority: this.shouldSeekResources(),
@@ -1103,10 +1127,14 @@ getTerrainSpeedModifier(type) {
     if (!resourceSystem || this.buildCooldown > 0 || !this.alive) {
       return;
     }
+    if (this.buildDecisionCooldown > 0) {
+      return;
+    }
     const load = this.getInventoryLoad();
     if (load < 4) {
       return;
     }
+    this.buildDecisionCooldown = 1.5;
 
     const candidates = Object.entries(STRUCTURE_TYPES)
       .map(([type, def]) => ({ type, def }))

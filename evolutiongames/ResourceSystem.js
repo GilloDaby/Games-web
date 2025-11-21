@@ -519,11 +519,13 @@ export default class ResourceSystem {
   getNearestResource(x, y, preferredTypes = null) {
     let closest = null;
     let minDistance = Infinity;
-    for (const node of this.nodes) {
-      if (node.amount <= 0) {
-        continue;
-      }
-      if (preferredTypes?.length && !preferredTypes.includes(node.type)) {
+    const consider = preferredTypes?.length
+      ? this.nodes.filter((node) => preferredTypes.includes(node.type))
+      : this.nodes;
+    const sampleStride = Math.max(1, Math.floor(consider.length / 200)); // subsample large lists
+    for (let i = 0; i < consider.length; i += sampleStride) {
+      const node = consider[i];
+      if (!node || node.amount <= 0) {
         continue;
       }
       const dist = Math.hypot(node.x - x, node.y - y);
@@ -541,6 +543,13 @@ export default class ResourceSystem {
       direction: Math.atan2(closest.y - y, closest.x - x),
       distance: minDistance,
     };
+  }
+
+  getNodeById(id) {
+    if (!id) {
+      return null;
+    }
+    return this.nodes.find((node) => node.id === id) || null;
   }
 
   harvest(node, creature, deltaSeconds, efficiency = 1) {
