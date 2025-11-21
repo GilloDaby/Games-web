@@ -34,7 +34,7 @@ const FOOD_ENERGY_VALUE = 1.2;
 const FOOD_HYDRATION_VALUE = 0.65;
 const FOOD_HP_VALUE = 0.15;
 const NEAR_WATER_HYDRATION = 3.5;
-const HOME_SOFT_RADIUS = 520;
+const HOME_SOFT_RADIUS = 1400;
 const SNOWBALL_RANGE = 240;
 const SNOWBALL_DAMAGE = 6;
 const SNOWBALL_COOLDOWN = 2.5;
@@ -433,7 +433,7 @@ export default class Creature {
       const distHome = Math.hypot(dxHome, dyHome);
       if (distHome > HOME_SOFT_RADIUS) {
         const homeDir = Math.atan2(dyHome, dxHome);
-        const pull = clamp((distHome - HOME_SOFT_RADIUS) / HOME_SOFT_RADIUS, 0, 0.35);
+        const pull = clamp((distHome - HOME_SOFT_RADIUS) / HOME_SOFT_RADIUS, 0, 0.12);
         desiredDirection = lerpAngle(desiredDirection, homeDir, pull);
       }
     }
@@ -558,7 +558,10 @@ export default class Creature {
     const capacityRatio = load / Math.max(1, this.resourceCapacity);
     const lowEnergy = this.energy / this.energyMax < RESOURCE_NEED_THRESHOLD;
     const lowHydration = this.hydration / this.hydrationMax < RESOURCE_NEED_THRESHOLD;
-    return capacityRatio < 0.9 && (lowEnergy || lowHydration || load < this.resourceCapacity * 0.7);
+    return (
+      capacityRatio < 0.9 &&
+      (lowEnergy || lowHydration || load < this.resourceCapacity * 0.7 || Math.random() < 0.35)
+    );
   }
 
   getInventoryLoad() {
@@ -933,12 +936,18 @@ export default class Creature {
     if (this.hp / this.maxHp < RESOURCE_NEED_THRESHOLD) {
       preferred.push("stone");
     }
-    const info = resourceSystem.getNearestResource(this.position.x, this.position.y, preferred);
-    if (!info?.hasResource) {
+    const infoPreferred = resourceSystem.getNearestResource(
+      this.position.x,
+      this.position.y,
+      preferred,
+    );
+    const infoAny = resourceSystem.getNearestResource(this.position.x, this.position.y, null);
+    const chosen = infoPreferred?.hasResource ? infoPreferred : infoAny;
+    if (!chosen?.hasResource) {
       return { hasResource: false };
     }
     return {
-      ...info,
+      ...chosen,
       priority: this.shouldSeekResources(),
     };
   }

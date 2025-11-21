@@ -452,8 +452,8 @@ export default class ResourceSystem {
   spawnInitialNodes() {
     const area = this.bounds.width * this.bounds.height;
     // For procedural "infinite" worlds cap density so we don't spawn millions of nodes.
-    const effectiveArea = Math.min(area, 20_000_000); // cap density for huge worlds
-    const baseCount = Math.max(20, Math.floor(effectiveArea / 90000));
+    const effectiveArea = Math.min(area, 60_000_000); // cap density for huge worlds
+    const baseCount = Math.max(400, Math.floor(effectiveArea / 45000));
     const spread = Object.keys(RESOURCE_TYPES).map((type) => ({ type, weight: 1 }));
 
     for (let i = 0; i < baseCount; i += 1) {
