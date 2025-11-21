@@ -226,7 +226,9 @@ export default class ResourceSystem {
 
   spawnInitialNodes() {
     const area = this.bounds.width * this.bounds.height;
-    const baseCount = Math.max(20, Math.floor(area / 90000));
+    // For procedural "infinite" worlds cap density so we don't spawn millions of nodes.
+    const effectiveArea = Math.min(area, 12_000_000); // ~3x the classic map
+    const baseCount = Math.max(20, Math.floor(effectiveArea / 90000));
     const spread = [
       { type: "wood", weight: 0.3 },
       { type: "stone", weight: 0.24 },

@@ -43,7 +43,7 @@ const ARENA_SETTINGS = {
 
 const WORLD_DIMENSIONS = {
   fixed: { width: ARENA_SETTINGS.width, height: ARENA_SETTINGS.height, spanTiles: null },
-  infinite: { width: 7200, height: 4800, spanTiles: 230 },
+  infinite: { width: 20000, height: 20000, spanTiles: 640 },
 };
 
 const STORAGE_KEY = "genetic-ai-battle-state";
