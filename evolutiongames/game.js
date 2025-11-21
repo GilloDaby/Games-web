@@ -39,6 +39,8 @@ window.addEventListener("DOMContentLoaded", () => {
     skipBtn: document.getElementById("controlSkipGeneration"),
     speed: document.getElementById("controlSpeed"),
     infiniteTime: document.getElementById("controlInfiniteTime"),
+    teamSelect: document.getElementById("controlTeamSelect"),
+    teamJump: document.getElementById("controlTeamJump"),
   };
 
   if (!canvas) {

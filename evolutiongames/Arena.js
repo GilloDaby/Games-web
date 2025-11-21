@@ -757,6 +757,7 @@ export default class Arena {
       gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 },
       structures: 0,
     };
+    const families = this.getFamilyIds();
     const hudData = {
       generation: this.generation,
       best: this.bestFitness,
@@ -772,6 +773,7 @@ export default class Arena {
       weatherLabel: this.weather?.label ?? "-",
       resources: resourceSummary.gathered,
       structures: resourceSummary.structures,
+      families,
     };
 
     if (this.uiManager) {
@@ -1491,6 +1493,35 @@ export default class Arena {
 
   getActiveZoneCount() {
     return this.zones?.filter((zone) => zone.active).length ?? 0;
+  }
+
+  getFamilyIds() {
+    const ids = new Set();
+    for (const creature of this.creatures) {
+      if (creature.familyId != null) {
+        ids.add(creature.familyId);
+      }
+    }
+    return Array.from(ids).sort((a, b) => a - b);
+  }
+
+  focusOnFamily(familyId) {
+    if (familyId == null) {
+      return;
+    }
+    const members = this.creatures.filter((c) => c.familyId === familyId && c.alive);
+    let target = null;
+    if (members.length) {
+      const cx = members.reduce((sum, c) => sum + c.position.x, 0) / members.length;
+      const cy = members.reduce((sum, c) => sum + c.position.y, 0) / members.length;
+      target = { x: cx, y: cy };
+    } else {
+      target = this.getFamilyHome(familyId) || { x: this.bounds.width / 2, y: this.bounds.height / 2 };
+    }
+    this.camera.follow = null;
+    this.camera.focusX = target.x;
+    this.camera.focusY = target.y;
+    this.camera.targetZoom = 1.4;
   }
 
   loadPersistedState() {

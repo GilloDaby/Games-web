@@ -35,6 +35,7 @@ export default class UIManager {
     weatherLabel,
     resources = {},
     structures = 0,
+    families = [],
   }) {
     if (this.hud.generation) {
       this.hud.generation.textContent = generation.toString();
@@ -85,6 +86,7 @@ export default class UIManager {
     if (this.hud.weather) {
       this.hud.weather.textContent = weatherLabel ?? "-";
     }
+    this.updateTeamList(families);
   }
 
   syncControlsFromArena() {
@@ -186,6 +188,21 @@ export default class UIManager {
         this.arena?.skipGeneration();
       });
     }
+
+    if (this.controls.teamJump && this.controls.teamSelect) {
+      this.controls.teamJump.addEventListener("click", () => {
+        const value = Number(this.controls.teamSelect.value);
+        if (Number.isFinite(value) && this.arena) {
+          this.arena.focusOnFamily(value);
+        }
+      });
+      this.controls.teamSelect.addEventListener("change", () => {
+        const value = Number(this.controls.teamSelect.value);
+        if (Number.isFinite(value) && this.arena) {
+          this.arena.focusOnFamily(value);
+        }
+      });
+    }
   }
 
   updateSlider(input, valueElement, value, formatter = UIManager.formatInteger) {
@@ -235,5 +252,25 @@ export default class UIManager {
       fragment.appendChild(span);
     }
     this.selectedElements.traits.appendChild(fragment);
+  }
+
+  updateTeamList(families = []) {
+    if (!this.controls.teamSelect) {
+      return;
+    }
+    const unique = Array.from(new Set(families.filter((f) => f != null))).sort((a, b) => a - b);
+    const current = Array.from(this.controls.teamSelect.options).map((opt) => Number(opt.value));
+    const same =
+      unique.length === current.length && unique.every((value, idx) => value === current[idx]);
+    if (same) {
+      return;
+    }
+    this.controls.teamSelect.innerHTML = "";
+    for (const fam of unique) {
+      const option = document.createElement("option");
+      option.value = fam;
+      option.textContent = `Famille ${fam}`;
+      this.controls.teamSelect.appendChild(option);
+    }
   }
 }

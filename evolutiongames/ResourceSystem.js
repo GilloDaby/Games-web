@@ -381,6 +381,7 @@ class Structure {
     this.ownerId = ownerId;
     this.ownerColor = ownerColor;
     this.icon = icon;
+    this.label = config.label || type;
   }
 
   takeDamage(amount) {
@@ -415,6 +416,10 @@ class Structure {
     ctx.fillRect(barX, barY, barWidth, barHeight);
     ctx.fillStyle = hpRatio > 0.4 ? "#8bff8b" : "#ff8b8b";
     ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+    ctx.font = "bold 10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillText(this.label ?? this.type, this.x, barY - 6);
     ctx.restore();
   }
 }
