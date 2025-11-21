@@ -24,8 +24,16 @@ const BOSS_GROWTH_MULTIPLIER = 3;
 const RESOURCE_CAPACITY_BASE = 40;
 const RESOURCE_NEED_THRESHOLD = 0.4;
 const STRUCTURE_BUILD_COOLDOWN = 3.5;
-const MATURITY_TIME = 10;
-const REPRODUCTION_COOLDOWN = 12;
+const MATURITY_TIME = 8;
+const REPRODUCTION_COOLDOWN = 9;
+const MATE_RESOURCE_THRESHOLD = 0.42;
+const MATE_SEARCH_DISTANCE = 520;
+const REST_RESOURCE_THRESHOLD = 0.55;
+const NEAR_WATER_TILE_RANGE = 1;
+const FOOD_ENERGY_VALUE = 1.2;
+const FOOD_HYDRATION_VALUE = 0.65;
+const FOOD_HP_VALUE = 0.15;
+const NEAR_WATER_HYDRATION = 3.5;
 const SNOWBALL_RANGE = 240;
 const SNOWBALL_DAMAGE = 6;
 const SNOWBALL_COOLDOWN = 2.5;
@@ -213,8 +221,8 @@ export default class Creature {
     this.animationTime = Math.random() * 3;
     this.killedBy = null;
     this.fatigueAccum = 0;
-    this.resources = { wood: 0, stone: 0, crystal: 0, snowball: 0 };
-    this.resourcesGathered = { wood: 0, stone: 0, crystal: 0, snowball: 0 };
+    this.resources = { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 };
+    this.resourcesGathered = { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 };
     this.structuresBuilt = 0;
     this.structuresDestroyed = 0;
     this.craftingScore = 0;
@@ -247,6 +255,7 @@ export default class Creature {
       this.resourcesGathered.wood * 0.7 +
       this.resourcesGathered.stone * 1 +
       this.resourcesGathered.crystal * 1.2 +
+      (this.resourcesGathered.food ?? 0) * 0.8 +
       this.resourcesGathered.snowball * 0.2 +
       this.structuresBuilt * 30 +
       this.structuresDestroyed * 26 +
@@ -306,6 +315,8 @@ export default class Creature {
     const structureInfo = resourceSystem
       ? resourceSystem.getNearestStructure(this.position.x, this.position.y, this.id)
       : { structure: null };
+    const restStructureInfo = this.findRestStructure(resourceSystem);
+    const mateInfo = this.findMateCandidate(population);
     const allyInfo = this.findClosestByRelation(population, "ally");
     const neutralInfo = this.findClosestByRelation(population, "neutral");
     const prefersBoss = bossInfo.hasBoss;
@@ -325,6 +336,27 @@ export default class Creature {
     }
     if (!this.targetDirection && pickupInfo?.hasPickup) {
       this.targetDirection = pickupInfo.direction;
+    }
+    const needsRest =
+      this.energy / this.energyMax < REST_RESOURCE_THRESHOLD ||
+      this.hydration / this.hydrationMax < REST_RESOURCE_THRESHOLD ||
+      this.hp / this.maxHp < REST_RESOURCE_THRESHOLD;
+    const hasRestStructure = Boolean(restStructureInfo?.structure);
+    if (
+      !this.targetDirection &&
+      needsRest &&
+      hasRestStructure &&
+      restStructureInfo.distance < Math.max(520, this.nearEnemyDistance * 2)
+    ) {
+      const safeRest =
+        !detection.hasEnemy || restStructureInfo.distance < this.nearEnemyDistance * 0.6;
+      if (safeRest) {
+        this.targetDirection = restStructureInfo.direction;
+      }
+    }
+    const mateSafe = !detection.hasEnemy || detection.distance > this.nearEnemyDistance * 0.8;
+    if (!this.targetDirection && mateInfo.hasMate && mateSafe) {
+      this.targetDirection = mateInfo.direction;
     }
     if (!this.targetDirection && preyInfo.hasPrey) {
       this.targetDirection = preyInfo.direction;
@@ -432,7 +464,13 @@ export default class Creature {
     this.applyStructureEffects(structureInfo, deltaSeconds);
     this.tryCraftStructure(resourceSystem);
     this.handleHealthPickupCollision(healthPickups);
-    this.updateMetabolism(deltaSeconds, postMoveTerrain, Math.hypot(deltaX, deltaY), environment);
+    this.updateMetabolism(
+      deltaSeconds,
+      postMoveTerrain,
+      Math.hypot(deltaX, deltaY),
+      environment,
+      tileMap,
+    );
     this.handleAging(deltaSeconds);
     if (!this.alive) {
       return;
@@ -453,7 +491,7 @@ export default class Creature {
     );
   }
 
-  updateMetabolism(deltaSeconds, terrainInfo, distanceMoved, environment = null) {
+  updateMetabolism(deltaSeconds, terrainInfo, distanceMoved, environment = null, tileMap = null) {
     const terrainPenalty = terrainInfo?.isSand ? 0.18 : terrainInfo?.isSnow ? 0.25 : 0;
     const speedFactor = clamp(this.speed / Math.max(1, this.settings.maxSpeed), 0, 2);
     const baseCost = METABOLIC_BASE_COST * this.genome.metabolism * (environment?.metabolism ?? 1);
@@ -477,6 +515,8 @@ export default class Creature {
     // boire dans l'eau avec un risque de d�g�ts l�ger d�j� appliqu�
     if (terrainInfo?.isWater) {
       this.hydration = clamp(this.hydration + 6 * deltaSeconds, 0, this.hydrationMax);
+    } else if (tileMap && this.isNearWater(tileMap)) {
+      this.hydration = clamp(this.hydration + NEAR_WATER_HYDRATION * deltaSeconds, 0, this.hydrationMax);
     }
 
     const lowEnergy = 1 - this.energy / this.energyMax;
@@ -520,6 +560,18 @@ export default class Creature {
     this.resources[type] += accepted;
     this.resourcesGathered[type] += accepted;
     return accepted;
+  }
+
+  consumeFood(amount = 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return;
+    }
+    const energyGain = amount * FOOD_ENERGY_VALUE;
+    const hydrationGain = amount * FOOD_HYDRATION_VALUE;
+    const hpGain = amount * FOOD_HP_VALUE;
+    this.energy = clamp(this.energy + energyGain, 0, this.energyMax);
+    this.hydration = clamp(this.hydration + hydrationGain, 0, this.hydrationMax);
+    this.hp = clamp(this.hp + hpGain, 0, this.maxHp);
   }
 
   spendResources(cost = {}) {
@@ -804,12 +856,53 @@ export default class Creature {
     return result;
   }
 
+  isReadyToMate() {
+    const mature = this.survivalTime >= MATURITY_TIME;
+    const rested = this.energy / this.energyMax > MATE_RESOURCE_THRESHOLD;
+    const hydrated = this.hydration / this.hydrationMax > MATE_RESOURCE_THRESHOLD;
+    return this.alive && mature && this.reproductionCooldown <= 0 && rested && hydrated;
+  }
+
+  findMateCandidate(population) {
+    const result = { hasMate: false, mate: null, direction: this.direction, distance: Infinity };
+    if (!this.isReadyToMate()) {
+      return result;
+    }
+    let closest = null;
+    let closestDist = Infinity;
+    for (const other of population) {
+      if (other === this || !other?.alive) {
+        continue;
+      }
+      if (!this.canMateWith(other)) {
+        continue;
+      }
+      const distance = Math.hypot(other.position.x - this.position.x, other.position.y - this.position.y);
+      if (distance < closestDist && distance <= MATE_SEARCH_DISTANCE) {
+        closest = { mate: other, direction: Math.atan2(other.position.y - this.position.y, other.position.x - this.position.x), distance };
+        closestDist = distance;
+      }
+    }
+    if (closest) {
+      result.hasMate = true;
+      result.mate = closest.mate;
+      result.direction = closest.direction;
+      result.distance = closest.distance;
+    }
+    return result;
+  }
+
   detectResources(resourceSystem) {
     if (!resourceSystem) {
       return { hasResource: false };
     }
     const preferred = [];
-    if (this.energy / this.energyMax < RESOURCE_NEED_THRESHOLD) {
+    const lowEnergy = this.energy / this.energyMax < RESOURCE_NEED_THRESHOLD;
+    const lowHydration = this.hydration / this.hydrationMax < RESOURCE_NEED_THRESHOLD;
+    if (lowEnergy || lowHydration) {
+      preferred.push("food");
+    }
+    if (lowEnergy) {
       preferred.push("wood");
     }
     if (this.hp / this.maxHp < RESOURCE_NEED_THRESHOLD) {
@@ -847,6 +940,27 @@ export default class Creature {
       isGrass: type === "grass",
       isForest: type === "forest", 
     };
+  }
+
+  isNearWater(tileMap, tileRange = NEAR_WATER_TILE_RANGE) {
+    if (!tileMap) {
+      return false;
+    }
+    const size = tileMap.tileSize ?? 32;
+    const baseTile = tileMap.getTileAt(this.position.x, this.position.y);
+    const tx = baseTile?.x ?? Math.floor(this.position.x / size);
+    const ty = baseTile?.y ?? Math.floor(this.position.y / size);
+    for (let dx = -tileRange; dx <= tileRange; dx += 1) {
+      for (let dy = -tileRange; dy <= tileRange; dy += 1) {
+        const sampleX = (tx + dx + 0.5) * size;
+        const sampleY = (ty + dy + 0.5) * size;
+        const tile = tileMap.getTileAt(sampleX, sampleY);
+        if (tile && (tile.type === "water" || tile.type === "river")) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
 getTerrainSpeedModifier(type) {
@@ -918,10 +1032,10 @@ getTerrainSpeedModifier(type) {
     const mature = this.survivalTime >= MATURITY_TIME && partner.survivalTime >= MATURITY_TIME;
     const ready = this.reproductionCooldown <= 0 && partner.reproductionCooldown <= 0;
     const wellFed =
-      this.energy / this.energyMax > 0.55 &&
-      partner.energy / partner.energyMax > 0.55 &&
-      this.hydration / this.hydrationMax > 0.55 &&
-      partner.hydration / partner.hydrationMax > 0.55;
+      this.energy / this.energyMax > MATE_RESOURCE_THRESHOLD &&
+      partner.energy / partner.energyMax > MATE_RESOURCE_THRESHOLD &&
+      this.hydration / this.hydrationMax > MATE_RESOURCE_THRESHOLD &&
+      partner.hydration / partner.hydrationMax > MATE_RESOURCE_THRESHOLD;
     const compatible = this.isCompatibleMate(partner);
     return oppositeSex && sameFamily && mature && ready && wellFed && compatible;
   }
@@ -939,7 +1053,8 @@ getTerrainSpeedModifier(type) {
     if (!resourceSystem || !resourceInfo?.hasResource) {
       return;
     }
-    if (this.getInventoryLoad() >= this.resourceCapacity - 1) {
+    const isFoodNode = resourceInfo.node?.type === "food";
+    if (!isFoodNode && this.getInventoryLoad() >= this.resourceCapacity - 1) {
       return;
     }
     const gatherDistance = this.radius + (resourceInfo.node?.radius ?? 0) + 6;
@@ -1018,6 +1133,39 @@ getTerrainSpeedModifier(type) {
     if (aura.damage && (!structure.ownerId || structure.ownerId !== this.id)) {
       this.takeDamage(aura.damage * deltaSeconds);
     }
+  }
+
+  isRestStructure(structure) {
+    if (!structure?.aura) {
+      return false;
+    }
+    const { heal, energy, hydration } = structure.aura;
+    return Boolean(heal || energy || hydration);
+  }
+
+  findRestStructure(resourceSystem = null) {
+    if (!resourceSystem?.structures?.length) {
+      return { structure: null };
+    }
+    let closest = null;
+    let minDist = Infinity;
+    for (const structure of resourceSystem.structures) {
+      if (!this.isRestStructure(structure)) {
+        continue;
+      }
+      const distance = Math.hypot(structure.x - this.position.x, structure.y - this.position.y);
+      if (distance < minDist) {
+        minDist = distance;
+        closest = structure;
+      }
+    }
+    return closest
+      ? {
+          structure: closest,
+          distance: minDist,
+          direction: Math.atan2(closest.y - this.position.y, closest.x - this.position.x),
+        }
+      : { structure: null };
   }
 
   findBuildSpot(bounds = null) {

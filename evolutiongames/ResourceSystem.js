@@ -35,6 +35,15 @@ const RESOURCE_TYPES = {
     radius: 14,
     allowedTiles: ["snow"],
   },
+  food: {
+    label: "Baies",
+    color: "#f0853c",
+    rate: 11,
+    hardness: 0.7,
+    capacity: 110,
+    radius: 14,
+    allowedTiles: ["forest", "grass"],
+  },
 };
 
 const STRUCTURE_TYPES = {
@@ -43,7 +52,7 @@ const STRUCTURE_TYPES = {
     hp: 180,
     radius: 24,
     cost: { wood: 6, stone: 4 },
-    aura: { heal: 8, energy: 7, hydration: 6 },
+    aura: { heal: 8, energy: 11, hydration: 9 },
     color: "#f2c879",
   },
   spike: {
@@ -178,7 +187,7 @@ export default class ResourceSystem {
     this.nodes = [];
     this.structures = [];
     this.stats = {
-      gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0 },
+      gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 },
       built: 0,
       destroyed: 0,
     };
@@ -190,7 +199,7 @@ export default class ResourceSystem {
     this.nodes = [];
     this.structures = [];
     this.stats = {
-      gathered: { wood: 0, stone: 0, crystal: 0 },
+      gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 },
       built: 0,
       destroyed: 0,
     };
@@ -201,10 +210,11 @@ export default class ResourceSystem {
     const area = this.bounds.width * this.bounds.height;
     const baseCount = Math.max(20, Math.floor(area / 90000));
     const spread = [
-      { type: "wood", weight: 0.38 },
-      { type: "stone", weight: 0.28 },
-      { type: "crystal", weight: 0.16 },
-      { type: "snowball", weight: 0.18 },
+      { type: "wood", weight: 0.3 },
+      { type: "stone", weight: 0.24 },
+      { type: "crystal", weight: 0.14 },
+      { type: "snowball", weight: 0.16 },
+      { type: "food", weight: 0.16 },
     ];
 
     for (let i = 0; i < baseCount; i += 1) {
@@ -293,6 +303,13 @@ export default class ResourceSystem {
     }
     const amount = node.harvest(deltaSeconds, efficiency);
     if (amount > 0 && creature) {
+      if (node.type === "food") {
+        creature.consumeFood(amount);
+        if (this.stats.gathered.food !== undefined) {
+          this.stats.gathered.food += amount;
+        }
+        return amount;
+      }
       const accepted = creature.collectResource(node.type, amount);
       if (accepted > 0) {
         this.stats.gathered[node.type] += accepted;

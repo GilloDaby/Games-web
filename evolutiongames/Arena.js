@@ -111,7 +111,7 @@ export default class Arena {
     this.targetAnimalCount = 14;
     this.bosses = [];
     this.bossSkin = null;
-    this.bossSpawnTimer = 18;
+    this.bossSpawnTimer = 34;
     this.familyCount = 4;
     this.nextFamilyId = 1;
     this.familiesAtWar = new Set();
@@ -263,7 +263,7 @@ export default class Arena {
     this.animals = [];
     this.spawnAnimals();
     this.bosses = [];
-    this.bossSpawnTimer = randomBetween(15, 24);
+    this.bossSpawnTimer = randomBetween(34, 50);
     this.territories = new Map();
     this.hudUpdateAccumulator = 0;
     if (!brains || !brains.length) {
@@ -576,7 +576,7 @@ export default class Arena {
   updateHud() {
     const timeRemaining = Math.max(0, this.config.generationDuration - this.elapsedGenerationTime);
     const resourceSummary = this.resourceSystem?.getSummary() ?? {
-      gathered: { wood: 0, stone: 0, crystal: 0 },
+      gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 },
       structures: 0,
     };
     const hudData = {
@@ -721,9 +721,18 @@ export default class Arena {
 
   updateBosses(deltaSeconds, currentTime) {
     this.bossSpawnTimer -= deltaSeconds;
-    if (this.bossSpawnTimer <= 0 && this.bosses.length < 2) {
-      this.spawnBoss();
-      this.bossSpawnTimer = randomBetween(20, 32);
+    const aliveCreatures = this.creatures.filter((creature) => creature.alive).length;
+    const allowSpawn = aliveCreatures >= Math.floor(this.config.populationSize * 0.35);
+    const bossCap = 1;
+
+    if (this.bossSpawnTimer <= 0) {
+      if (allowSpawn && this.bosses.length < bossCap) {
+        this.spawnBoss();
+        this.bossSpawnTimer = randomBetween(35, 50);
+      } else {
+        // Recheck later instead of stacking spawns while the population is weak.
+        this.bossSpawnTimer = 8;
+      }
     }
     for (const boss of this.bosses) {
       boss.update(deltaSeconds, this.bounds, this.creatures, currentTime, (effect) =>
@@ -735,8 +744,28 @@ export default class Arena {
 
   spawnBoss() {
     const radius = 28;
-    const x = randomBetween(radius, this.bounds.width - radius);
-    const y = randomBetween(radius, this.bounds.height - radius);
+    let best = null;
+    let bestClearance = -Infinity;
+    for (let i = 0; i < 24; i += 1) {
+      const candidateX = randomBetween(radius, this.bounds.width - radius);
+      const candidateY = randomBetween(radius, this.bounds.height - radius);
+      const clearance = this.creatures.reduce((min, creature) => {
+        if (!creature.alive) {
+          return min;
+        }
+        const dist = Math.hypot(creature.position.x - candidateX, creature.position.y - candidateY);
+        return Math.min(min, dist);
+      }, Infinity);
+      if (clearance > bestClearance) {
+        bestClearance = clearance;
+        best = { x: candidateX, y: candidateY };
+      }
+      if (clearance > 420) {
+        break;
+      }
+    }
+    const x = best?.x ?? randomBetween(radius, this.bounds.width - radius);
+    const y = best?.y ?? randomBetween(radius, this.bounds.height - radius);
     const variant = Math.floor(Math.random() * 4);
     this.bosses.push(new Boss({ x, y, variant, skin: this.bossSkin }));
   }
