@@ -377,11 +377,23 @@ export default class ResourceSystem {
       : { structure: null };
   }
 
-  draw(ctx) {
+  draw(ctx, viewport = null) {
+    const isVisible = (entity) => {
+      if (!viewport) return true;
+      const { x, y, radius } = entity;
+      return (
+        x + radius >= viewport.minX &&
+        x - radius <= viewport.maxX &&
+        y + radius >= viewport.minY &&
+        y - radius <= viewport.maxY
+      );
+    };
     for (const node of this.nodes) {
+      if (!isVisible(node)) continue;
       node.draw(ctx);
     }
     for (const structure of this.structures) {
+      if (!isVisible(structure)) continue;
       structure.draw(ctx);
     }
   }

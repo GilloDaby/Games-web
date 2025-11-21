@@ -45,6 +45,8 @@ export default class Tile {
         return "#c4a45a";
       case "snow":
         return "#dfe8f3";
+      case "forest":
+        return "#174d2f";
       case "water":
       case "river":
         return "#3a6ea5";

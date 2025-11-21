@@ -170,15 +170,29 @@ export default class TileMap {
   }
 
   /**
-   * Dessine l'ensemble de la tilemap.
+   * Dessine l'ensemble de la tilemap ou uniquement la portion visible.
    * @param {CanvasRenderingContext2D} ctx
+   * @param {{minX:number,maxX:number,minY:number,maxY:number}} [viewport]
    */
-  draw(ctx) {
+  draw(ctx, viewport = null) {
     if (!this.grid.length) {
       return;
     }
-    for (let y = 0; y < this.height; y += 1) {
-      for (let x = 0; x < this.width; x += 1) {
+    const clampIndex = (value, max) => Math.max(0, Math.min(max, value));
+    const minX = viewport
+      ? clampIndex(Math.floor(viewport.minX / this.tileSize), this.width - 1)
+      : 0;
+    const maxX = viewport
+      ? clampIndex(Math.floor(viewport.maxX / this.tileSize) + 1, this.width - 1)
+      : this.width - 1;
+    const minY = viewport
+      ? clampIndex(Math.floor(viewport.minY / this.tileSize), this.height - 1)
+      : 0;
+    const maxY = viewport
+      ? clampIndex(Math.floor(viewport.maxY / this.tileSize) + 1, this.height - 1)
+      : this.height - 1;
+    for (let y = minY; y <= maxY; y += 1) {
+      for (let x = minX; x <= maxX; x += 1) {
         this.grid[y][x].draw(ctx, this.texturesLoaded ? this.textures[this.grid[y][x].type] : null);
       }
     }

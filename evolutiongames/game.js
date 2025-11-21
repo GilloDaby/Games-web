@@ -3,6 +3,10 @@ import UIManager from "./UIManager.js";
 
 window.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("arenaCanvas");
+  const overlay = document.getElementById("startOverlay");
+  const modeSelect = document.getElementById("mapMode");
+  const seedInput = document.getElementById("mapSeed");
+  const startBtn = document.getElementById("startSimulation");
   const hudElements = {
     generation: document.getElementById("statGeneration"),
     best: document.getElementById("statBest"),
@@ -47,27 +51,36 @@ window.addEventListener("DOMContentLoaded", () => {
     controlElements,
   });
 
-  const arena = new Arena(canvas, hudElements, uiManager);
-  canvas.width = arena.tileMap.width * arena.tileMap.tileSize;
-  canvas.height = arena.tileMap.height * arena.tileMap.tileSize;
-  uiManager.bindArena(arena);
-  arena.start();
+  let arena = null;
+
+  const bindArena = (newArena) => {
+    arena = newArena;
+    uiManager.bindArena(arena);
+    const viewSize = arena.getViewSize();
+    canvas.width = viewSize.width;
+    canvas.height = viewSize.height;
+    arena.start();
+  };
 
   canvas.addEventListener(
     "wheel",
     (event) => {
-      arena.handleWheel(event);
+      if (arena) {
+        arena.handleWheel(event);
+      }
     },
     { passive: false },
   );
 
   canvas.addEventListener("mousedown", (event) => {
     const rect = canvas.getBoundingClientRect();
-    arena.startCameraDrag(event.clientX - rect.left, event.clientY - rect.top);
+    if (arena) {
+      arena.startCameraDrag(event.clientX - rect.left, event.clientY - rect.top);
+    }
   });
 
   canvas.addEventListener("mousemove", (event) => {
-    if (!arena.camera?.isDragging) {
+    if (!arena?.camera?.isDragging) {
       return;
     }
     const rect = canvas.getBoundingClientRect();
@@ -84,8 +97,29 @@ window.addEventListener("DOMContentLoaded", () => {
     const rect = canvas.getBoundingClientRect();
     const screenX = event.clientX - rect.left;
     const screenY = event.clientY - rect.top;
-    arena.handleCanvasClick(screenX, screenY);
+    if (arena) {
+      arena.handleCanvasClick(screenX, screenY);
+    }
   });
 
-  window.geneticArena = arena;
+  const startSimulation = () => {
+    const mode = modeSelect?.value === "infinite" ? "infinite" : "fixed";
+    const seed = seedInput?.value?.trim() || null;
+    if (arena) {
+      arena.stop();
+    }
+    const nextArena = new Arena(canvas, hudElements, uiManager, { worldMode: mode, seed });
+    if (mode === "infinite") {
+      nextArena.setGenerationDuration(Number.POSITIVE_INFINITY);
+    }
+    bindArena(nextArena);
+    overlay?.classList.remove("open");
+    window.geneticArena = arena;
+  };
+
+  if (startBtn) {
+    startBtn.addEventListener("click", startSimulation);
+  } else {
+    startSimulation();
+  }
 });

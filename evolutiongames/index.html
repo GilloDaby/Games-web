@@ -7,6 +7,22 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div id="startOverlay" class="overlay open">
+      <div class="overlay-card">
+        <h2>Choisir la partie</h2>
+        <p class="overlay-sub">Carte fixe ou g�n�ration proc�dural/infinie avec fog of war.</p>
+        <div class="overlay-controls">
+          <label class="control-label" for="mapMode">Mode de carte</label>
+          <select id="mapMode" class="number-input">
+            <option value="fixed">Carte fixe</option>
+            <option value="infinite">Carte proc�dural / infinie</option>
+          </select>
+          <label class="control-label" for="mapSeed">Seed (optionnel)</label>
+          <input id="mapSeed" class="number-input" type="text" placeholder="al�atoire" />
+          <button id="startSimulation" class="button primary">Lancer</button>
+        </div>
+      </div>
+    </div>
     <main class="layout">
       <header class="hero">
         <h1>Genetic AI Battle Simulator</h1>

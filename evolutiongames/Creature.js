@@ -34,6 +34,7 @@ const FOOD_ENERGY_VALUE = 1.2;
 const FOOD_HYDRATION_VALUE = 0.65;
 const FOOD_HP_VALUE = 0.15;
 const NEAR_WATER_HYDRATION = 3.5;
+const HOME_SOFT_RADIUS = 520;
 const SNOWBALL_RANGE = 240;
 const SNOWBALL_DAMAGE = 6;
 const SNOWBALL_COOLDOWN = 2.5;
@@ -166,6 +167,7 @@ export default class Creature {
     genome = null,
     familyId = null,
     sex = null,
+    home = null,
   }) {
     Creature._id = (Creature._id ?? 0) + 1;
     this.id = Creature._id;
@@ -174,6 +176,7 @@ export default class Creature {
     this.sex = sex ?? (Math.random() < 0.5 ? "female" : "male");
     this.relations = new Map();
     this.position = { x, y };
+    this.home = home || { x, y };
     this.speed = speed;
     this.direction = direction;
     this.radius = radius;
@@ -282,6 +285,7 @@ export default class Creature {
     resourceSystem = null,
     animals = [],
     bosses = [],
+    meetingPoints = [],
   ) {
     if (!this.alive) {
       return;
@@ -364,6 +368,16 @@ export default class Creature {
     if (!this.targetDirection && resourceInfo?.hasResource && this.shouldSeekResources()) {
       this.targetDirection = resourceInfo.direction;
     }
+    const canExplore =
+      !detection.hasEnemy &&
+      this.energy / this.energyMax > 0.35 &&
+      this.hydration / this.hydrationMax > 0.35;
+    if (!this.targetDirection && canExplore && meetingPoints?.length) {
+      const meet = this.findNearestPoint(meetingPoints);
+      if (meet) {
+        this.targetDirection = meet.direction;
+      }
+    }
 
     const inputs = this.buildBrainInputs(bounds, detection, zoneInfo, terrainInfo);
     const [directionSignal, accelerationSignal, attackSignal, moveSignal, towardZoneSignal, avoidZoneSignal] =
@@ -411,6 +425,17 @@ export default class Creature {
     const wantsResource = resourceInfo.hasResource && this.shouldSeekResources();
     if (!hasEnemy && wantsResource) {
       desiredDirection = resourceInfo.direction;
+    }
+
+    if (this.home) {
+      const dxHome = this.home.x - this.position.x;
+      const dyHome = this.home.y - this.position.y;
+      const distHome = Math.hypot(dxHome, dyHome);
+      if (distHome > HOME_SOFT_RADIUS) {
+        const homeDir = Math.atan2(dyHome, dxHome);
+        const pull = clamp((distHome - HOME_SOFT_RADIUS) / HOME_SOFT_RADIUS, 0, 0.35);
+        desiredDirection = lerpAngle(desiredDirection, homeDir, pull);
+      }
     }
 
     this.updateReactionState(deltaSeconds, detection, allyInfo, neutralInfo);
@@ -626,6 +651,12 @@ export default class Creature {
     }
   }
 
+  getVisionRadius(weatherOrEnvironment = null) {
+    const visionModifier =
+      weatherOrEnvironment?.modifiers?.vision ?? weatherOrEnvironment?.vision ?? 1;
+    return BASE_VISION_RANGE * this.genome.visionRange * this.genome.awareness * visionModifier;
+  }
+
   detectEnemies(population, bounds, tileMap, environment = null) {
     const detection = {
       hasEnemy: false,
@@ -638,11 +669,7 @@ export default class Creature {
       perceptionStrength: 0,
     };
 
-    const visionRange =
-      BASE_VISION_RANGE *
-      this.genome.visionRange *
-      this.genome.awareness *
-      (environment?.vision ?? 1);
+    const visionRange = this.getVisionRadius(environment);
     const hearingRange = BASE_HEARING_RANGE * this.genome.hearingRange * (environment?.hearing ?? 1);
     const fov = clamp(MIN_FOV + (MAX_FOV - MIN_FOV) * this.genome.visionAngle, MIN_FOV, MAX_FOV);
 
@@ -1619,6 +1646,24 @@ getTerrainSpeedModifier(type) {
       return dx > 0 ? 2 : 1;
     }
     return dy > 0 ? 0 : 3;
+  }
+
+  findNearestPoint(points = []) {
+    if (!Array.isArray(points) || !points.length) {
+      return null;
+    }
+    let closest = null;
+    let minDist = Infinity;
+    for (const point of points) {
+      const dx = point.x - this.position.x;
+      const dy = point.y - this.position.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = { point, direction: Math.atan2(dy, dx), distance: dist };
+      }
+    }
+    return closest;
   }
 
   findStructureTarget(structures, attackRange) {

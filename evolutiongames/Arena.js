@@ -8,11 +8,15 @@ import HealthPickup from "./HealthPickup.js";
 import ResourceSystem from "./ResourceSystem.js";
 import Animal from "./Animal.js";
 import Boss, { loadBossSkin } from "./Boss.js";
+import ProceduralTileMap from "./ProceduralTileMap.js";
+import FogOfWar from "./FogOfWar.js";
 import { crossoverGenomes } from "./Genome.js";
 
 const ARENA_SETTINGS = {
   width: 2200,
   height: 1300,
+  viewWidth: 1400,
+  viewHeight: 900,
   gridSize: 64,
   populationSize: 60,
   generationDuration: Number.POSITIVE_INFINITY, // reproduction-driven, no fixed round
@@ -35,6 +39,11 @@ const ARENA_SETTINGS = {
     attackRange: 50,
     attackCooldown: 0.8,
   },
+};
+
+const WORLD_DIMENSIONS = {
+  fixed: { width: ARENA_SETTINGS.width, height: ARENA_SETTINGS.height, spanTiles: null },
+  infinite: { width: 7200, height: 4800, spanTiles: 230 },
 };
 
 const STORAGE_KEY = "genetic-ai-battle-state";
@@ -84,23 +93,29 @@ const ANIMAL_SKIN_FILES = [
 const SIMULATION_SPEEDS = [1, 10, 100, 1000];
 
 export default class Arena {
-  constructor(canvas, statsElements, uiManager = null) {
+  constructor(canvas, statsElements, uiManager = null, options = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.statsElements = statsElements;
     this.uiManager = uiManager;
-    this.config = ARENA_SETTINGS;
+    this.config = { ...ARENA_SETTINGS };
+    this.worldMode = options.worldMode || "fixed";
+    this.seed = options.seed || Date.now();
+    if (this.worldMode === "infinite") {
+      this.config.generationDuration = Number.POSITIVE_INFINITY;
+    }
+    this.viewSize = {
+      width: this.config.viewWidth ?? this.config.width,
+      height: this.config.viewHeight ?? this.config.height,
+    };
     this.bounds = { width: this.config.width, height: this.config.height };
-    this.canvas.width = this.config.width;
-    this.canvas.height = this.config.height;
-    // Simple tilemap d'arrière-plan
-    const tileSize = 32;
-    const tileMapWidth = Math.ceil(this.config.width / tileSize);
-    const tileMapHeight = Math.ceil(this.config.height / tileSize);
-    this.tileMap = new TileMap(tileMapWidth, tileMapHeight, tileSize);
-    this.tileMap.generateBiomes();
-    this.tileMap.generateRiver();
-    this.resourceSystem = new ResourceSystem(this.bounds, this.tileMap);
+    this.canvas.width = this.viewSize.width;
+    this.canvas.height = this.viewSize.height;
+    this.spawnClusters = [];
+    this.meetingPoints = [];
+    this.familyHomes = new Map();
+    this.userAdjustedPopulation = false;
+    this.setupWorld();
     this.playerSkins = new PlayerSkinManager();
     this.animalSkins = new PlayerSkinManager({
       basePath: "img/Animal",
@@ -169,6 +184,13 @@ export default class Arena {
     const persisted = this.loadPersistedState();
     if (persisted && Array.isArray(persisted.brains) && persisted.brains.length) {
       try {
+        if (!options.worldMode && persisted.worldMode) {
+          this.worldMode = persisted.worldMode;
+        }
+        if (!options.seed && persisted.seed) {
+          this.seed = persisted.seed;
+        }
+        this.setupWorld();
         this.generation = persisted.generation ?? 1;
         if (typeof persisted.populationSize === "number") {
           this.config.populationSize = Math.max(5, Math.round(persisted.populationSize));
@@ -224,6 +246,44 @@ export default class Arena {
     this.updateHud();
   }
 
+  setupWorld() {
+    const tileSize = 32;
+    const preset = WORLD_DIMENSIONS[this.worldMode] ?? WORLD_DIMENSIONS.fixed;
+    this.config.width = preset.width;
+    this.config.height = preset.height;
+    const spanTiles = preset.spanTiles || Math.ceil(preset.width / tileSize);
+    if (this.worldMode === "infinite") {
+      this.tileMap = new ProceduralTileMap({
+        tileSize,
+        seed: this.seed,
+        spanTiles,
+        width: preset.width,
+        height: preset.height,
+        biomeScale: 0.012,
+        moistureScale: 0.02,
+      });
+    } else {
+      const tileMapWidth = Math.ceil(preset.width / tileSize);
+      const tileMapHeight = Math.ceil(preset.height / tileSize);
+      this.tileMap = new TileMap(tileMapWidth, tileMapHeight, tileSize);
+      this.tileMap.generateBiomes();
+      this.tileMap.generateRiver();
+    }
+    this.bounds = { width: preset.width, height: preset.height };
+    this.resourceSystem = new ResourceSystem(this.bounds, this.tileMap);
+    this.fogOfWar = new FogOfWar(tileSize);
+    this.familyHomes = new Map();
+    this.generateSpawnClusters();
+    if (this.camera) {
+      this.camera.focusX = this.bounds.width / 2;
+      this.camera.focusY = this.bounds.height / 2;
+    }
+  }
+
+  getViewSize() {
+    return { ...this.viewSize };
+  }
+
   spawnPopulation(brains, genomes = null) {
     const sourceBrains = brains && brains.length ? brains : this.ga.createInitialBrains();
     const sourceGenomes = genomes && genomes.length ? genomes : this.ga.createInitialGenomes();
@@ -231,10 +291,18 @@ export default class Arena {
       brain instanceof NeuralNetwork ? brain : NeuralNetwork.fromJSON(brain),
     );
     const genomeInstances = sourceGenomes.slice();
-    const desiredCount = this.config.populationSize;
+    let desiredCount = this.config.populationSize;
     this.targetAnimalCount = Math.max(8, Math.floor(desiredCount * 0.35));
-    this.familyCount = Math.max(3, Math.round(desiredCount / 12));
+    const clusterCount =
+      this.worldMode === "infinite" ? 5 : Math.max(3, Math.round(desiredCount / 12));
+    this.familyCount = clusterCount;
     this.nextFamilyId = 1;
+    this.generateSpawnClusters(clusterCount);
+    if (this.worldMode === "infinite" && (!brains || !brains.length) && !this.userAdjustedPopulation) {
+      desiredCount = Math.max(clusterCount * 2, Math.min(desiredCount, clusterCount * 3));
+      this.config.populationSize = desiredCount;
+      this.ga.populationSize = desiredCount;
+    }
     if (brainInstances.length > desiredCount) {
       brainInstances.length = desiredCount;
     } else if (brainInstances.length < desiredCount) {
@@ -250,6 +318,12 @@ export default class Arena {
       genomeInstances.push(...filler);
     }
     this.creatures = this.createCreaturesFromBrains(brainInstances, genomeInstances);
+    if (this.fogOfWar) {
+      for (const creature of this.creatures) {
+        const radius = creature.getVisionRadius(this.weather) * 0.75;
+        this.fogOfWar.revealCircle(creature.position.x, creature.position.y, radius);
+      }
+    }
     this.healthPickups = [];
     this.nextHealthSpawn = this.rollHealthSpawnTime();
     this.elapsedGenerationTime = 0;
@@ -293,9 +367,10 @@ export default class Arena {
 
   createCreature(brain, genome) {
     const radius = this.config.creatureSettings.radius;
-    const spawn = this.getSafeSpawnPosition(radius);
     const familyId = this.assignFamilyId();
-    return new Creature({
+    const home = this.getFamilyHome(familyId);
+    const spawn = this.getSpawnPositionForFamily(familyId, radius);
+    const creature = new Creature({
       x: spawn.x,
       y: spawn.y,
       speed: randomBetween(
@@ -311,6 +386,8 @@ export default class Arena {
       genome,
       familyId,
     });
+    creature.home = home;
+    return creature;
   }
 
   createChild(parentA, parentB) {
@@ -341,14 +418,23 @@ export default class Arena {
     });
     child.energy = child.energyMax * 0.8;
     child.hydration = child.hydrationMax * 0.8;
+    child.home = parentA.home || parentB.home || spawn;
     return child;
   }
 
-  getSafeSpawnPosition(radius) {
-    const maxAttempts = 200;
+  getSafeSpawnPosition(radius, center = null, spread = null) {
+    const maxAttempts = 220;
+    const jitter = Math.max(
+      radius * 4,
+      spread ?? Math.min(this.bounds.width, this.bounds.height) * 0.18,
+    );
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const x = randomBetween(radius, this.bounds.width - radius);
-      const y = randomBetween(radius, this.bounds.height - radius);
+      let x = randomBetween(radius, this.bounds.width - radius);
+      let y = randomBetween(radius, this.bounds.height - radius);
+      if (center) {
+        x = clamp(center.x + randomBetween(-jitter, jitter), radius, this.bounds.width - radius);
+        y = clamp(center.y + randomBetween(-jitter, jitter), radius, this.bounds.height - radius);
+      }
       const tile = this.tileMap?.getTileAt(x, y);
       if (!tile || (tile.type !== "river" && tile.type !== "water")) {
         return { x, y };
@@ -359,6 +445,61 @@ export default class Arena {
       x: radius + (this.bounds.width - radius * 2) * Math.random(),
       y: radius + (this.bounds.height - radius * 2) * Math.random(),
     };
+  }
+
+  generateSpawnClusters(count = 4) {
+    this.spawnClusters = [];
+    const minDistance = Math.min(this.bounds.width, this.bounds.height) * 0.2;
+    const attempts = Math.max(40, count * 15);
+    for (let i = 0; i < attempts && this.spawnClusters.length < count; i += 1) {
+      const candidate = this.getSafeSpawnPosition(this.config.creatureSettings.radius * 2);
+      const farEnough = this.spawnClusters.every(
+        (c) => Math.hypot(c.x - candidate.x, c.y - candidate.y) > minDistance,
+      );
+      if (farEnough) {
+        this.spawnClusters.push(candidate);
+      }
+    }
+    if (!this.spawnClusters.length) {
+      this.spawnClusters.push(this.getSafeSpawnPosition(this.config.creatureSettings.radius * 2));
+    }
+    this.familyHomes = new Map();
+    this.buildMeetingPoints();
+  }
+
+  buildMeetingPoints() {
+    this.meetingPoints = [];
+    if (!this.spawnClusters.length) {
+      return;
+    }
+    for (let i = 0; i < this.spawnClusters.length; i += 1) {
+      for (let j = i + 1; j < this.spawnClusters.length; j += 1) {
+        const a = this.spawnClusters[i];
+        const b = this.spawnClusters[j];
+        this.meetingPoints.push({
+          x: (a.x + b.x) / 2,
+          y: (a.y + b.y) / 2,
+        });
+      }
+    }
+  }
+
+  getFamilyHome(familyId) {
+    if (this.familyHomes.has(familyId)) {
+      return this.familyHomes.get(familyId);
+    }
+    if (!this.spawnClusters.length) {
+      this.generateSpawnClusters(Math.max(3, this.familyCount || 4));
+    }
+    const index = ((familyId ?? 1) - 1) % Math.max(1, this.spawnClusters.length);
+    const home = this.spawnClusters[index] ?? { x: this.bounds.width / 2, y: this.bounds.height / 2 };
+    this.familyHomes.set(familyId, home);
+    return home;
+  }
+
+  getSpawnPositionForFamily(familyId, radius) {
+    const center = this.getFamilyHome(familyId);
+    return this.getSafeSpawnPosition(radius, center, this.config.creatureSettings.radius * 6);
   }
 
   start() {
@@ -417,7 +558,12 @@ export default class Arena {
         this.resourceSystem,
         this.animals,
         this.bosses,
+        this.meetingPoints,
       );
+      if (this.fogOfWar && creature.alive) {
+        const visionRadius = creature.getVisionRadius(this.weather);
+        this.fogOfWar.revealCircle(creature.position.x, creature.position.y, visionRadius * 0.75);
+      }
       totalFitness += creature.fitness;
       if (creature.fitness > bestFitness) {
         bestFitness = creature.fitness;
@@ -447,8 +593,6 @@ export default class Arena {
     this.updateAttackEffects(scaledDelta);
     this.updateCamera(scaledDelta);
     this.maintainFollowTarget();
-    this.maintainFollowTarget();
-    this.updateCamera(scaledDelta);
     this.handleReproduction();
 
     if (
@@ -462,7 +606,7 @@ export default class Arena {
   }
 
   draw() {
-    this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.ctx.save();
     this.applyCameraTransform();
     this.drawTileMap();
@@ -479,6 +623,7 @@ export default class Arena {
     }
 
     this.drawAttackEffects();
+    this.drawFog();
     this.ctx.restore();
   }
 
@@ -512,13 +657,46 @@ export default class Arena {
 
   drawTileMap() {
     if (this.tileMap) {
-      this.tileMap.draw(this.ctx);
+      const viewport = this.getViewportBounds();
+      this.tileMap.draw(this.ctx, viewport);
     }
+  }
+
+  drawFog() {
+    if (!this.fogOfWar) {
+      return;
+    }
+    const viewport = this.getViewportBounds();
+    const lights = [];
+    for (let i = 0; i < this.creatures.length && lights.length < 80; i += 1) {
+      const creature = this.creatures[i];
+      if (!creature.alive) {
+        continue;
+      }
+      lights.push({
+        x: creature.position.x,
+        y: creature.position.y,
+        radius: creature.getVisionRadius(this.weather) * 0.55,
+      });
+    }
+    this.fogOfWar.draw(this.ctx, viewport, lights);
+  }
+
+  getViewportBounds() {
+    const halfWidth = (this.canvas.width / 2) / this.camera.zoom;
+    const halfHeight = (this.canvas.height / 2) / this.camera.zoom;
+    return {
+      minX: this.camera.focusX - halfWidth,
+      maxX: this.camera.focusX + halfWidth,
+      minY: this.camera.focusY - halfHeight,
+      maxY: this.camera.focusY + halfHeight,
+    };
   }
 
   drawResources() {
     if (this.resourceSystem) {
-      this.resourceSystem.draw(this.ctx);
+      const viewport = this.getViewportBounds();
+      this.resourceSystem.draw(this.ctx, viewport);
     }
   }
 
@@ -1258,6 +1436,7 @@ export default class Arena {
     if (newSize === this.config.populationSize) {
       return;
     }
+    this.userAdjustedPopulation = true;
     this.config.populationSize = newSize;
     this.ga.populationSize = newSize;
     this.spawnPopulation();
@@ -1346,6 +1525,8 @@ export default class Arena {
         generationDuration: this.config.generationDuration,
         mutationRate: this.ga.baseMutationRate,
         timeScale: this.timeScale,
+        worldMode: this.worldMode,
+        seed: this.seed,
       };
       window.localStorage.setItem(this.persistenceKey, JSON.stringify(payload));
     } catch (error) {
@@ -1368,6 +1549,7 @@ export default class Arena {
     this.weather = this.rollWeather();
     this.healthPickups = [];
     this.nextHealthSpawn = this.rollHealthSpawnTime();
+    this.setupWorld();
     this.spawnPopulation();
     this.updateHud();
     this.uiManager?.syncControlsFromArena();
