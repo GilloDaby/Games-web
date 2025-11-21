@@ -36,36 +36,89 @@ export default class TileMap {
 
   generateBiomes() {
     this.generateFlat("grass");
-    const paintOperations = [
-      { type: "sand", radius: 7, count: 4 },
-      { type: "snow", radius: 7, count: 4 },
-      { type: "forest", radius: 6, count: 6 },
-      { type: "water", radius: 2, count: 4 },
-    ];
+    // Organic blobs instead of perfect circles
+    this.paintOrganicRegions("sand", { count: 5, size: [90, 180], chaos: 0.35 });
+    this.paintOrganicRegions("snow", { count: 5, size: [90, 180], chaos: 0.32 });
+    this.paintOrganicRegions("forest", { count: 7, size: [60, 140], chaos: 0.45 });
+    // Small scattered ponds
+    this.paintOrganicRegions("water", { count: 10, size: [18, 40], chaos: 0.55 });
+  }
 
-    for (const op of paintOperations) {
-      for (let i = 0; i < op.count; i += 1) {
-        const centerX = Math.floor(Math.random() * this.width);
-        const centerY = Math.floor(Math.random() * this.height);
-        this.paintCircle(centerX, centerY, op.radius, op.type);
+  paintOrganicRegions(type, { count = 4, size = [60, 120], chaos = 0.4 } = {}) {
+    for (let i = 0; i < count; i += 1) {
+      const target = randomBetween(size[0], size[1]);
+      const seedX = Math.floor(Math.random() * this.width);
+      const seedY = Math.floor(Math.random() * this.height);
+      this.paintOrganicBlob(seedX, seedY, Math.floor(target), type, chaos);
+    }
+  }
+
+  paintOrganicBlob(seedX, seedY, targetSize, type, chaos) {
+    const stack = [{ x: seedX, y: seedY }];
+    const visited = new Set();
+    let painted = 0;
+
+    while (stack.length && painted < targetSize) {
+      const index = Math.floor(Math.random() * stack.length);
+      const current = stack.splice(index, 1)[0];
+      const key = `${current.x},${current.y}`;
+      if (visited.has(key)) {
+        continue;
+      }
+      visited.add(key);
+      if (!this.isInside(current.x, current.y)) {
+        continue;
+      }
+      const tile = this.grid[current.y][current.x];
+      if (tile.type === "river" || tile.type === "bridge") {
+        continue;
+      }
+      tile.type = type;
+      painted += 1;
+
+      const neighbors = this.getNeighbors(current.x, current.y);
+      for (const neighbor of neighbors) {
+        // Bias growth toward blob edges with some randomness
+        if (Math.random() < 0.7 + chaos * 0.3) {
+          stack.push(neighbor);
+        }
+      }
+
+      // occasional skip to create uneven edges
+      if (Math.random() < chaos) {
+        const jitterX = current.x + Math.round((Math.random() - 0.5) * 3);
+        const jitterY = current.y + Math.round((Math.random() - 0.5) * 3);
+        if (this.isInside(jitterX, jitterY)) {
+          stack.push({ x: jitterX, y: jitterY });
+        }
       }
     }
   }
 
-  paintCircle(cx, cy, radius, type) {
-    const rSquared = radius * radius;
-    for (let y = Math.max(0, cy - radius); y < Math.min(this.height, cy + radius); y += 1) {
-      for (let x = Math.max(0, cx - radius); x < Math.min(this.width, cx + radius); x += 1) {
-        const dx = x - cx;
-        const dy = y - cy;
-        if (dx * dx + dy * dy <= rSquared) {
-          if (this.grid[y][x].type === "river" || this.grid[y][x].type === "bridge") {
-            continue;
-          }
-          this.grid[y][x].type = type;
-        }
+  getNeighbors(x, y) {
+    const offsets = [
+      { dx: 1, dy: 0 },
+      { dx: -1, dy: 0 },
+      { dx: 0, dy: 1 },
+      { dx: 0, dy: -1 },
+      { dx: 1, dy: 1 },
+      { dx: -1, dy: -1 },
+      { dx: -1, dy: 1 },
+      { dx: 1, dy: -1 },
+    ];
+    const neighbors = [];
+    for (const { dx, dy } of offsets) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (this.isInside(nx, ny)) {
+        neighbors.push({ x: nx, y: ny });
       }
     }
+    return neighbors;
+  }
+
+  isInside(x, y) {
+    return x >= 0 && y >= 0 && x < this.width && y < this.height;
   }
 
   generateRiver() {
@@ -166,4 +219,8 @@ export default class TileMap {
       registerTileTexture(type, img);
     }
   }
+}
+
+function randomBetween(min, max) {
+  return Math.random() * (max - min) + min;
 }
