@@ -8,8 +8,8 @@ import HealthPickup from "./HealthPickup.js";
 import ResourceSystem from "./ResourceSystem.js";
 
 const ARENA_SETTINGS = {
-  width: 3840,
-  height: 2160,
+  width: 2200,
+  height: 1300,
   gridSize: 64,
   populationSize: 60,
   generationDuration: 25, // seconds
