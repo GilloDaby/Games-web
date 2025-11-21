@@ -20,9 +20,12 @@ const MOVE_COST_MULTIPLIER = 0.95;
 const KILL_RECOVERY = { energy: 20, hydration: 10, hp: 6 };
 const KILL_GROWTH = { size: 0.6, damage: 0.08, hp: 8 };
 const ANIMAL_GROWTH_MULTIPLIER = 2;
+const BOSS_GROWTH_MULTIPLIER = 3;
 const RESOURCE_CAPACITY_BASE = 40;
 const RESOURCE_NEED_THRESHOLD = 0.4;
 const STRUCTURE_BUILD_COOLDOWN = 3.5;
+const MATURITY_TIME = 10;
+const REPRODUCTION_COOLDOWN = 12;
 const SNOWBALL_RANGE = 240;
 const SNOWBALL_DAMAGE = 6;
 const SNOWBALL_COOLDOWN = 2.5;
@@ -46,10 +49,14 @@ export default class Creature {
     settings,
     skin = null,
     genome = null,
+    familyId = null,
+    sex = null,
   }) {
     Creature._id = (Creature._id ?? 0) + 1;
     this.id = Creature._id;
     this.allegiance = Math.floor(Math.random() * 3);
+    this.familyId = familyId ?? this.allegiance;
+    this.sex = sex ?? (Math.random() < 0.5 ? "female" : "male");
     this.relations = new Map();
     this.position = { x, y };
     this.speed = speed;
@@ -108,6 +115,8 @@ export default class Creature {
     this.buildCooldown = 0;
     this.snowballCooldown = 0;
     this.reaction = { emoji: null, ttl: 0 };
+    this.reproductionCooldown = 0;
+    this.warFamilies = new Set();
   }
 
   get fitness() {
@@ -153,6 +162,7 @@ export default class Creature {
     healthPickups = [],
     resourceSystem = null,
     animals = [],
+    bosses = [],
   ) {
     if (!this.alive) {
       return;
@@ -164,6 +174,7 @@ export default class Creature {
     this.animationTime += deltaSeconds;
     this.buildCooldown = Math.max(0, this.buildCooldown - deltaSeconds);
     this.snowballCooldown = Math.max(0, this.snowballCooldown - deltaSeconds);
+    this.reproductionCooldown = Math.max(0, this.reproductionCooldown - deltaSeconds);
     const environment = this.getEnvironmentModifiers(weather);
 
     const terrainInfo = this.getTerrainInfo(tileMap);
@@ -181,16 +192,22 @@ export default class Creature {
     const pickupInfo = this.detectHealthPickups(healthPickups);
     const resourceInfo = this.detectResources(resourceSystem);
     const preyInfo = this.detectAnimals(animals);
+    const bossInfo = this.detectBosses(bosses);
     const structureInfo = resourceSystem
       ? resourceSystem.getNearestStructure(this.position.x, this.position.y, this.id)
       : { structure: null };
     const allyInfo = this.findClosestByRelation(population, "ally");
     const neutralInfo = this.findClosestByRelation(population, "neutral");
+    const prefersBoss = bossInfo.hasBoss;
     const prefersPrey =
-      preyInfo.hasPrey && (!detection.hasEnemy || preyInfo.distance * 0.85 < detection.distance);
+      !prefersBoss &&
+      preyInfo.hasPrey &&
+      (!detection.hasEnemy || preyInfo.distance * 0.85 < detection.distance);
     this.targetDirection = prefersPrey
       ? preyInfo.direction
-      : detection.hasEnemy
+      : prefersBoss
+        ? bossInfo.direction
+        : detection.hasEnemy
         ? detection.enemyDirection
         : null;
     if (!this.targetDirection && zoneInfo.hasZone) {
@@ -212,10 +229,12 @@ export default class Creature {
 
     const hasEnemy = detection.hasEnemy;
     const hasPrey = preyInfo.hasPrey;
-    const wantsCombat = hasEnemy || hasPrey;
+    const hasBoss = bossInfo.hasBoss;
+    const wantsCombat = hasEnemy || hasPrey || hasBoss;
     const shouldAttack = wantsCombat && attackSignal > ATTACK_ACTIVATION_THRESHOLD;
     const autoAttackPrey = hasPrey && preyInfo.distance < this.attackRange * 1.4;
-    const attackIntent = shouldAttack || autoAttackPrey;
+    const autoAttackBoss = hasBoss && bossInfo.distance < this.attackRange * 1.8;
+    const attackIntent = shouldAttack || autoAttackPrey || autoAttackBoss;
     const moveToward = wantsCombat ? moveSignal >= 0 : false;
     const zoneDesire = zoneInfo.hasZone;
     const moveTowardZone = zoneDesire && towardZoneSignal > 0.4;
@@ -223,7 +242,11 @@ export default class Creature {
 
     let desiredDirection = mapSignalToAngle(directionSignal);
     if (wantsCombat) {
-      const targetDir = detection.hasEnemy ? detection.enemyDirection : preyInfo.direction;
+      const targetDir = hasBoss
+        ? bossInfo.direction
+        : detection.hasEnemy
+          ? detection.enemyDirection
+          : preyInfo.direction;
       const pursuitDirection = moveToward
         ? targetDir
         : normalizeAngle(targetDir + Math.PI);
@@ -310,10 +333,12 @@ export default class Creature {
       effectEmitter,
       detection,
       preyInfo,
+      bossInfo,
       attackIntent,
       resourceSystem?.structures ?? [],
       resourceSystem,
       animals,
+      bosses,
     );
   }
 
@@ -631,6 +656,34 @@ export default class Creature {
     return result;
   }
 
+  detectBosses(bosses) {
+    const result = { hasBoss: false, boss: null, direction: this.direction, distance: Infinity };
+    if (!bosses?.length) {
+      return result;
+    }
+    let closest = null;
+    let closestDist = Infinity;
+    for (const boss of bosses) {
+      if (!boss?.alive) {
+        continue;
+      }
+      const dx = boss.position.x - this.position.x;
+      const dy = boss.position.y - this.position.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < closestDist) {
+        closestDist = distance;
+        closest = { boss, direction: Math.atan2(dy, dx), distance };
+      }
+    }
+    if (closest) {
+      result.hasBoss = true;
+      result.boss = closest.boss;
+      result.direction = closest.direction;
+      result.distance = closest.distance;
+    }
+    return result;
+  }
+
   detectResources(resourceSystem) {
     if (!resourceSystem) {
       return { hasResource: false };
@@ -731,6 +784,34 @@ getTerrainSpeedModifier(type) {
     }
 
     this.currentTerrainType = info.type;
+  }
+
+  canMateWith(partner) {
+    if (!partner || partner === this) {
+      return false;
+    }
+    if (!this.alive || !partner.alive) {
+      return false;
+    }
+    const oppositeSex = this.sex !== partner.sex;
+    const sameFamily = this.familyId === partner.familyId;
+    const mature = this.survivalTime >= MATURITY_TIME && partner.survivalTime >= MATURITY_TIME;
+    const ready = this.reproductionCooldown <= 0 && partner.reproductionCooldown <= 0;
+    const wellFed =
+      this.energy / this.energyMax > 0.55 &&
+      partner.energy / partner.energyMax > 0.55 &&
+      this.hydration / this.hydrationMax > 0.55 &&
+      partner.hydration / partner.hydrationMax > 0.55;
+    return oppositeSex && sameFamily && mature && ready && wellFed;
+  }
+
+  onReproduce(partner) {
+    this.reproductionCooldown = REPRODUCTION_COOLDOWN;
+    partner.reproductionCooldown = REPRODUCTION_COOLDOWN;
+    this.energy *= 0.8;
+    partner.energy *= 0.8;
+    this.hydration *= 0.9;
+    partner.hydration *= 0.9;
   }
 
   handleResourceHarvest(resourceSystem, resourceInfo, deltaSeconds) {
@@ -1007,16 +1088,19 @@ getTerrainSpeedModifier(type) {
     effectEmitter,
     detection,
     preyInfo,
+    bossInfo,
     shouldAttack,
     structures = [],
     resourceSystem = null,
     animals = [],
+    bosses = [],
   ) {
     const ready =
       currentTime - this.lastAttackTime >= this.attackCooldown / this.buffMultipliers.cooldown;
     const attackRange = this.attackRange * this.buffMultipliers.range;
     const canThrowSnowball = this.snowballCooldown <= 0 && (this.resources.snowball ?? 0) > 0;
     const preyTarget = preyInfo?.prey ?? null;
+    const bossTarget = bossInfo?.boss ?? null;
 
     if (!ready && !canThrowSnowball) {
       return;
@@ -1076,6 +1160,30 @@ getTerrainSpeedModifier(type) {
       }
     }
 
+    if (shouldAttack && bossTarget) {
+      const dx = bossTarget.position.x - this.position.x;
+      const dy = bossTarget.position.y - this.position.y;
+      const distance = Math.hypot(dx, dy);
+      if (ready && distance <= attackRange + bossTarget.radius) {
+        this.lastAttackTime = currentTime;
+        const attackDamage = this.damage * this.buffMultipliers.damage;
+        const targetDied = bossTarget.takeDamage(attackDamage, this);
+        this.attackSuccessCount += 1;
+        if (targetDied) {
+          this.onKill({ type: "boss" });
+        }
+        if (effectEmitter) {
+          effectEmitter({
+            x: bossTarget.position.x,
+            y: bossTarget.position.y,
+            radius: this.attackRange,
+            duration: 0.35,
+          });
+        }
+        return;
+      }
+    }
+
     if (!structures?.length || !resourceSystem) {
       return;
     }
@@ -1117,7 +1225,8 @@ getTerrainSpeedModifier(type) {
   onKill(victim = { type: "creature" }) {
     this.killCount += 1;
     const isAnimal = victim?.type === "animal";
-    const multiplier = isAnimal ? ANIMAL_GROWTH_MULTIPLIER : 1;
+    const isBoss = victim?.type === "boss";
+    const multiplier = isBoss ? BOSS_GROWTH_MULTIPLIER : isAnimal ? ANIMAL_GROWTH_MULTIPLIER : 1;
     this.applyKillGrowth(multiplier);
     this.recoverResourcesFromKill();
   }
@@ -1285,23 +1394,25 @@ getTerrainSpeedModifier(type) {
     if (this.relations.has(other.id)) {
       return this.relations.get(other.id);
     }
-    if (this.allegiance === other.allegiance) {
+    if (this.familyId === other.familyId) {
       return "ally";
     }
-    // deterministic neutral chance based on ids to avoid flicker
-    const pairValue = ((this.id * 97 + other.id * 13) % 100) / 100;
-    if (pairValue < 0.2) {
-      this.relations.set(other.id, "neutral");
-      return "neutral";
+    if (this.warFamilies.has(other.familyId)) {
+      this.relations.set(other.id, "enemy");
+      return "enemy";
     }
-    this.relations.set(other.id, "enemy");
-    return "enemy";
+    this.relations.set(other.id, "neutral");
+    return "neutral";
   }
 
   markEnemy(other) {
     if (other?.id) {
       this.relations.set(other.id, "enemy");
     }
+  }
+
+  setWarFamilies(families) {
+    this.warFamilies = new Set(families ?? []);
   }
 
   findClosestByRelation(population, relationTarget) {

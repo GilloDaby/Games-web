@@ -7,6 +7,8 @@ import PlayerSkinManager from "./PlayerSkinManager.js";
 import HealthPickup from "./HealthPickup.js";
 import ResourceSystem from "./ResourceSystem.js";
 import Animal from "./Animal.js";
+import Boss, { loadBossSkin } from "./Boss.js";
+import { crossoverGenomes } from "./Genome.js";
 
 const ARENA_SETTINGS = {
   width: 2200,
@@ -107,6 +109,12 @@ export default class Arena {
     });
     this.animals = [];
     this.targetAnimalCount = 14;
+    this.bosses = [];
+    this.bossSkin = null;
+    this.bossSpawnTimer = 18;
+    this.familyCount = 4;
+    this.nextFamilyId = 1;
+    this.familiesAtWar = new Set();
     this.camera = {
       zoom: 1,
       targetZoom: 1,
@@ -208,6 +216,9 @@ export default class Arena {
     this.animalSkins.ready.then(() => {
       this.assignSkinsToAnimals();
     });
+    loadBossSkin().then((skin) => {
+      this.bossSkin = skin;
+    });
 
     this.updateHud();
   }
@@ -221,6 +232,8 @@ export default class Arena {
     const genomeInstances = sourceGenomes.slice();
     const desiredCount = this.config.populationSize;
     this.targetAnimalCount = Math.max(8, Math.floor(desiredCount * 0.35));
+    this.familyCount = Math.max(3, Math.round(desiredCount / 12));
+    this.nextFamilyId = 1;
     if (brainInstances.length > desiredCount) {
       brainInstances.length = desiredCount;
     } else if (brainInstances.length < desiredCount) {
@@ -246,7 +259,10 @@ export default class Arena {
     this.attackEffects = [];
     this.generateZones();
     this.resourceSystem?.reset();
+    this.animals = [];
     this.spawnAnimals();
+    this.bosses = [];
+    this.bossSpawnTimer = randomBetween(15, 24);
     this.hudUpdateAccumulator = 0;
     if (!brains || !brains.length) {
       this.stagnationCounter = 0;
@@ -264,9 +280,19 @@ export default class Arena {
     return brains.map((brain, index) => this.createCreature(brain, genomes[index]));
   }
 
+  assignFamilyId() {
+    const id = this.nextFamilyId;
+    this.nextFamilyId += 1;
+    if (this.nextFamilyId > this.familyCount) {
+      this.nextFamilyId = 1;
+    }
+    return id;
+  }
+
   createCreature(brain, genome) {
     const radius = this.config.creatureSettings.radius;
     const spawn = this.getSafeSpawnPosition(radius);
+    const familyId = this.assignFamilyId();
     return new Creature({
       x: spawn.x,
       y: spawn.y,
@@ -281,7 +307,39 @@ export default class Arena {
       settings: this.config.creatureSettings,
       skin: this.playerSkins.getRandomSkin(),
       genome,
+      familyId,
     });
+  }
+
+  createChild(parentA, parentB) {
+    const radius = Math.max(8, this.config.creatureSettings.radius - 2);
+    const spawn = {
+      x: (parentA.position.x + parentB.position.x) / 2 + randomBetween(-6, 6),
+      y: (parentA.position.y + parentB.position.y) / 2 + randomBetween(-6, 6),
+    };
+    const better = parentA.fitness >= parentB.fitness ? parentA : parentB;
+    const genome = crossoverGenomes(parentA.genome, parentB.genome, this.ga.baseMutationRate * 0.5);
+    const brain = better.brain.clone();
+    const color = better.color;
+    const child = new Creature({
+      x: spawn.x,
+      y: spawn.y,
+      speed: randomBetween(
+        this.config.creatureSettings.minSpeed * 0.85,
+        this.config.creatureSettings.maxSpeed * 0.9,
+      ),
+      direction: randomBetween(0, Math.PI * 2),
+      radius,
+      color,
+      brain,
+      settings: this.config.creatureSettings,
+      skin: this.playerSkins.getRandomSkin(),
+      genome,
+      familyId: parentA.familyId,
+    });
+    child.energy = child.energyMax * 0.8;
+    child.hydration = child.hydrationMax * 0.8;
+    return child;
   }
 
   getSafeSpawnPosition(radius) {
@@ -338,6 +396,8 @@ export default class Arena {
     this.updateWeather(scaledDelta);
     this.updateHealthPickups(scaledDelta);
     this.updateAnimals(scaledDelta);
+    this.updateBosses(scaledDelta, generationTime);
+    this.updateFamilyWars();
     this.resourceSystem?.update(scaledDelta);
 
     for (const creature of this.creatures) {
@@ -353,6 +413,7 @@ export default class Arena {
         this.healthPickups,
         this.resourceSystem,
         this.animals,
+        this.bosses,
       );
       totalFitness += creature.fitness;
       if (creature.fitness > bestFitness) {
@@ -385,6 +446,7 @@ export default class Arena {
     this.maintainFollowTarget();
     this.maintainFollowTarget();
     this.updateCamera(scaledDelta);
+    this.handleReproduction();
 
     if (
       this.pendingGenerationSkip ||
@@ -406,6 +468,7 @@ export default class Arena {
     this.drawZones();
     this.drawHealthPickups();
     this.drawAnimals();
+    this.drawBosses();
 
     for (const creature of this.creatures) {
       creature.draw(this.ctx);
@@ -652,6 +715,28 @@ export default class Arena {
     this.healthPickups = this.healthPickups.filter((pickup) => !pickup.collected);
   }
 
+  updateBosses(deltaSeconds, currentTime) {
+    this.bossSpawnTimer -= deltaSeconds;
+    if (this.bossSpawnTimer <= 0 && this.bosses.length < 2) {
+      this.spawnBoss();
+      this.bossSpawnTimer = randomBetween(20, 32);
+    }
+    for (const boss of this.bosses) {
+      boss.update(deltaSeconds, this.bounds, this.creatures, currentTime, (effect) =>
+        this.spawnAttackEffect(effect),
+      );
+    }
+    this.bosses = this.bosses.filter((boss) => boss.alive);
+  }
+
+  spawnBoss() {
+    const radius = 28;
+    const x = randomBetween(radius, this.bounds.width - radius);
+    const y = randomBetween(radius, this.bounds.height - radius);
+    const variant = Math.floor(Math.random() * 4);
+    this.bosses.push(new Boss({ x, y, variant, skin: this.bossSkin }));
+  }
+
   updateAnimals(deltaSeconds) {
     if (!this.animals?.length) {
       this.ensureAnimals();
@@ -813,6 +898,110 @@ export default class Arena {
     }
     for (const animal of this.animals) {
       animal.draw(this.ctx);
+    }
+  }
+
+  drawBosses() {
+    if (!this.bosses?.length) {
+      return;
+    }
+    for (const boss of this.bosses) {
+      boss.draw(this.ctx);
+    }
+  }
+
+  handleReproduction() {
+    const maxPopulation = Math.round(this.config.populationSize * 1.5);
+    if (this.creatures.length >= maxPopulation) {
+      return;
+    }
+    const females = this.creatures.filter(
+      (creature) => creature.alive && creature.sex === "female" && creature.reproductionCooldown <= 0,
+    );
+    for (const female of females) {
+      const partner = this.findPartnerFor(female);
+      if (!partner) {
+        continue;
+      }
+      if (!female.canMateWith(partner)) {
+        continue;
+      }
+      const distance = Math.hypot(female.position.x - partner.position.x, female.position.y - partner.position.y);
+      if (distance > female.radius + partner.radius + 12) {
+        continue;
+      }
+      const child = this.createChild(female, partner);
+      if (child) {
+        female.onReproduce(partner);
+        this.creatures.push(child);
+      }
+    }
+  }
+
+  findPartnerFor(creature) {
+    let closest = null;
+    let minDist = Infinity;
+    for (const other of this.creatures) {
+      if (other === creature || !other.alive || other.familyId !== creature.familyId) {
+        continue;
+      }
+      if (other.sex === creature.sex) {
+        continue;
+      }
+      const dist = Math.hypot(other.position.x - creature.position.x, other.position.y - creature.position.y);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = other;
+      }
+    }
+    return closest;
+  }
+
+  updateFamilyWars() {
+    const centroids = new Map();
+    for (const creature of this.creatures) {
+      if (!creature.alive) {
+        continue;
+      }
+      const family = creature.familyId ?? 0;
+      if (!centroids.has(family)) {
+        centroids.set(family, { x: 0, y: 0, count: 0 });
+      }
+      const agg = centroids.get(family);
+      agg.x += creature.position.x;
+      agg.y += creature.position.y;
+      agg.count += 1;
+    }
+    const entries = Array.from(centroids.entries()).filter(([, v]) => v.count > 0);
+    for (let i = 0; i < entries.length; i += 1) {
+      for (let j = i + 1; j < entries.length; j += 1) {
+        const [famA, agA] = entries[i];
+        const [famB, agB] = entries[j];
+        const ax = agA.x / agA.count;
+        const ay = agA.y / agA.count;
+        const bx = agB.x / agB.count;
+        const by = agB.y / agB.count;
+        const dist = Math.hypot(ax - bx, ay - by);
+        if (dist < 220) {
+          const key = `${Math.min(famA, famB)}-${Math.max(famA, famB)}`;
+          this.familiesAtWar.add(key);
+        }
+      }
+    }
+    const warMap = new Map();
+    for (const entry of this.familiesAtWar) {
+      const [aStr, bStr] = entry.split("-");
+      const a = Number(aStr);
+      const b = Number(bStr);
+      if (!warMap.has(a)) warMap.set(a, new Set());
+      if (!warMap.has(b)) warMap.set(b, new Set());
+      warMap.get(a).add(b);
+      warMap.get(b).add(a);
+    }
+    for (const creature of this.creatures) {
+      const family = creature.familyId ?? 0;
+      const enemies = warMap.get(family) ?? new Set();
+      creature.setWarFamilies(enemies);
     }
   }
 
