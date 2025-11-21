@@ -12,6 +12,10 @@ window.addEventListener("DOMContentLoaded", () => {
     energy: document.getElementById("statEnergy"),
     hydration: document.getElementById("statHydration"),
     weather: document.getElementById("statWeather"),
+    wood: document.getElementById("statWood"),
+    stone: document.getElementById("statStone"),
+    crystal: document.getElementById("statCrystal"),
+    structures: document.getElementById("statStructures"),
   };
   const recordElements = {
     kills: document.getElementById("statKills"),

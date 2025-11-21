@@ -1,6 +1,7 @@
 import NeuralNetwork, { BRAIN_LAYOUT } from "./NeuralNetwork.js";
 import { ZONE_TYPES } from "./Zone.js";
 import { clampGenome, createRandomGenome } from "./Genome.js";
+import { STRUCTURE_TYPES } from "./ResourceSystem.js";
 
 const ATTACK_ACTIVATION_THRESHOLD = 0.25;
 const NEAR_ENEMY_DISTANCE_MULTIPLIER = 1.5;
@@ -17,6 +18,9 @@ const HYDRATION_MAX_BASE = 120;
 const METABOLIC_BASE_COST = 1.4;
 const MOVE_COST_MULTIPLIER = 0.95;
 const KILL_RECOVERY = { energy: 20, hydration: 10, hp: 6 };
+const RESOURCE_CAPACITY_BASE = 40;
+const RESOURCE_NEED_THRESHOLD = 0.4;
+const STRUCTURE_BUILD_COOLDOWN = 7;
 
 export default class Creature {
   constructor({
@@ -31,6 +35,8 @@ export default class Creature {
     skin = null,
     genome = null,
   }) {
+    Creature._id = (Creature._id ?? 0) + 1;
+    this.id = Creature._id;
     this.position = { x, y };
     this.speed = speed;
     this.direction = direction;
@@ -79,6 +85,13 @@ export default class Creature {
     this.animationTime = Math.random() * 3;
     this.killedBy = null;
     this.fatigueAccum = 0;
+    this.resources = { wood: 0, stone: 0, crystal: 0 };
+    this.resourcesGathered = { wood: 0, stone: 0, crystal: 0 };
+    this.structuresBuilt = 0;
+    this.structuresDestroyed = 0;
+    this.craftingScore = 0;
+    this.resourceCapacity = RESOURCE_CAPACITY_BASE * this.genome.endurance;
+    this.buildCooldown = 0;
   }
 
   get fitness() {
@@ -95,7 +108,13 @@ export default class Creature {
       this.bridgeCrossings * 10 -
       this.blockedByWaterTime * 4 -
       this.difficultTerrainTime +
-      this.biomesVisited.size * 1;
+      this.biomesVisited.size * 1 +
+      this.resourcesGathered.wood * 0.7 +
+      this.resourcesGathered.stone * 1 +
+      this.resourcesGathered.crystal * 1.2 +
+      this.structuresBuilt * 30 +
+      this.structuresDestroyed * 26 +
+      this.craftingScore * 3;
 
     const explorationBonus = 1 + Math.min(this.uniqueZoneTypes.size * 0.15, 0.6);
     const learningBonus = Math.max(1, this.learningMultiplierPeak);
@@ -115,6 +134,7 @@ export default class Creature {
     tileMap = null,
     weather = null,
     healthPickups = [],
+    resourceSystem = null,
   ) {
     if (!this.alive) {
       return;
@@ -124,6 +144,7 @@ export default class Creature {
     this.survivalTime += deltaSeconds;
     this.stateFlags.inDanger = false;
     this.animationTime += deltaSeconds;
+    this.buildCooldown = Math.max(0, this.buildCooldown - deltaSeconds);
     const environment = this.getEnvironmentModifiers(weather);
 
     const terrainInfo = this.getTerrainInfo(tileMap);
@@ -139,12 +160,19 @@ export default class Creature {
 
     const zoneInfo = this.detectZones(zones, bounds, deltaSeconds);
     const pickupInfo = this.detectHealthPickups(healthPickups);
+    const resourceInfo = this.detectResources(resourceSystem);
+    const structureInfo = resourceSystem
+      ? resourceSystem.getNearestStructure(this.position.x, this.position.y, this.id)
+      : { structure: null };
     this.targetDirection = detection.hasEnemy ? detection.enemyDirection : null;
     if (!this.targetDirection && zoneInfo.hasZone) {
       this.targetDirection = zoneInfo.zoneDirection;
     }
     if (!this.targetDirection && pickupInfo?.hasPickup) {
       this.targetDirection = pickupInfo.direction;
+    }
+    if (!this.targetDirection && resourceInfo?.hasResource && this.shouldSeekResources()) {
+      this.targetDirection = resourceInfo.direction;
     }
 
     const inputs = this.buildBrainInputs(bounds, detection, zoneInfo, terrainInfo);
@@ -177,6 +205,11 @@ export default class Creature {
     const wantsPickup = pickupInfo?.hasPickup && (this.hp / this.maxHp < 0.75 || !hasEnemy);
     if (wantsPickup) {
       desiredDirection = pickupInfo.direction;
+    }
+
+    const wantsResource = resourceInfo.hasResource && this.shouldSeekResources();
+    if (!hasEnemy && wantsResource) {
+      desiredDirection = resourceInfo.direction;
     }
 
     desiredDirection += (Math.random() - 0.5) * 0.05;
@@ -224,6 +257,9 @@ export default class Creature {
     const postMoveTerrain = tileMap ? this.getTerrainInfo(tileMap) : terrainInfo;
     this.recordTerrainUsage(postMoveTerrain, deltaSeconds);
 
+    this.handleResourceHarvest(resourceSystem, resourceInfo, deltaSeconds);
+    this.applyStructureEffects(structureInfo, deltaSeconds);
+    this.tryCraftStructure(resourceSystem);
     this.handleHealthPickupCollision(healthPickups);
     this.updateMetabolism(deltaSeconds, postMoveTerrain, Math.hypot(deltaX, deltaY), environment);
     if (!this.alive) {
@@ -231,7 +267,14 @@ export default class Creature {
     }
 
     this.handleWallBounce(bounds);
-    this.tryAttack(currentTime, effectEmitter, detection, shouldAttack);
+    this.tryAttack(
+      currentTime,
+      effectEmitter,
+      detection,
+      shouldAttack,
+      resourceSystem?.structures ?? [],
+      resourceSystem,
+    );
   }
 
   updateMetabolism(deltaSeconds, terrainInfo, distanceMoved, environment = null) {
@@ -267,6 +310,47 @@ export default class Creature {
     if (this.energy <= 0 || this.hydration <= 0) {
       this.takeDamage(8 * deltaSeconds);
     }
+  }
+
+  shouldSeekResources() {
+    const load = this.getInventoryLoad();
+    const capacityRatio = load / Math.max(1, this.resourceCapacity);
+    const lowEnergy = this.energy / this.energyMax < RESOURCE_NEED_THRESHOLD;
+    const lowHydration = this.hydration / this.hydrationMax < RESOURCE_NEED_THRESHOLD;
+    return capacityRatio < 0.9 && (lowEnergy || lowHydration || load < this.resourceCapacity * 0.7);
+  }
+
+  getInventoryLoad() {
+    return this.resources.wood + this.resources.stone + this.resources.crystal;
+  }
+
+  collectResource(type, amount) {
+    if (!type || !Number.isFinite(amount) || amount <= 0) {
+      return 0;
+    }
+    if (!(type in this.resources)) {
+      return 0;
+    }
+    const available = Math.max(0, this.resourceCapacity - this.getInventoryLoad());
+    if (available <= 0) {
+      return 0;
+    }
+    const accepted = Math.min(amount, available);
+    this.resources[type] += accepted;
+    this.resourcesGathered[type] += accepted;
+    return accepted;
+  }
+
+  spendResources(cost = {}) {
+    for (const key of Object.keys(cost)) {
+      if ((this.resources[key] ?? 0) < cost[key]) {
+        return false;
+      }
+    }
+    for (const key of Object.keys(cost)) {
+      this.resources[key] -= cost[key];
+    }
+    return true;
   }
 
   getResourceSpeedModifier() {
@@ -466,6 +550,27 @@ export default class Creature {
     return result;
   }
 
+  detectResources(resourceSystem) {
+    if (!resourceSystem) {
+      return { hasResource: false };
+    }
+    const preferred = [];
+    if (this.energy / this.energyMax < RESOURCE_NEED_THRESHOLD) {
+      preferred.push("wood");
+    }
+    if (this.hp / this.maxHp < RESOURCE_NEED_THRESHOLD) {
+      preferred.push("stone");
+    }
+    const info = resourceSystem.getNearestResource(this.position.x, this.position.y, preferred);
+    if (!info?.hasResource) {
+      return { hasResource: false };
+    }
+    return {
+      ...info,
+      priority: this.shouldSeekResources(),
+    };
+  }
+
   getTerrainInfo(tileMap) {
     if (!tileMap) {
       return {
@@ -545,6 +650,99 @@ getTerrainSpeedModifier(type) {
     }
 
     this.currentTerrainType = info.type;
+  }
+
+  handleResourceHarvest(resourceSystem, resourceInfo, deltaSeconds) {
+    if (!resourceSystem || !resourceInfo?.hasResource) {
+      return;
+    }
+    if (this.getInventoryLoad() >= this.resourceCapacity - 1) {
+      return;
+    }
+    const gatherDistance = this.radius + (resourceInfo.node?.radius ?? 0) + 6;
+    if (resourceInfo.distance > gatherDistance) {
+      return;
+    }
+    const efficiency = 0.75 + this.genome.endurance * 0.35;
+    resourceSystem.harvest(resourceInfo.node, this, deltaSeconds, efficiency);
+  }
+
+  tryCraftStructure(resourceSystem) {
+    if (!resourceSystem || this.buildCooldown > 0 || !this.alive) {
+      return;
+    }
+    const load = this.getInventoryLoad();
+    if (load < 6) {
+      return;
+    }
+
+    const canBuildSpike =
+      this.resources.wood >= 10 && this.resources.stone >= 6 && this.resources.crystal >= 2;
+    const canBuildCamp = this.resources.wood >= 8 && this.resources.stone >= 5;
+    const canBuildBeacon = this.resources.crystal >= 4 && this.resources.wood >= 3;
+
+    let type = null;
+    if (canBuildSpike) {
+      type = "spike";
+    } else if (canBuildCamp) {
+      type = "camp";
+    } else if (canBuildBeacon) {
+      type = "beacon";
+    }
+
+    if (!type) {
+      return;
+    }
+    const cost = STRUCTURE_TYPES[type]?.cost ?? {};
+    const hasAllMaterials = Object.keys(cost).every((key) => (this.resources[key] ?? 0) >= cost[key]);
+    if (!hasAllMaterials) {
+      return;
+    }
+
+    const spot = this.findBuildSpot(resourceSystem?.bounds);
+    const structure = resourceSystem.buildStructure(type, spot.x, spot.y, this);
+    if (structure) {
+      this.spendResources(cost);
+      this.structuresBuilt += 1;
+      this.craftingScore +=
+        (cost?.wood ?? 0) + (cost?.stone ?? 0) + (cost?.crystal ?? 0);
+      this.buildCooldown = STRUCTURE_BUILD_COOLDOWN + Math.random() * 3;
+    }
+  }
+
+  applyStructureEffects(structureInfo, deltaSeconds) {
+    const structure = structureInfo?.structure;
+    if (!structure) {
+      return;
+    }
+    const distance = structureInfo.distance ?? Math.hypot(structure.x - this.position.x, structure.y - this.position.y);
+    if (distance > structure.radius + this.radius + 4) {
+      return;
+    }
+    const aura = structure.aura ?? {};
+    if (aura.heal) {
+      this.hp = clamp(this.hp + aura.heal * deltaSeconds, 0, this.maxHp);
+    }
+    if (aura.energy) {
+      this.energy = clamp(this.energy + aura.energy * deltaSeconds, 0, this.energyMax);
+    }
+    if (aura.hydration) {
+      this.hydration = clamp(this.hydration + aura.hydration * deltaSeconds, 0, this.hydrationMax);
+    }
+    if (aura.damage && (!structure.ownerId || structure.ownerId !== this.id)) {
+      this.takeDamage(aura.damage * deltaSeconds);
+    }
+  }
+
+  findBuildSpot(bounds = null) {
+    const distance = this.radius * 3.2;
+    let x = this.position.x + Math.cos(this.direction) * distance;
+    let y = this.position.y + Math.sin(this.direction) * distance;
+    if (bounds) {
+      x = clamp(x, this.radius, bounds.width - this.radius);
+      y = clamp(y, this.radius, bounds.height - this.radius);
+    }
+    return { x, y };
   }
 
   handleHealthPickupCollision(pickups) {
@@ -720,40 +918,56 @@ getTerrainSpeedModifier(type) {
     ];
   }
 
-  tryAttack(currentTime, effectEmitter, detection, shouldAttack) {
-    if (
-      !shouldAttack ||
-      currentTime - this.lastAttackTime < this.attackCooldown / this.buffMultipliers.cooldown ||
-      !detection ||
-      !detection.enemy
-    ) {
-      return;
-    }
-
-    const target = detection.enemy;
-    const dx = target.position.x - this.position.x;
-    const dy = target.position.y - this.position.y;
-    const distance = Math.hypot(dx, dy);
-
+  tryAttack(currentTime, effectEmitter, detection, shouldAttack, structures = [], resourceSystem = null) {
+    const ready =
+      currentTime - this.lastAttackTime >= this.attackCooldown / this.buffMultipliers.cooldown;
     const attackRange = this.attackRange * this.buffMultipliers.range;
-    if (distance > attackRange + target.radius) {
+    if (!ready) {
       return;
     }
 
+    if (shouldAttack && detection?.enemy) {
+      const target = detection.enemy;
+      const dx = target.position.x - this.position.x;
+      const dy = target.position.y - this.position.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance <= attackRange + target.radius) {
+        this.lastAttackTime = currentTime;
+        const attackDamage = this.damage * this.buffMultipliers.damage;
+        const targetDied = target.takeDamage(attackDamage, this);
+        this.attackSuccessCount += 1;
+        if (targetDied) {
+          this.killCount += 1;
+          this.recoverResourcesFromKill();
+        }
+        if (effectEmitter) {
+          effectEmitter({
+            x: target.position.x,
+            y: target.position.y,
+            radius: this.attackRange * 0.8,
+            duration: 0.25,
+          });
+        }
+        return;
+      }
+    }
+
+    if (!structures?.length || !resourceSystem) {
+      return;
+    }
+    const structure = this.findStructureTarget(structures, attackRange);
+    if (!structure) {
+      return;
+    }
     this.lastAttackTime = currentTime;
     const attackDamage = this.damage * this.buffMultipliers.damage;
-    const targetDied = target.takeDamage(attackDamage, this);
-    this.attackSuccessCount += 1;
-    if (targetDied) {
-      this.killCount += 1;
-      this.recoverResourcesFromKill();
-    }
-
+    resourceSystem.damageStructure(structure, attackDamage, this);
+    this.craftingScore += 4;
     if (effectEmitter) {
       effectEmitter({
-        x: target.position.x,
-        y: target.position.y,
-        radius: this.attackRange * 0.8,
+        x: structure.x,
+        y: structure.y,
+        radius: attackRange * 0.65,
         duration: 0.25,
       });
     }
@@ -874,6 +1088,19 @@ getTerrainSpeedModifier(type) {
       return dx > 0 ? 2 : 1;
     }
     return dy > 0 ? 0 : 3;
+  }
+
+  findStructureTarget(structures, attackRange) {
+    let closest = null;
+    let minDist = Infinity;
+    for (const structure of structures) {
+      const distance = Math.hypot(structure.x - this.position.x, structure.y - this.position.y);
+      if (distance <= attackRange + structure.radius && distance < minDist) {
+        closest = structure;
+        minDist = distance;
+      }
+    }
+    return closest;
   }
 }
 

@@ -29,6 +29,8 @@ export default class UIManager {
     energy,
     hydration,
     weatherLabel,
+    resources = {},
+    structures = 0,
   }) {
     if (this.hud.generation) {
       this.hud.generation.textContent = generation.toString();
@@ -50,6 +52,18 @@ export default class UIManager {
     }
     if (this.hud.hydration) {
       this.hud.hydration.textContent = UIManager.formatPercentage(hydration ?? 0);
+    }
+    if (this.hud.wood) {
+      this.hud.wood.textContent = UIManager.formatInteger(resources.wood ?? 0);
+    }
+    if (this.hud.stone) {
+      this.hud.stone.textContent = UIManager.formatInteger(resources.stone ?? 0);
+    }
+    if (this.hud.crystal) {
+      this.hud.crystal.textContent = UIManager.formatInteger(resources.crystal ?? 0);
+    }
+    if (this.hud.structures) {
+      this.hud.structures.textContent = UIManager.formatInteger(structures ?? 0);
     }
 
     if (this.records.kills) {

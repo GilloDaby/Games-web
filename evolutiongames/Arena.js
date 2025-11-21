@@ -5,10 +5,11 @@ import Zone, { pickZoneType } from "./Zone.js";
 import TileMap from "./TileMap.js";
 import PlayerSkinManager from "./PlayerSkinManager.js";
 import HealthPickup from "./HealthPickup.js";
+import ResourceSystem from "./ResourceSystem.js";
 
 const ARENA_SETTINGS = {
-  width: 1920,
-  height: 1080,
+  width: 3840,
+  height: 2160,
   gridSize: 64,
   populationSize: 60,
   generationDuration: 25, // seconds
@@ -79,6 +80,7 @@ export default class Arena {
     this.tileMap = new TileMap(tileMapWidth, tileMapHeight, tileSize);
     this.tileMap.generateBiomes();
     this.tileMap.generateRiver();
+    this.resourceSystem = new ResourceSystem(this.bounds, this.tileMap);
     this.playerSkins = new PlayerSkinManager();
     this.camera = {
       zoom: 1,
@@ -210,6 +212,7 @@ export default class Arena {
     this.currentAlive = this.creatures.length;
     this.attackEffects = [];
     this.generateZones();
+    this.resourceSystem?.reset();
     this.hudUpdateAccumulator = 0;
     if (!brains || !brains.length) {
       this.stagnationCounter = 0;
@@ -299,6 +302,7 @@ export default class Arena {
     this.updateZones(deltaSeconds);
     this.updateWeather(deltaSeconds);
     this.updateHealthPickups(deltaSeconds);
+    this.resourceSystem?.update(deltaSeconds);
 
     for (const creature of this.creatures) {
       creature.update(
@@ -311,6 +315,7 @@ export default class Arena {
         this.tileMap,
         this.weather,
         this.healthPickups,
+        this.resourceSystem,
       );
       totalFitness += creature.fitness;
       if (creature.fitness > bestFitness) {
@@ -359,6 +364,7 @@ export default class Arena {
     this.ctx.save();
     this.applyCameraTransform();
     this.drawTileMap();
+    this.drawResources();
     this.drawArena();
     this.drawZones();
     this.drawHealthPickups();
@@ -402,6 +408,12 @@ export default class Arena {
   drawTileMap() {
     if (this.tileMap) {
       this.tileMap.draw(this.ctx);
+    }
+  }
+
+  drawResources() {
+    if (this.resourceSystem) {
+      this.resourceSystem.draw(this.ctx);
     }
   }
 
@@ -451,12 +463,17 @@ export default class Arena {
     this.hudUpdateAccumulator = 0;
     this.attackEffects = [];
     this.generateZones();
+    this.resourceSystem?.reset();
     this.persistState(brains, genomes);
     this.updateHud();
   }
 
   updateHud() {
     const timeRemaining = Math.max(0, this.config.generationDuration - this.elapsedGenerationTime);
+    const resourceSummary = this.resourceSystem?.getSummary() ?? {
+      gathered: { wood: 0, stone: 0, crystal: 0 },
+      structures: 0,
+    };
     const hudData = {
       generation: this.generation,
       best: this.bestFitness,
@@ -470,6 +487,8 @@ export default class Arena {
       energy: this.averageEnergy,
       hydration: this.averageHydration,
       weatherLabel: this.weather?.label ?? "-",
+      resources: resourceSummary.gathered,
+      structures: resourceSummary.structures,
     };
 
     if (this.uiManager) {
@@ -494,6 +513,10 @@ export default class Arena {
       energy,
       hydration,
       weather,
+      wood,
+      stone,
+      crystal,
+      structures,
     } = this.statsElements;
     if (generation) {
       generation.textContent = hudData.generation.toString();
@@ -530,6 +553,18 @@ export default class Arena {
     }
     if (weather) {
       weather.textContent = hudData.weatherLabel ?? "-";
+    }
+    if (wood) {
+      wood.textContent = Math.round(hudData.resources?.wood ?? 0).toString();
+    }
+    if (stone) {
+      stone.textContent = Math.round(hudData.resources?.stone ?? 0).toString();
+    }
+    if (crystal) {
+      crystal.textContent = Math.round(hudData.resources?.crystal ?? 0).toString();
+    }
+    if (structures) {
+      structures.textContent = hudData.structures?.toString() ?? "0";
     }
   }
 
