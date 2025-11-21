@@ -115,6 +115,7 @@ export default class Arena {
     this.familyCount = 4;
     this.nextFamilyId = 1;
     this.familiesAtWar = new Set();
+    this.territories = new Map();
     this.camera = {
       zoom: 1,
       targetZoom: 1,
@@ -263,6 +264,7 @@ export default class Arena {
     this.spawnAnimals();
     this.bosses = [];
     this.bossSpawnTimer = randomBetween(15, 24);
+    this.territories = new Map();
     this.hudUpdateAccumulator = 0;
     if (!brains || !brains.length) {
       this.stagnationCounter = 0;
@@ -398,6 +400,7 @@ export default class Arena {
     this.updateAnimals(scaledDelta);
     this.updateBosses(scaledDelta, generationTime);
     this.updateFamilyWars();
+    this.updateTerritories(scaledDelta);
     this.resourceSystem?.update(scaledDelta);
 
     for (const creature of this.creatures) {
@@ -463,6 +466,7 @@ export default class Arena {
     this.ctx.save();
     this.applyCameraTransform();
     this.drawTileMap();
+    this.drawTerritories();
     this.drawResources();
     this.drawArena();
     this.drawZones();
@@ -749,6 +753,54 @@ export default class Arena {
     this.ensureAnimals();
   }
 
+  updateTerritories(deltaSeconds) {
+    if (!this.territories) {
+      this.territories = new Map();
+    }
+    const familyPositions = new Map();
+    for (const creature of this.creatures) {
+      if (!creature.alive) continue;
+      const family = creature.familyId ?? 0;
+      if (!familyPositions.has(family)) {
+        familyPositions.set(family, []);
+      }
+      familyPositions.get(family).push(creature);
+    }
+
+    for (const [family, members] of familyPositions.entries()) {
+      if (!members.length) continue;
+      const cx = members.reduce((sum, c) => sum + c.position.x, 0) / members.length;
+      const cy = members.reduce((sum, c) => sum + c.position.y, 0) / members.length;
+      if (!this.territories.has(family)) {
+        this.territories.set(family, {
+          familyId: family,
+          x: cx,
+          y: cy,
+          radius: 80,
+          strength: 0,
+        });
+      }
+      const territory = this.territories.get(family);
+      territory.x = (territory.x * 4 + cx) / 5;
+      territory.y = (territory.y * 4 + cy) / 5;
+      const insideCount = members.filter(
+        (m) => Math.hypot(m.position.x - territory.x, m.position.y - territory.y) <= territory.radius,
+      ).length;
+      const growth = Math.min(insideCount, members.length) * deltaSeconds * 3;
+      territory.strength += growth;
+      territory.radius = Math.min(420, territory.radius + growth * 0.2);
+      territory.radius = Math.max(60, territory.radius - deltaSeconds * 1.5);
+    }
+
+    // fade old territories
+    for (const [family, territory] of this.territories.entries()) {
+      territory.strength = Math.max(0, territory.strength - deltaSeconds * 5);
+      if (territory.strength <= 0.1) {
+        this.territories.delete(family);
+      }
+    }
+  }
+
   updateWeather(deltaSeconds) {
     if (!this.weather) {
       this.weather = this.rollWeather();
@@ -907,6 +959,24 @@ export default class Arena {
     }
     for (const boss of this.bosses) {
       boss.draw(this.ctx);
+    }
+  }
+
+  drawTerritories() {
+    if (!this.territories?.size) {
+      return;
+    }
+    for (const territory of this.territories.values()) {
+      const alpha = Math.min(0.3, 0.12 + (territory.strength ?? 0) / 300);
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.ctx.fillStyle = `rgba(120, 190, 255, ${alpha})`;
+      this.ctx.strokeStyle = "rgba(255,255,255,0.35)";
+      this.ctx.lineWidth = 2;
+      this.ctx.arc(territory.x, territory.y, territory.radius, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+      this.ctx.restore();
     }
   }
 
@@ -1106,8 +1176,10 @@ export default class Arena {
       this.camera.targetZoom = clamp(2, this.camera.minZoom, this.camera.maxZoom);
       this.camera.focusX = closest.position.x;
       this.camera.focusY = closest.position.y;
+      this.uiManager?.showSelectedCreature(closest);
     } else {
       this.camera.follow = null;
+      this.uiManager?.showSelectedCreature(null);
     }
   }
 

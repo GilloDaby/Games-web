@@ -7,6 +7,10 @@ export default class UIManager {
     this.hud = hudElements;
     this.records = recordElements;
     this.controls = controlElements;
+    this.selectedElements = {
+      name: hudElements?.selectedName ?? document.getElementById("selectedName"),
+      traits: hudElements?.selectedTraits ?? document.getElementById("selectedTraits"),
+    };
     this.arena = null;
     this.bindControlHandlers();
   }
@@ -100,6 +104,9 @@ export default class UIManager {
         ? settings.generationDuration.toFixed(0)
         : "";
     }
+    if (this.controls.infiniteTime) {
+      this.controls.infiniteTime.disabled = Number.isFinite(settings.generationDuration) === false;
+    }
     if (this.controls.speed) {
       this.controls.speed.value = settings.timeScale.toString();
     }
@@ -144,6 +151,15 @@ export default class UIManager {
         const value = Number(event.target.value);
         if (this.arena) {
           this.arena.setGenerationDuration(value);
+          this.syncControlsFromArena();
+        }
+      });
+    }
+
+    if (this.controls.infiniteTime) {
+      this.controls.infiniteTime.addEventListener("click", () => {
+        if (this.arena) {
+          this.arena.setGenerationDuration(Number.POSITIVE_INFINITY);
           this.syncControlsFromArena();
         }
       });
@@ -197,5 +213,27 @@ export default class UIManager {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${DEFAULT_TIME_FORMAT.format(minutes)}:${DEFAULT_TIME_FORMAT.format(seconds)}`;
+  }
+
+  showSelectedCreature(creature) {
+    if (!this.selectedElements?.traits || !this.selectedElements?.name) {
+      return;
+    }
+    if (!creature) {
+      this.selectedElements.name.textContent = "-";
+      this.selectedElements.traits.innerHTML = "";
+      return;
+    }
+    this.selectedElements.name.textContent = `#${creature.id} Famille ${creature.familyId}`;
+    this.selectedElements.traits.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+    for (const trait of creature.traits ?? []) {
+      const span = document.createElement("span");
+      span.className = "trait-pill";
+      span.textContent = trait.emoji;
+      span.title = trait.name;
+      fragment.appendChild(span);
+    }
+    this.selectedElements.traits.appendChild(fragment);
   }
 }

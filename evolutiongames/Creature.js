@@ -36,6 +36,113 @@ const REACTIONS = {
   panic: "😱",
   boost: "😎",
 };
+const POSITIVE_BASE_TRAITS = [
+  "brave",
+  "loyal",
+  "clever",
+  "resilient",
+  "swift",
+  "generous",
+  "patient",
+  "vigilant",
+  "inventive",
+  "compassionate",
+  "focused",
+  "optimistic",
+  "strategic",
+  "tough",
+  "diligent",
+  "curious",
+  "resourceful",
+  "stoic",
+  "adaptable",
+  "steady",
+  "creative",
+  "cooperative",
+  "confident",
+  "careful",
+  "wise",
+];
+const NEGATIVE_BASE_TRAITS = [
+  "greedy",
+  "reckless",
+  "lazy",
+  "fearful",
+  "impulsive",
+  "stubborn",
+  "arrogant",
+  "jealous",
+  "fragile",
+  "careless",
+  "impatient",
+  "noisy",
+  "clumsy",
+  "selfish",
+  "superstitious",
+  "forgetful",
+  "nervous",
+  "glutton",
+  "weak",
+  "distracted",
+  "hotheaded",
+  "melancholic",
+  "hostile",
+  "chaotic",
+  "naive",
+];
+const PERSONALITY_POOL = [
+  { name: "leader", emoji: "👑" },
+  { name: "solitaire", emoji: "🌘" },
+  { name: "ambitieux", emoji: "🚀" },
+  { name: "médiateur", emoji: "🕊️" },
+  { name: "gardien", emoji: "🛡️" },
+  { name: "éclaireur", emoji: "🔭" },
+  { name: "artiste", emoji: "🎨" },
+  { name: "barde", emoji: "🎵" },
+  { name: "architecte", emoji: "🏗️" },
+  { name: "forgeron", emoji: "⚒️" },
+  { name: "tacticien", emoji: "♟️" },
+  { name: "érudit", emoji: "📚" },
+  { name: "alchimiste", emoji: "⚗️" },
+  { name: "herboriste", emoji: "🌿" },
+  { name: "marin", emoji: "🧭" },
+  { name: "coureur", emoji: "🏃" },
+  { name: "chasseur", emoji: "🏹" },
+  { name: "charismatique", emoji: "🗣️" },
+  { name: "rêveur", emoji: "💭" },
+  { name: "calculateur", emoji: "🧠" },
+  { name: "téméraire", emoji: "🔥" },
+  { name: "pacifiste", emoji: "✋" },
+  { name: "économiste", emoji: "💰" },
+  { name: "fastidieux", emoji: "📏" },
+  { name: "sociable", emoji: "💬" },
+  { name: "secret", emoji: "🤐" },
+  { name: "nocturne", emoji: "🌙" },
+  { name: "matinal", emoji: "🌅" },
+  { name: "nomade", emoji: "🚶" },
+  { name: "sédentaire", emoji: "🏠" },
+  { name: "bricoleur", emoji: "🔧" },
+  { name: "gourmand", emoji: "🍖" },
+  { name: "observateur", emoji: "👀" },
+  { name: "pieux", emoji: "🙏" },
+  { name: "rieur", emoji: "😂" },
+  { name: "ombre", emoji: "🕶️" },
+  { name: "tuteur", emoji: "🧭" },
+  { name: "analyste", emoji: "📈" },
+  { name: "aventurier", emoji: "🗺️" },
+  { name: "héritier", emoji: "💎" },
+  { name: "protecteur", emoji: "🪖" },
+  { name: "frugal", emoji: "🥖" },
+  { name: "collecteur", emoji: "🧺" },
+  { name: "diplomate", emoji: "🤝" },
+  { name: "héros", emoji: "🏅" },
+  { name: "sage", emoji: "🧘" },
+  { name: "érudit nocturne", emoji: "🕯️" },
+  { name: "blagueur", emoji: "🤡" },
+  { name: "coach", emoji: "📣" },
+  { name: "éclaireur furtif", emoji: "🦊" },
+  { name: "stratège patient", emoji: "⏳" },
+];
 
 export default class Creature {
   constructor({
@@ -119,6 +226,7 @@ export default class Creature {
     this.warFamilies = new Set();
     this.geneScore = evaluateGenomeQuality(this.genome);
     this.maxAge = randomBetween(90, 100);
+    this.traits = generateTraitProfile();
   }
 
   get fitness() {
@@ -1555,4 +1663,91 @@ function classifyGeneTier(score) {
 
 function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
+}
+
+function buildTraitPool(baseList, targetSize = 100) {
+  const pool = [];
+  const suffixes = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+  let index = 0;
+  while (pool.length < targetSize) {
+    const root = baseList[index % baseList.length];
+    const suffix = suffixes[Math.floor(index / baseList.length) % suffixes.length];
+    pool.push(`${root} ${suffix}`);
+    index += 1;
+  }
+  return pool;
+}
+
+const POSITIVE_TRAIT_POOL = buildTraitPool(POSITIVE_BASE_TRAITS, 100);
+const NEGATIVE_TRAIT_POOL = buildTraitPool(NEGATIVE_BASE_TRAITS, 100);
+
+function pickTraits(count, pool, emojiMap, defaultEmoji) {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count).map((name) => ({
+    name,
+    emoji: emojiMap[name.split(" ")[0]] ?? defaultEmoji,
+  }));
+}
+
+const TRAIT_EMOJIS = {
+  brave: "🦁",
+  loyal: "🤝",
+  clever: "🧠",
+  resilient: "🪨",
+  swift: "💨",
+  generous: "🎁",
+  patient: "🕰️",
+  vigilant: "👁️",
+  inventive: "🛠️",
+  compassionate: "💖",
+  focused: "🎯",
+  optimistic: "🌟",
+  strategic: "♟️",
+  tough: "🛡️",
+  diligent: "🏋️",
+  curious: "🔍",
+  resourceful: "🧰",
+  stoic: "🪵",
+  adaptable: "🌊",
+  steady: "⚖️",
+  creative: "🎨",
+  cooperative: "🫱",
+  confident: "✨",
+  careful: "🧤",
+  wise: "🦉",
+};
+
+const BAD_TRAIT_EMOJIS = {
+  greedy: "🤑",
+  reckless: "💥",
+  lazy: "😴",
+  fearful: "😨",
+  impulsive: "⚡",
+  stubborn: "🐂",
+  arrogant: "😤",
+  jealous: "🪫",
+  fragile: "🥄",
+  careless: "🪁",
+  impatient: "⌚",
+  noisy: "📣",
+  clumsy: "🤕",
+  selfish: "🚫",
+  superstitious: "🔮",
+  forgetful: "🧊",
+  nervous: "😰",
+  glutton: "🍗",
+  weak: "🥀",
+  distracted: "🤯",
+  hotheaded: "🔥",
+  melancholic: "🌧️",
+  hostile: "⚔️",
+  chaotic: "🌀",
+  naive: "🍼",
+};
+
+function generateTraitProfile() {
+  const positives = pickTraits(6, POSITIVE_TRAIT_POOL, TRAIT_EMOJIS, "⭐");
+  const negatives = pickTraits(6, NEGATIVE_TRAIT_POOL, BAD_TRAIT_EMOJIS, "⚠️");
+  const personalities = [...PERSONALITY_POOL].sort(() => Math.random() - 0.5).slice(0, 4);
+  return [...positives, ...negatives, ...personalities];
 }

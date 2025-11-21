@@ -139,6 +139,7 @@
               step="1"
               value="25"
             />
+            <button type="button" id="controlInfiniteTime" class="button tiny">∞ Temps infini</button>
           </div>
           <div class="control-group">
             <label class="control-label" for="controlSpeed">
@@ -184,6 +185,16 @@
               <span class="record-value">Boost actif</span>
             </div>
           </div>
+        </section>
+        <section>
+          <h2>Fiche créature</h2>
+          <div class="records">
+            <div class="record-item">
+              <span class="record-label">ID</span>
+              <span class="record-value" id="selectedName">-</span>
+            </div>
+          </div>
+          <div id="selectedTraits" class="traits-board" aria-live="polite"></div>
         </section>
       </aside>
     </main>

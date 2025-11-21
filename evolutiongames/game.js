@@ -16,6 +16,8 @@ window.addEventListener("DOMContentLoaded", () => {
     stone: document.getElementById("statStone"),
     crystal: document.getElementById("statCrystal"),
     structures: document.getElementById("statStructures"),
+    selectedName: document.getElementById("selectedName"),
+    selectedTraits: document.getElementById("selectedTraits"),
   };
   const recordElements = {
     kills: document.getElementById("statKills"),
@@ -32,6 +34,7 @@ window.addEventListener("DOMContentLoaded", () => {
     restartBtn: document.getElementById("controlRestart"),
     skipBtn: document.getElementById("controlSkipGeneration"),
     speed: document.getElementById("controlSpeed"),
+    infiniteTime: document.getElementById("controlInfiniteTime"),
   };
 
   if (!canvas) {
