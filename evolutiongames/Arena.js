@@ -15,7 +15,7 @@ const ARENA_SETTINGS = {
   height: 1300,
   gridSize: 64,
   populationSize: 60,
-  generationDuration: 25, // seconds
+  generationDuration: Number.POSITIVE_INFINITY, // reproduction-driven, no fixed round
   mutationRate: 0.05,
   selectionRatio: 0.2,
   healthPickup: {
@@ -1185,8 +1185,12 @@ export default class Arena {
   }
 
   setGenerationDuration(seconds) {
-    const clamped = clamp(seconds, 5, 120);
-    this.config.generationDuration = clamped;
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      this.config.generationDuration = Number.POSITIVE_INFINITY;
+    } else {
+      const clamped = clamp(seconds, 5, 120);
+      this.config.generationDuration = clamped;
+    }
     this.persistState();
     this.updateHud();
     this.uiManager?.syncControlsFromArena();

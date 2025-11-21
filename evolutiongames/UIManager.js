@@ -96,7 +96,9 @@ export default class UIManager {
       UIManager.formatPercentage,
     );
     if (this.controls.generationInput) {
-      this.controls.generationInput.value = settings.generationDuration.toFixed(0);
+      this.controls.generationInput.value = Number.isFinite(settings.generationDuration)
+        ? settings.generationDuration.toFixed(0)
+        : "";
     }
     if (this.controls.speed) {
       this.controls.speed.value = settings.timeScale.toString();
@@ -188,6 +190,9 @@ export default class UIManager {
   }
 
   static formatTime(timeSeconds) {
+    if (!Number.isFinite(timeSeconds)) {
+      return "∞";
+    }
     const totalSeconds = Math.max(0, Math.floor(timeSeconds));
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;

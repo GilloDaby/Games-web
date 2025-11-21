@@ -1,6 +1,6 @@
 import NeuralNetwork, { BRAIN_LAYOUT } from "./NeuralNetwork.js";
 import { ZONE_TYPES } from "./Zone.js";
-import { clampGenome, createRandomGenome } from "./Genome.js";
+import { clampGenome, createRandomGenome, GENE_DEFS } from "./Genome.js";
 import { STRUCTURE_TYPES } from "./ResourceSystem.js";
 
 const ATTACK_ACTIVATION_THRESHOLD = 0.25;
@@ -117,6 +117,8 @@ export default class Creature {
     this.reaction = { emoji: null, ttl: 0 };
     this.reproductionCooldown = 0;
     this.warFamilies = new Set();
+    this.geneScore = evaluateGenomeQuality(this.genome);
+    this.maxAge = randomBetween(90, 100);
   }
 
   get fitness() {
@@ -323,6 +325,7 @@ export default class Creature {
     this.tryCraftStructure(resourceSystem);
     this.handleHealthPickupCollision(healthPickups);
     this.updateMetabolism(deltaSeconds, postMoveTerrain, Math.hypot(deltaX, deltaY), environment);
+    this.handleAging(deltaSeconds);
     if (!this.alive) {
       return;
     }
@@ -451,6 +454,15 @@ export default class Creature {
     } else if (this.position.y >= maxY) {
       this.position.y = maxY;
       this.direction = -this.direction;
+    }
+  }
+
+  handleAging(deltaSeconds) {
+    if (!this.alive) {
+      return;
+    }
+    if (this.survivalTime >= this.maxAge) {
+      this.takeDamage(this.maxHp * deltaSeconds * 2);
     }
   }
 
@@ -802,7 +814,8 @@ getTerrainSpeedModifier(type) {
       partner.energy / partner.energyMax > 0.55 &&
       this.hydration / this.hydrationMax > 0.55 &&
       partner.hydration / partner.hydrationMax > 0.55;
-    return oppositeSex && sameFamily && mature && ready && wellFed;
+    const compatible = this.isCompatibleMate(partner);
+    return oppositeSex && sameFamily && mature && ready && wellFed && compatible;
   }
 
   onReproduce(partner) {
@@ -1415,6 +1428,19 @@ getTerrainSpeedModifier(type) {
     this.warFamilies = new Set(families ?? []);
   }
 
+  isCompatibleMate(partner) {
+    const rarityChance = 0.08;
+    const myTier = classifyGeneTier(this.geneScore);
+    const partnerTier = classifyGeneTier(partner.geneScore);
+    if (myTier === "mid" || partnerTier === "mid") {
+      return true;
+    }
+    if (myTier === partnerTier) {
+      return true;
+    }
+    return Math.random() < rarityChance;
+  }
+
   findClosestByRelation(population, relationTarget) {
     let closest = null;
     let minDist = Infinity;
@@ -1494,4 +1520,39 @@ function lerpAngle(current, target, t) {
     diff += twoPi;
   }
   return normalizeAngle(normalizedCurrent + diff * t);
+}
+
+function evaluateGenomeQuality(genome) {
+  const keys = ["endurance", "hydration", "awareness", "visionRange", "hearingRange"];
+  let score = 0;
+  for (const key of keys) {
+    const def = GENE_DEFS[key];
+    if (!def) {
+      continue;
+    }
+    const value = clamp(genome[key] ?? def.min, def.min, def.max);
+    const normalized = (value - def.min) / (def.max - def.min);
+    score += normalized;
+  }
+  const metabolismDef = GENE_DEFS.metabolism;
+  if (metabolismDef) {
+    const metab = clamp(genome.metabolism ?? metabolismDef.min, metabolismDef.min, metabolismDef.max);
+    const normalizedMetab = (metab - metabolismDef.min) / (metabolismDef.max - metabolismDef.min);
+    score -= normalizedMetab * 0.5;
+  }
+  return score / keys.length;
+}
+
+function classifyGeneTier(score) {
+  if (score >= 0.65) {
+    return "high";
+  }
+  if (score <= 0.48) {
+    return "low";
+  }
+  return "mid";
+}
+
+function randomBetween(min, max) {
+  return Math.random() * (max - min) + min;
 }
