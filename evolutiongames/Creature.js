@@ -21,6 +21,9 @@ const KILL_RECOVERY = { energy: 20, hydration: 10, hp: 6 };
 const RESOURCE_CAPACITY_BASE = 40;
 const RESOURCE_NEED_THRESHOLD = 0.4;
 const STRUCTURE_BUILD_COOLDOWN = 7;
+const SNOWBALL_RANGE = 240;
+const SNOWBALL_DAMAGE = 6;
+const SNOWBALL_COOLDOWN = 2.5;
 
 export default class Creature {
   constructor({
@@ -85,13 +88,14 @@ export default class Creature {
     this.animationTime = Math.random() * 3;
     this.killedBy = null;
     this.fatigueAccum = 0;
-    this.resources = { wood: 0, stone: 0, crystal: 0 };
-    this.resourcesGathered = { wood: 0, stone: 0, crystal: 0 };
+    this.resources = { wood: 0, stone: 0, crystal: 0, snowball: 0 };
+    this.resourcesGathered = { wood: 0, stone: 0, crystal: 0, snowball: 0 };
     this.structuresBuilt = 0;
     this.structuresDestroyed = 0;
     this.craftingScore = 0;
     this.resourceCapacity = RESOURCE_CAPACITY_BASE * this.genome.endurance;
     this.buildCooldown = 0;
+    this.snowballCooldown = 0;
   }
 
   get fitness() {
@@ -112,6 +116,7 @@ export default class Creature {
       this.resourcesGathered.wood * 0.7 +
       this.resourcesGathered.stone * 1 +
       this.resourcesGathered.crystal * 1.2 +
+      this.resourcesGathered.snowball * 0.2 +
       this.structuresBuilt * 30 +
       this.structuresDestroyed * 26 +
       this.craftingScore * 3;
@@ -145,6 +150,7 @@ export default class Creature {
     this.stateFlags.inDanger = false;
     this.animationTime += deltaSeconds;
     this.buildCooldown = Math.max(0, this.buildCooldown - deltaSeconds);
+    this.snowballCooldown = Math.max(0, this.snowballCooldown - deltaSeconds);
     const environment = this.getEnvironmentModifiers(weather);
 
     const terrainInfo = this.getTerrainInfo(tileMap);
@@ -321,7 +327,12 @@ export default class Creature {
   }
 
   getInventoryLoad() {
-    return this.resources.wood + this.resources.stone + this.resources.crystal;
+    return (
+      this.resources.wood +
+      this.resources.stone +
+      this.resources.crystal +
+      (this.resources.snowball ?? 0)
+    );
   }
 
   collectResource(type, amount) {
@@ -922,7 +933,9 @@ getTerrainSpeedModifier(type) {
     const ready =
       currentTime - this.lastAttackTime >= this.attackCooldown / this.buffMultipliers.cooldown;
     const attackRange = this.attackRange * this.buffMultipliers.range;
-    if (!ready) {
+    const canThrowSnowball = this.snowballCooldown <= 0 && (this.resources.snowball ?? 0) > 0;
+
+    if (!ready && !canThrowSnowball) {
       return;
     }
 
@@ -931,7 +944,7 @@ getTerrainSpeedModifier(type) {
       const dx = target.position.x - this.position.x;
       const dy = target.position.y - this.position.y;
       const distance = Math.hypot(dx, dy);
-      if (distance <= attackRange + target.radius) {
+      if (ready && distance <= attackRange + target.radius) {
         this.lastAttackTime = currentTime;
         const attackDamage = this.damage * this.buffMultipliers.damage;
         const targetDied = target.takeDamage(attackDamage, this);
@@ -948,6 +961,11 @@ getTerrainSpeedModifier(type) {
             duration: 0.25,
           });
         }
+        return;
+      }
+
+      if (canThrowSnowball && distance <= SNOWBALL_RANGE) {
+        this.throwSnowball(currentTime, target, effectEmitter);
         return;
       }
     }
@@ -1101,6 +1119,29 @@ getTerrainSpeedModifier(type) {
       }
     }
     return closest;
+  }
+
+  throwSnowball(currentTime, target, effectEmitter) {
+    if (!target || (this.resources.snowball ?? 0) <= 0) {
+      return;
+    }
+    this.resources.snowball = Math.max(0, this.resources.snowball - 1);
+    this.snowballCooldown = SNOWBALL_COOLDOWN;
+    const hit = target.takeDamage(SNOWBALL_DAMAGE, this);
+    if (hit) {
+      this.killCount += 1;
+      this.recoverResourcesFromKill();
+    } else {
+      this.attackSuccessCount += 0.5;
+    }
+    if (effectEmitter) {
+      effectEmitter({
+        x: target.position.x,
+        y: target.position.y,
+        radius: this.radius * 2,
+        duration: 0.2,
+      });
+    }
   }
 }
 

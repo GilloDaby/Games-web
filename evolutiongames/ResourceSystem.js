@@ -6,6 +6,7 @@ const RESOURCE_TYPES = {
     hardness: 1,
     capacity: 120,
     radius: 16,
+    allowedTiles: ["forest"],
   },
   stone: {
     label: "Pierre",
@@ -14,6 +15,7 @@ const RESOURCE_TYPES = {
     hardness: 1.3,
     capacity: 90,
     radius: 18,
+    allowedTiles: ["grass"],
   },
   crystal: {
     label: "Cristal",
@@ -22,6 +24,16 @@ const RESOURCE_TYPES = {
     hardness: 1.8,
     capacity: 70,
     radius: 17,
+    allowedTiles: ["sand"],
+  },
+  snowball: {
+    label: "Neige",
+    color: "#e5ecf7",
+    rate: 14,
+    hardness: 0.8,
+    capacity: 80,
+    radius: 14,
+    allowedTiles: ["snow"],
   },
 };
 
@@ -166,7 +178,7 @@ export default class ResourceSystem {
     this.nodes = [];
     this.structures = [];
     this.stats = {
-      gathered: { wood: 0, stone: 0, crystal: 0 },
+      gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0 },
       built: 0,
       destroyed: 0,
     };
@@ -189,15 +201,16 @@ export default class ResourceSystem {
     const area = this.bounds.width * this.bounds.height;
     const baseCount = Math.max(20, Math.floor(area / 90000));
     const spread = [
-      { type: "wood", weight: 0.5 },
-      { type: "stone", weight: 0.32 },
-      { type: "crystal", weight: 0.18 },
+      { type: "wood", weight: 0.38 },
+      { type: "stone", weight: 0.28 },
+      { type: "crystal", weight: 0.16 },
+      { type: "snowball", weight: 0.18 },
     ];
 
     for (let i = 0; i < baseCount; i += 1) {
       const type = this.pickType(spread);
       const config = RESOURCE_TYPES[type];
-      const position = this.findValidPosition(config.radius);
+      const position = this.findValidPosition(config.radius, config.allowedTiles);
       if (!position) {
         continue;
       }
@@ -218,7 +231,7 @@ export default class ResourceSystem {
     return weights[0]?.type ?? "wood";
   }
 
-  findValidPosition(radius) {
+  findValidPosition(radius, allowedTiles = null) {
     const attempts = 80;
     for (let i = 0; i < attempts; i += 1) {
       const x = radius + Math.random() * (this.bounds.width - radius * 2);
@@ -226,6 +239,9 @@ export default class ResourceSystem {
       const tile = this.tileMap?.getTileAt(x, y);
       const blocked = tile && (tile.type === "water" || tile.type === "river");
       if (blocked) {
+        continue;
+      }
+      if (allowedTiles && tile && !allowedTiles.includes(tile.type)) {
         continue;
       }
       const overlapping = this.nodes.some((node) => Math.hypot(node.x - x, node.y - y) < node.radius + radius + 12);
