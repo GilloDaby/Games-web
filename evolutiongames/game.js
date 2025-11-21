@@ -31,6 +31,7 @@ window.addEventListener("DOMContentLoaded", () => {
     generationInput: document.getElementById("controlGenerationTime"),
     restartBtn: document.getElementById("controlRestart"),
     skipBtn: document.getElementById("controlSkipGeneration"),
+    speed: document.getElementById("controlSpeed"),
   };
 
   if (!canvas) {

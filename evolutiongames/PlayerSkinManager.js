@@ -3,9 +3,10 @@ import PlayerSkin from "./PlayerSkin.js";
 const DEFAULT_SKIN_FILES = ["Male 01-1.png", "Male 01-2.png", "Male 02-1.png", "Male 02-2.png"];
 
 export default class PlayerSkinManager {
-  constructor({ basePath = "img/player/", manifest = "skins.json" } = {}) {
+  constructor({ basePath = "img/player/", manifest = "skins.json", fallbackList = DEFAULT_SKIN_FILES } = {}) {
     this.basePath = basePath.endsWith("/") ? basePath : `${basePath}/`;
     this.manifest = manifest;
+    this.fallbackList = fallbackList && Array.isArray(fallbackList) ? fallbackList : DEFAULT_SKIN_FILES;
     this.skins = [];
     this.ready = this.loadAll();
   }
@@ -28,7 +29,7 @@ export default class PlayerSkinManager {
     } catch (error) {
       console.warn("Impossible de récupérer skins.json, utilisation de la liste par défaut.", error);
     }
-    return DEFAULT_SKIN_FILES;
+    return this.fallbackList;
   }
 
   loadSkin(fileName) {

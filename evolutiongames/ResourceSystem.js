@@ -40,10 +40,10 @@ const RESOURCE_TYPES = {
 const STRUCTURE_TYPES = {
   camp: {
     label: "Camp",
-    hp: 140,
+    hp: 180,
     radius: 24,
-    cost: { wood: 10, stone: 6 },
-    aura: { heal: 6, energy: 5, hydration: 4 },
+    cost: { wood: 6, stone: 4 },
+    aura: { heal: 8, energy: 7, hydration: 6 },
     color: "#f2c879",
   },
   spike: {

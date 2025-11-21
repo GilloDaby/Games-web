@@ -6,6 +6,7 @@ import TileMap from "./TileMap.js";
 import PlayerSkinManager from "./PlayerSkinManager.js";
 import HealthPickup from "./HealthPickup.js";
 import ResourceSystem from "./ResourceSystem.js";
+import Animal from "./Animal.js";
 
 const ARENA_SETTINGS = {
   width: 2200,
@@ -63,6 +64,23 @@ const WEATHER_PRESETS = {
   },
 };
 
+const ANIMAL_SKIN_FILES = [
+  "Cat 01-1.png",
+  "Cat 01-1r.png",
+  "Cat 01-2.png",
+  "Cat 01-3.png",
+  "Cat-01-2r.png",
+  "Cat-01-3r.png",
+  "Dog 01-1.png",
+  "Dog 01-1r.png",
+  "Dog 01-2.png",
+  "Dog 01-3.png",
+  "Dog-01-2r.png",
+  "Dog-01-3r.png",
+];
+
+const SIMULATION_SPEEDS = [1, 10, 100, 1000];
+
 export default class Arena {
   constructor(canvas, statsElements, uiManager = null) {
     this.canvas = canvas;
@@ -82,6 +100,13 @@ export default class Arena {
     this.tileMap.generateRiver();
     this.resourceSystem = new ResourceSystem(this.bounds, this.tileMap);
     this.playerSkins = new PlayerSkinManager();
+    this.animalSkins = new PlayerSkinManager({
+      basePath: "img/Animal",
+      manifest: "animals.json",
+      fallbackList: ANIMAL_SKIN_FILES,
+    });
+    this.animals = [];
+    this.targetAnimalCount = 14;
     this.camera = {
       zoom: 1,
       targetZoom: 1,
@@ -130,6 +155,7 @@ export default class Arena {
     this.weather = this.rollWeather();
     this.healthPickups = [];
     this.nextHealthSpawn = this.rollHealthSpawnTime();
+    this.timeScale = 1;
 
     const persisted = this.loadPersistedState();
     if (persisted && Array.isArray(persisted.brains) && persisted.brains.length) {
@@ -146,6 +172,9 @@ export default class Arena {
           this.config.mutationRate = Math.max(0.005, Number(persisted.mutationRate));
           this.ga.baseMutationRate = this.config.mutationRate;
           this.ga.maxMutationRate = Math.min(0.5, this.config.mutationRate * 4);
+        }
+        if (typeof persisted.timeScale === "number") {
+          this.timeScale = persisted.timeScale;
         }
 
         this.bestHistory = persisted.bestHistory ?? [];
@@ -176,6 +205,9 @@ export default class Arena {
         creature.skin = this.playerSkins.getRandomSkin();
       }
     });
+    this.animalSkins.ready.then(() => {
+      this.assignSkinsToAnimals();
+    });
 
     this.updateHud();
   }
@@ -188,6 +220,7 @@ export default class Arena {
     );
     const genomeInstances = sourceGenomes.slice();
     const desiredCount = this.config.populationSize;
+    this.targetAnimalCount = Math.max(8, Math.floor(desiredCount * 0.35));
     if (brainInstances.length > desiredCount) {
       brainInstances.length = desiredCount;
     } else if (brainInstances.length < desiredCount) {
@@ -213,6 +246,7 @@ export default class Arena {
     this.attackEffects = [];
     this.generateZones();
     this.resourceSystem?.reset();
+    this.spawnAnimals();
     this.hudUpdateAccumulator = 0;
     if (!brains || !brains.length) {
       this.stagnationCounter = 0;
@@ -292,6 +326,7 @@ export default class Arena {
   }
 
   update(deltaSeconds) {
+    const scaledDelta = Math.min(deltaSeconds * this.timeScale, 10);
     let totalFitness = 0;
     let bestFitness = 0;
     let aliveCount = 0;
@@ -299,14 +334,15 @@ export default class Arena {
     let totalHydration = 0;
     const generationTime = this.elapsedGenerationTime;
 
-    this.updateZones(deltaSeconds);
-    this.updateWeather(deltaSeconds);
-    this.updateHealthPickups(deltaSeconds);
-    this.resourceSystem?.update(deltaSeconds);
+    this.updateZones(scaledDelta);
+    this.updateWeather(scaledDelta);
+    this.updateHealthPickups(scaledDelta);
+    this.updateAnimals(scaledDelta);
+    this.resourceSystem?.update(scaledDelta);
 
     for (const creature of this.creatures) {
       creature.update(
-        deltaSeconds,
+        scaledDelta,
         this.bounds,
         this.creatures,
         generationTime,
@@ -316,6 +352,7 @@ export default class Arena {
         this.weather,
         this.healthPickups,
         this.resourceSystem,
+        this.animals,
       );
       totalFitness += creature.fitness;
       if (creature.fitness > bestFitness) {
@@ -340,14 +377,14 @@ export default class Arena {
     this.bestKillRecord = Math.max(this.bestKillRecord, bestKillsThisFrame);
     this.currentAlive = aliveCount;
     this.recordBestFitness = Math.max(this.recordBestFitness, bestFitness);
-    this.elapsedGenerationTime += deltaSeconds;
+    this.elapsedGenerationTime += scaledDelta;
 
     this.updateHud();
-    this.updateAttackEffects(deltaSeconds);
-    this.updateCamera(deltaSeconds);
+    this.updateAttackEffects(scaledDelta);
+    this.updateCamera(scaledDelta);
     this.maintainFollowTarget();
     this.maintainFollowTarget();
-    this.updateCamera(deltaSeconds);
+    this.updateCamera(scaledDelta);
 
     if (
       this.pendingGenerationSkip ||
@@ -368,6 +405,7 @@ export default class Arena {
     this.drawArena();
     this.drawZones();
     this.drawHealthPickups();
+    this.drawAnimals();
 
     for (const creature of this.creatures) {
       creature.draw(this.ctx);
@@ -614,6 +652,18 @@ export default class Arena {
     this.healthPickups = this.healthPickups.filter((pickup) => !pickup.collected);
   }
 
+  updateAnimals(deltaSeconds) {
+    if (!this.animals?.length) {
+      this.ensureAnimals();
+      return;
+    }
+    for (const animal of this.animals) {
+      animal.update(deltaSeconds, this.bounds);
+    }
+    this.animals = this.animals.filter((animal) => animal.alive);
+    this.ensureAnimals();
+  }
+
   updateWeather(deltaSeconds) {
     if (!this.weather) {
       this.weather = this.rollWeather();
@@ -666,6 +716,74 @@ export default class Arena {
     }
   }
 
+  spawnAnimals(count = this.targetAnimalCount) {
+    const desired = Math.max(6, count);
+    this.animals = [];
+    for (let i = 0; i < desired; i += 1) {
+      this.animals.push(this.createAnimal());
+    }
+    this.assignSkinsToAnimals();
+  }
+
+  ensureAnimals() {
+    const missing = Math.max(0, this.targetAnimalCount - this.animals.length);
+    for (let i = 0; i < missing; i += 1) {
+      this.animals.push(this.createAnimal());
+    }
+  }
+
+  createAnimal() {
+    const radius = randomBetween(9, 12);
+    const spawn = this.getSafeAnimalPosition(radius);
+    return new Animal({
+      x: spawn.x,
+      y: spawn.y,
+      radius,
+      tileMap: this.tileMap,
+      skin: this.animalSkins.getRandomSkin(),
+    });
+  }
+
+  getSafeAnimalPosition(radius) {
+    const attempts = 120;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const x = randomBetween(radius, this.bounds.width - radius);
+      const y = randomBetween(radius, this.bounds.height - radius);
+      const tile = this.tileMap?.getTileAt(x, y);
+      if (tile && (tile.type === "river" || tile.type === "water")) {
+        continue;
+      }
+      const closeToCreature = this.creatures.some(
+        (c) => Math.hypot(c.position.x - x, c.position.y - y) < c.radius + radius + 10,
+      );
+      if (closeToCreature) {
+        continue;
+      }
+      const overlapping = this.animals.some(
+        (a) => Math.hypot(a.position.x - x, a.position.y - y) < a.radius + radius + 6,
+      );
+      if (overlapping) {
+        continue;
+      }
+      return { x, y };
+    }
+    return {
+      x: radius + (this.bounds.width - radius * 2) * Math.random(),
+      y: radius + (this.bounds.height - radius * 2) * Math.random(),
+    };
+  }
+
+  assignSkinsToAnimals() {
+    if (!this.animalSkins?.skins?.length) {
+      return;
+    }
+    for (const animal of this.animals) {
+      if (!animal.skin) {
+        animal.skin = this.animalSkins.getRandomSkin();
+      }
+    }
+  }
+
   drawAttackEffects() {
     const ctx = this.ctx;
     ctx.save();
@@ -686,6 +804,15 @@ export default class Arena {
     }
     for (const pickup of this.healthPickups) {
       pickup.draw(this.ctx);
+    }
+  }
+
+  drawAnimals() {
+    if (!this.animals?.length) {
+      return;
+    }
+    for (const animal of this.animals) {
+      animal.draw(this.ctx);
     }
   }
 
@@ -858,6 +985,16 @@ export default class Arena {
     this.uiManager?.syncControlsFromArena();
   }
 
+  setTimeScale(scale) {
+    const closest = SIMULATION_SPEEDS.reduce(
+      (best, value) => (Math.abs(value - scale) < Math.abs(best - scale) ? value : best),
+      SIMULATION_SPEEDS[0],
+    );
+    this.timeScale = closest;
+    this.updateHud();
+    this.uiManager?.syncControlsFromArena();
+  }
+
   setGenerationDuration(seconds) {
     const clamped = clamp(seconds, 5, 120);
     this.config.generationDuration = clamped;
@@ -875,6 +1012,7 @@ export default class Arena {
       populationSize: this.config.populationSize,
       mutationRate: this.ga.baseMutationRate,
       generationDuration: this.config.generationDuration,
+      timeScale: this.timeScale,
     };
   }
 
@@ -913,6 +1051,7 @@ export default class Arena {
         populationSize: this.config.populationSize,
         generationDuration: this.config.generationDuration,
         mutationRate: this.ga.baseMutationRate,
+        timeScale: this.timeScale,
       };
       window.localStorage.setItem(this.persistenceKey, JSON.stringify(payload));
     } catch (error) {

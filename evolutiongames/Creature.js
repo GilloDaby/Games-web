@@ -18,9 +18,11 @@ const HYDRATION_MAX_BASE = 120;
 const METABOLIC_BASE_COST = 1.4;
 const MOVE_COST_MULTIPLIER = 0.95;
 const KILL_RECOVERY = { energy: 20, hydration: 10, hp: 6 };
+const KILL_GROWTH = { size: 0.6, damage: 0.08, hp: 8 };
+const ANIMAL_GROWTH_MULTIPLIER = 2;
 const RESOURCE_CAPACITY_BASE = 40;
 const RESOURCE_NEED_THRESHOLD = 0.4;
-const STRUCTURE_BUILD_COOLDOWN = 7;
+const STRUCTURE_BUILD_COOLDOWN = 3.5;
 const SNOWBALL_RANGE = 240;
 const SNOWBALL_DAMAGE = 6;
 const SNOWBALL_COOLDOWN = 2.5;
@@ -150,6 +152,7 @@ export default class Creature {
     weather = null,
     healthPickups = [],
     resourceSystem = null,
+    animals = [],
   ) {
     if (!this.alive) {
       return;
@@ -177,17 +180,27 @@ export default class Creature {
     const zoneInfo = this.detectZones(zones, bounds, deltaSeconds);
     const pickupInfo = this.detectHealthPickups(healthPickups);
     const resourceInfo = this.detectResources(resourceSystem);
+    const preyInfo = this.detectAnimals(animals);
     const structureInfo = resourceSystem
       ? resourceSystem.getNearestStructure(this.position.x, this.position.y, this.id)
       : { structure: null };
     const allyInfo = this.findClosestByRelation(population, "ally");
     const neutralInfo = this.findClosestByRelation(population, "neutral");
-    this.targetDirection = detection.hasEnemy ? detection.enemyDirection : null;
+    const prefersPrey =
+      preyInfo.hasPrey && (!detection.hasEnemy || preyInfo.distance * 0.85 < detection.distance);
+    this.targetDirection = prefersPrey
+      ? preyInfo.direction
+      : detection.hasEnemy
+        ? detection.enemyDirection
+        : null;
     if (!this.targetDirection && zoneInfo.hasZone) {
       this.targetDirection = zoneInfo.zoneDirection;
     }
     if (!this.targetDirection && pickupInfo?.hasPickup) {
       this.targetDirection = pickupInfo.direction;
+    }
+    if (!this.targetDirection && preyInfo.hasPrey) {
+      this.targetDirection = preyInfo.direction;
     }
     if (!this.targetDirection && resourceInfo?.hasResource && this.shouldSeekResources()) {
       this.targetDirection = resourceInfo.direction;
@@ -198,18 +211,23 @@ export default class Creature {
       this.brain.feedforward(inputs);
 
     const hasEnemy = detection.hasEnemy;
-    const shouldAttack = hasEnemy && attackSignal > ATTACK_ACTIVATION_THRESHOLD;
-    const moveToward = hasEnemy ? moveSignal >= 0 : false;
+    const hasPrey = preyInfo.hasPrey;
+    const wantsCombat = hasEnemy || hasPrey;
+    const shouldAttack = wantsCombat && attackSignal > ATTACK_ACTIVATION_THRESHOLD;
+    const autoAttackPrey = hasPrey && preyInfo.distance < this.attackRange * 1.4;
+    const attackIntent = shouldAttack || autoAttackPrey;
+    const moveToward = wantsCombat ? moveSignal >= 0 : false;
     const zoneDesire = zoneInfo.hasZone;
     const moveTowardZone = zoneDesire && towardZoneSignal > 0.4;
     const avoidZone = zoneDesire && avoidZoneSignal > 0.4;
 
     let desiredDirection = mapSignalToAngle(directionSignal);
-    if (hasEnemy) {
+    if (wantsCombat) {
+      const targetDir = detection.hasEnemy ? detection.enemyDirection : preyInfo.direction;
       const pursuitDirection = moveToward
-        ? detection.enemyDirection
-        : normalizeAngle(detection.enemyDirection + Math.PI);
-      desiredDirection = shouldAttack ? detection.enemyDirection : pursuitDirection;
+        ? targetDir
+        : normalizeAngle(targetDir + Math.PI);
+      desiredDirection = attackIntent ? targetDir : pursuitDirection;
     }
 
     if (zoneDesire) {
@@ -291,9 +309,11 @@ export default class Creature {
       currentTime,
       effectEmitter,
       detection,
-      shouldAttack,
+      preyInfo,
+      attackIntent,
       resourceSystem?.structures ?? [],
       resourceSystem,
+      animals,
     );
   }
 
@@ -583,6 +603,34 @@ export default class Creature {
     return result;
   }
 
+  detectAnimals(animals) {
+    const result = { hasPrey: false, prey: null, direction: this.direction, distance: Infinity };
+    if (!animals?.length) {
+      return result;
+    }
+    let closest = null;
+    let closestDist = Infinity;
+    for (const animal of animals) {
+      if (!animal?.alive) {
+        continue;
+      }
+      const dx = animal.position.x - this.position.x;
+      const dy = animal.position.y - this.position.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < closestDist) {
+        closestDist = distance;
+        closest = { animal, direction: Math.atan2(dy, dx), distance };
+      }
+    }
+    if (closest) {
+      result.hasPrey = true;
+      result.prey = closest.animal;
+      result.direction = closest.direction;
+      result.distance = closest.distance;
+    }
+    return result;
+  }
+
   detectResources(resourceSystem) {
     if (!resourceSystem) {
       return { hasResource: false };
@@ -705,17 +753,20 @@ getTerrainSpeedModifier(type) {
       return;
     }
     const load = this.getInventoryLoad();
-    if (load < 6) {
+    if (load < 4) {
       return;
     }
 
     const canBuildSpike =
       this.resources.wood >= 10 && this.resources.stone >= 6 && this.resources.crystal >= 2;
-    const canBuildCamp = this.resources.wood >= 8 && this.resources.stone >= 5;
-    const canBuildBeacon = this.resources.crystal >= 4 && this.resources.wood >= 3;
+    const canBuildCamp = this.resources.wood >= 6 && this.resources.stone >= 4;
+    const canBuildBeacon = this.resources.crystal >= 4 && this.resources.wood >= 2;
 
     let type = null;
-    if (canBuildSpike) {
+    const wantsCampFirst = this.structuresBuilt % 2 === 0;
+    if (canBuildCamp && wantsCampFirst) {
+      type = "camp";
+    } else if (canBuildSpike) {
       type = "spike";
     } else if (canBuildCamp) {
       type = "camp";
@@ -739,7 +790,7 @@ getTerrainSpeedModifier(type) {
       this.structuresBuilt += 1;
       this.craftingScore +=
         (cost?.wood ?? 0) + (cost?.stone ?? 0) + (cost?.crystal ?? 0);
-      this.buildCooldown = STRUCTURE_BUILD_COOLDOWN + Math.random() * 3;
+      this.buildCooldown = STRUCTURE_BUILD_COOLDOWN + Math.random() * 1.5;
     }
   }
 
@@ -951,11 +1002,21 @@ getTerrainSpeedModifier(type) {
     ];
   }
 
-  tryAttack(currentTime, effectEmitter, detection, shouldAttack, structures = [], resourceSystem = null) {
+  tryAttack(
+    currentTime,
+    effectEmitter,
+    detection,
+    preyInfo,
+    shouldAttack,
+    structures = [],
+    resourceSystem = null,
+    animals = [],
+  ) {
     const ready =
       currentTime - this.lastAttackTime >= this.attackCooldown / this.buffMultipliers.cooldown;
     const attackRange = this.attackRange * this.buffMultipliers.range;
     const canThrowSnowball = this.snowballCooldown <= 0 && (this.resources.snowball ?? 0) > 0;
+    const preyTarget = preyInfo?.prey ?? null;
 
     if (!ready && !canThrowSnowball) {
       return;
@@ -972,8 +1033,7 @@ getTerrainSpeedModifier(type) {
         const targetDied = target.takeDamage(attackDamage, this);
         this.attackSuccessCount += 1;
         if (targetDied) {
-          this.killCount += 1;
-          this.recoverResourcesFromKill();
+          this.onKill({ type: "creature" });
         }
         if (effectEmitter) {
           effectEmitter({
@@ -988,6 +1048,30 @@ getTerrainSpeedModifier(type) {
 
       if (canThrowSnowball && distance <= SNOWBALL_RANGE) {
         this.throwSnowball(currentTime, target, effectEmitter);
+        return;
+      }
+    }
+
+    if (shouldAttack && preyTarget) {
+      const dx = preyTarget.position.x - this.position.x;
+      const dy = preyTarget.position.y - this.position.y;
+      const distance = Math.hypot(dx, dy);
+      if (ready && distance <= attackRange + preyTarget.radius) {
+        this.lastAttackTime = currentTime;
+        const attackDamage = this.damage * this.buffMultipliers.damage;
+        const targetDied = preyTarget.takeDamage(attackDamage, this);
+        this.attackSuccessCount += 0.5;
+        if (targetDied) {
+          this.onKill({ type: "animal" });
+        }
+        if (effectEmitter) {
+          effectEmitter({
+            x: preyTarget.position.x,
+            y: preyTarget.position.y,
+            radius: this.attackRange * 0.7,
+            duration: 0.25,
+          });
+        }
         return;
       }
     }
@@ -1028,6 +1112,26 @@ getTerrainSpeedModifier(type) {
     }
     this.markEnemy(attacker);
     return false;
+  }
+
+  onKill(victim = { type: "creature" }) {
+    this.killCount += 1;
+    const isAnimal = victim?.type === "animal";
+    const multiplier = isAnimal ? ANIMAL_GROWTH_MULTIPLIER : 1;
+    this.applyKillGrowth(multiplier);
+    this.recoverResourcesFromKill();
+  }
+
+  applyKillGrowth(multiplier = 1) {
+    const clamped = Math.max(1, multiplier);
+    this.radius = clamp(this.radius + KILL_GROWTH.size * clamped, 8, 26);
+    const damageIncrease = 1 + KILL_GROWTH.damage * clamped;
+    this.damage *= damageIncrease;
+    const hpBoost = KILL_GROWTH.hp * clamped;
+    this.maxHp += hpBoost;
+    this.hp = clamp(this.hp + hpBoost * 0.8, 0, this.maxHp);
+    const capacityBoost = 2 * clamped;
+    this.resourceCapacity += capacityBoost;
   }
 
   recoverResourcesFromKill() {
@@ -1160,8 +1264,7 @@ getTerrainSpeedModifier(type) {
     this.snowballCooldown = SNOWBALL_COOLDOWN;
     const hit = target.takeDamage(SNOWBALL_DAMAGE, this);
     if (hit) {
-      this.killCount += 1;
-      this.recoverResourcesFromKill();
+      this.onKill({ type: "creature" });
     } else {
       this.attackSuccessCount += 0.5;
     }

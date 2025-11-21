@@ -98,6 +98,9 @@ export default class UIManager {
     if (this.controls.generationInput) {
       this.controls.generationInput.value = settings.generationDuration.toFixed(0);
     }
+    if (this.controls.speed) {
+      this.controls.speed.value = settings.timeScale.toString();
+    }
   }
 
   bindControlHandlers() {
@@ -140,6 +143,15 @@ export default class UIManager {
         if (this.arena) {
           this.arena.setGenerationDuration(value);
           this.syncControlsFromArena();
+        }
+      });
+    }
+
+    if (this.controls.speed) {
+      this.controls.speed.addEventListener("change", (event) => {
+        const value = Number(event.target.value);
+        if (this.arena) {
+          this.arena.setTimeScale(value);
         }
       });
     }
