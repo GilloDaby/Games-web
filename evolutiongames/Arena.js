@@ -134,8 +134,8 @@ export default class Arena {
     this.camera = {
       zoom: 1,
       targetZoom: 1,
-      minZoom: 0.4,
-      maxZoom: 4,
+      minZoom: 0.05,
+      maxZoom: 6,
       focusX: this.bounds.width / 2,
       focusY: this.bounds.height / 2,
       follow: null,

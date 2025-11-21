@@ -1099,31 +1099,35 @@ getTerrainSpeedModifier(type) {
       return;
     }
 
-    const canBuildSpike =
-      this.resources.wood >= 10 && this.resources.stone >= 6 && this.resources.crystal >= 2;
-    const canBuildCamp = this.resources.wood >= 6 && this.resources.stone >= 4;
-    const canBuildBeacon = this.resources.crystal >= 4 && this.resources.wood >= 2;
+    const candidates = Object.entries(STRUCTURE_TYPES)
+      .map(([type, def]) => ({ type, def }))
+      .filter(({ def }) => def?.cost);
 
-    let type = null;
-    const wantsCampFirst = this.structuresBuilt % 2 === 0;
-    if (canBuildCamp && wantsCampFirst) {
-      type = "camp";
-    } else if (canBuildSpike) {
-      type = "spike";
-    } else if (canBuildCamp) {
-      type = "camp";
-    } else if (canBuildBeacon) {
-      type = "beacon";
+    let best = null;
+    let bestScore = -Infinity;
+    for (const entry of candidates) {
+      const { type, def } = entry;
+      const cost = def.cost ?? {};
+      const affordable = Object.keys(cost).every((key) => (this.resources[key] ?? 0) >= cost[key]);
+      if (!affordable) {
+        continue;
+      }
+      const totalCost = Object.values(cost).reduce((sum, v) => sum + (v ?? 0), 0);
+      const aura = def.aura ?? {};
+      const utility =
+        (aura.heal ? 4 : 0) + (aura.energy ? 3 : 0) + (aura.hydration ? 3 : 0) + (aura.speed ? 2 : 0);
+      const score = utility * 10 - totalCost;
+      if (score > bestScore) {
+        bestScore = score;
+        best = entry;
+      }
     }
 
-    if (!type) {
+    if (!best) {
       return;
     }
-    const cost = STRUCTURE_TYPES[type]?.cost ?? {};
-    const hasAllMaterials = Object.keys(cost).every((key) => (this.resources[key] ?? 0) >= cost[key]);
-    if (!hasAllMaterials) {
-      return;
-    }
+    const { type, def } = best;
+    const cost = def.cost ?? {};
 
     const spot = this.findBuildSpot(resourceSystem?.bounds);
     const structure = resourceSystem.buildStructure(type, spot.x, spot.y, this);

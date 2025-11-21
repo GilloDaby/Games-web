@@ -1,4 +1,16 @@
-const RESOURCE_TYPES = {
+function hslToHex(h, s, l) {
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+const BASE_RESOURCE_TYPES = {
   wood: {
     label: "Bois",
     color: "#c28c5b",
@@ -46,13 +58,79 @@ const RESOURCE_TYPES = {
   },
 };
 
-const RESOURCE_TEXTURE_PATHS = {
-  wood: "img/resources/wood.png",
-  stone: "img/resources/stone.png",
-  crystal: "img/resources/crystal.png",
-  snowball: "img/resources/snowball.png",
-  food: "img/resources/food.png",
-};
+const EXTRA_RESOURCE_NAMES = [
+  "iron",
+  "copper",
+  "coal",
+  "oil",
+  "salt",
+  "clay",
+  "marble",
+  "granite",
+  "obsidian",
+  "quartz",
+  "uranium",
+  "gold",
+  "silver",
+  "tin",
+  "lead",
+  "sulfur",
+  "spice",
+  "wheat",
+  "corn",
+  "rice",
+  "fish",
+  "meat",
+  "leather",
+  "fiber",
+  "cotton",
+  "flax",
+  "wool",
+  "silk",
+  "herbs",
+  "mushroom",
+  "honey",
+  "waterjar",
+  "beer",
+  "wine",
+  "medicine",
+  "electronics",
+  "steel",
+  "bricks",
+  "cement",
+  "glass",
+  "paper",
+  "ink",
+  "tools",
+  "gear",
+  "battery",
+  "plastic",
+  "biofuel",
+  "mana",
+  "runestone",
+  "spore",
+];
+
+const RESOURCE_TYPES = { ...BASE_RESOURCE_TYPES };
+
+EXTRA_RESOURCE_NAMES.forEach((name, index) => {
+  if (RESOURCE_TYPES[name]) return;
+  const hue = Math.round((index * 37) % 360);
+  const color = hslToHex(hue, 0.65, 0.55);
+  RESOURCE_TYPES[name] = {
+    label: name.charAt(0).toUpperCase() + name.slice(1),
+    color,
+    rate: 8 + (index % 5),
+    hardness: 1 + (index % 4) * 0.35,
+    capacity: 90 + (index % 6) * 12,
+    radius: 14 + (index % 4),
+    allowedTiles: ["grass", "forest", "sand", "snow"],
+  };
+});
+
+const RESOURCE_TEXTURE_PATHS = Object.fromEntries(
+  Object.keys(RESOURCE_TYPES).map((type) => [type, `img/resources/${type}.png`]),
+);
 
 const STRUCTURE_TYPES = {
   camp: {
@@ -80,6 +158,144 @@ const STRUCTURE_TYPES = {
     color: "#7ac8ff",
   },
 };
+
+const BASE_STRUCTURE_TEXTURE_PATHS = {
+  camp: "img/structures/camp.png",
+  spike: "img/structures/spike.png",
+  beacon: "img/structures/beacon.png",
+};
+
+const EXTRA_STRUCTURE_NAMES = [
+  "house",
+  "apartment",
+  "hospital",
+  "school",
+  "university",
+  "farm",
+  "mill",
+  "bakery",
+  "brewery",
+  "factory",
+  "forge",
+  "mine",
+  "lumberyard",
+  "sawmill",
+  "warehouse",
+  "market",
+  "harbor",
+  "dock",
+  "shipyard",
+  "barracks",
+  "tower",
+  "gatehouse",
+  "armory",
+  "library",
+  "laboratory",
+  "observatory",
+  "temple",
+  "chapel",
+  "shrine",
+  "bank",
+  "townhall",
+  "courthouse",
+  "jail",
+  "police",
+  "firestation",
+  "clinic",
+  "garden",
+  "park",
+  "theater",
+  "arena",
+  "stable",
+  "pasture",
+  "barn",
+  "windmill",
+  "solarplant",
+  "powerplant",
+  "waterpump",
+  "aqueduct",
+  "well",
+  "fountain",
+  "apothecary",
+  "glassworks",
+  "paperpress",
+  "printing",
+  "postoffice",
+  "tavern",
+  "inn",
+  "hotel",
+  "restaurant",
+  "canteen",
+  "bunker",
+  "command",
+  "radio",
+  "garage",
+  "hangar",
+  "farmhouse",
+  "orchard",
+  "greenhouse",
+  "butcher",
+  "cheesery",
+  "winery",
+  "distillery",
+  "armorer",
+  "tailor",
+  "clothier",
+  "dyehouse",
+  "carpenter",
+  "mason",
+  "brickworks",
+  "cementplant",
+  "glassfactory",
+  "paperfactory",
+  "electronics",
+  "batteryplant",
+  "plaster",
+  "furnace",
+  "generator",
+  "harveststation",
+  "refinery",
+  "aquafarm",
+  "fishery",
+  "lodge",
+  "observatory2",
+  "embassy",
+  "consulate",
+  "park2",
+  "residence",
+  "housingblock",
+];
+
+while (EXTRA_STRUCTURE_NAMES.length < 100) {
+  EXTRA_STRUCTURE_NAMES.push(`building-${EXTRA_STRUCTURE_NAMES.length + 1}`);
+}
+
+EXTRA_STRUCTURE_NAMES.forEach((name, index) => {
+  if (STRUCTURE_TYPES[name]) return;
+  const resourceKeys = Object.keys(RESOURCE_TYPES);
+  const resA = resourceKeys[index % resourceKeys.length];
+  const resB = resourceKeys[(index * 3) % resourceKeys.length];
+  const resC = resourceKeys[(index * 5) % resourceKeys.length];
+  const hp = 140 + (index % 7) * 20;
+  const radius = 16 + (index % 5) * 2;
+  const color = hslToHex((index * 23) % 360, 0.55, 0.55);
+  STRUCTURE_TYPES[name] = {
+    label: name.charAt(0).toUpperCase() + name.slice(1),
+    hp,
+    radius,
+    cost: {
+      [resA]: 4 + (index % 4),
+      [resB]: 3 + ((index + 1) % 3),
+      [resC]: 2 + ((index + 2) % 3),
+    },
+    aura: index % 4 === 0 ? { heal: 4 + (index % 6) } : index % 4 === 1 ? { energy: 5 } : index % 4 === 2 ? { hydration: 5 } : { speed: 1.02 },
+    color,
+  };
+});
+
+const STRUCTURE_TEXTURE_PATHS = Object.fromEntries(
+  Object.keys(STRUCTURE_TYPES).map((type) => [type, `img/structures/${type}.png`]),
+);
 
 class ResourceNode {
   constructor(type, x, y, config, icon = null) {
@@ -149,7 +365,7 @@ class ResourceNode {
 }
 
 class Structure {
-  constructor(type, x, y, config, ownerId = null, ownerColor = null) {
+  constructor(type, x, y, config, ownerId = null, ownerColor = null, icon = null) {
     const hasCrypto = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function";
     this.id = hasCrypto
       ? crypto.randomUUID()
@@ -164,6 +380,7 @@ class Structure {
     this.color = config.color ?? "#ffffff";
     this.ownerId = ownerId;
     this.ownerColor = ownerColor;
+    this.icon = icon;
   }
 
   takeDamage(amount) {
@@ -174,14 +391,20 @@ class Structure {
   draw(ctx) {
     const hpRatio = Math.max(0, this.hp / this.maxHp);
     ctx.save();
-    ctx.beginPath();
-    ctx.fillStyle = this.color;
-    ctx.globalAlpha = 0.4 + hpRatio * 0.6;
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = this.ownerColor || "rgba(255,255,255,0.8)";
-    ctx.stroke();
+    const size = this.radius * 2.2;
+    if (this.icon && this.icon.complete && this.icon.naturalWidth > 0) {
+      ctx.globalAlpha = 0.8 + hpRatio * 0.2;
+      ctx.drawImage(this.icon, this.x - size / 2, this.y - size / 2, size, size);
+    } else {
+      ctx.beginPath();
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = 0.4 + hpRatio * 0.6;
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = this.ownerColor || "rgba(255,255,255,0.8)";
+      ctx.stroke();
+    }
 
     const barWidth = this.radius * 2;
     const barHeight = 4;
@@ -203,8 +426,9 @@ export default class ResourceSystem {
     this.nodes = [];
     this.structures = [];
     this.resourceTextures = ResourceSystem.loadResourceTextures();
+    this.structureTextures = ResourceSystem.loadStructureTextures();
     this.stats = {
-      gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 },
+      gathered: ResourceSystem.createGatheredMap(),
       built: 0,
       destroyed: 0,
     };
@@ -216,8 +440,9 @@ export default class ResourceSystem {
     this.nodes = [];
     this.structures = [];
     this.resourceTextures = ResourceSystem.loadResourceTextures(true);
+    this.structureTextures = ResourceSystem.loadStructureTextures(true);
     this.stats = {
-      gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 },
+      gathered: ResourceSystem.createGatheredMap(),
       built: 0,
       destroyed: 0,
     };
@@ -227,15 +452,9 @@ export default class ResourceSystem {
   spawnInitialNodes() {
     const area = this.bounds.width * this.bounds.height;
     // For procedural "infinite" worlds cap density so we don't spawn millions of nodes.
-    const effectiveArea = Math.min(area, 12_000_000); // ~3x the classic map
+    const effectiveArea = Math.min(area, 20_000_000); // cap density for huge worlds
     const baseCount = Math.max(20, Math.floor(effectiveArea / 90000));
-    const spread = [
-      { type: "wood", weight: 0.3 },
-      { type: "stone", weight: 0.24 },
-      { type: "crystal", weight: 0.14 },
-      { type: "snowball", weight: 0.16 },
-      { type: "food", weight: 0.16 },
-    ];
+    const spread = Object.keys(RESOURCE_TYPES).map((type) => ({ type, weight: 1 }));
 
     for (let i = 0; i < baseCount; i += 1) {
       const type = this.pickType(spread);
@@ -358,7 +577,15 @@ export default class ResourceSystem {
     if (conflict) {
       return null;
     }
-    const structure = new Structure(type, x, y, config, creature?.id ?? null, creature?.color ?? null);
+    const structure = new Structure(
+      type,
+      x,
+      y,
+      config,
+      creature?.id ?? null,
+      creature?.color ?? null,
+      this.structureTextures[type],
+    );
     this.structures.push(structure);
     this.stats.built += 1;
     return structure;
@@ -426,6 +653,10 @@ export default class ResourceSystem {
     return { gathered, structures };
   }
 
+  static createGatheredMap() {
+    return Object.fromEntries(Object.keys(RESOURCE_TYPES).map((type) => [type, 0]));
+  }
+
   static loadResourceTextures(force = false) {
     if (ResourceSystem._textures && !force) {
       return ResourceSystem._textures;
@@ -441,6 +672,24 @@ export default class ResourceSystem {
       textures[type] = img;
     }
     ResourceSystem._textures = textures;
+    return textures;
+  }
+
+  static loadStructureTextures(force = false) {
+    if (ResourceSystem._structureTextures && !force) {
+      return ResourceSystem._structureTextures;
+    }
+    const textures = {};
+    const entries = Object.entries(STRUCTURE_TEXTURE_PATHS);
+    for (const [type, src] of entries) {
+      const img = new Image();
+      img.src = src;
+      img.onerror = () => {
+        textures[type] = null;
+      };
+      textures[type] = img;
+    }
+    ResourceSystem._structureTextures = textures;
     return textures;
   }
 }
