@@ -46,6 +46,14 @@ const RESOURCE_TYPES = {
   },
 };
 
+const RESOURCE_TEXTURE_PATHS = {
+  wood: "img/resources/wood.png",
+  stone: "img/resources/stone.png",
+  crystal: "img/resources/crystal.png",
+  snowball: "img/resources/snowball.png",
+  food: "img/resources/food.png",
+};
+
 const STRUCTURE_TYPES = {
   camp: {
     label: "Camp",
@@ -74,13 +82,14 @@ const STRUCTURE_TYPES = {
 };
 
 class ResourceNode {
-  constructor(type, x, y, config) {
+  constructor(type, x, y, config, icon = null) {
     const hasCrypto = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function";
     this.id = hasCrypto ? crypto.randomUUID() : `res-${Math.random().toString(16).slice(2)}`;
     this.type = type;
     this.x = x;
     this.y = y;
     this.radius = config.radius;
+    this.icon = icon;
     this.amount = config.capacity;
     this.capacity = config.capacity;
     this.rate = config.rate;
@@ -116,18 +125,25 @@ class ResourceNode {
   draw(ctx) {
     const baseColor = RESOURCE_TYPES[this.type]?.color ?? "#ffffff";
     const amountRatio = this.capacity > 0 ? this.amount / this.capacity : 0;
+    const alpha = Math.max(0.4, 0.4 + amountRatio * 0.6);
     ctx.save();
     ctx.beginPath();
-    ctx.fillStyle = `${baseColor}${Math.floor(180 + amountRatio * 75).toString(16).padStart(2, "0")}`;
+    ctx.fillStyle = `${baseColor}${Math.floor(150 + amountRatio * 105).toString(16).padStart(2, "0")}`;
     ctx.strokeStyle = "rgba(0,0,0,0.25)";
     ctx.lineWidth = 2;
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,0.8)";
-    ctx.font = "bold 10px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(RESOURCE_TYPES[this.type]?.label ?? this.type, this.x, this.y + 3);
+    if (this.icon && this.icon.complete && this.icon.naturalWidth > 0) {
+      const size = this.radius * 1.6;
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(this.icon, this.x - size / 2, this.y - size / 2, size, size);
+    } else {
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      ctx.font = "bold 10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(RESOURCE_TYPES[this.type]?.label ?? this.type, this.x, this.y + 3);
+    }
     ctx.restore();
   }
 }
@@ -186,6 +202,7 @@ export default class ResourceSystem {
     this.tileMap = tileMap;
     this.nodes = [];
     this.structures = [];
+    this.resourceTextures = ResourceSystem.loadResourceTextures();
     this.stats = {
       gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 },
       built: 0,
@@ -198,6 +215,7 @@ export default class ResourceSystem {
   reset() {
     this.nodes = [];
     this.structures = [];
+    this.resourceTextures = ResourceSystem.loadResourceTextures(true);
     this.stats = {
       gathered: { wood: 0, stone: 0, crystal: 0, snowball: 0, food: 0 },
       built: 0,
@@ -224,7 +242,9 @@ export default class ResourceSystem {
       if (!position) {
         continue;
       }
-      this.nodes.push(new ResourceNode(type, position.x, position.y, config));
+      this.nodes.push(
+        new ResourceNode(type, position.x, position.y, config, this.resourceTextures[type]),
+      );
     }
   }
 
@@ -402,6 +422,24 @@ export default class ResourceSystem {
     const structures = this.structures.length;
     const gathered = { ...this.stats.gathered };
     return { gathered, structures };
+  }
+
+  static loadResourceTextures(force = false) {
+    if (ResourceSystem._textures && !force) {
+      return ResourceSystem._textures;
+    }
+    const textures = {};
+    const entries = Object.entries(RESOURCE_TEXTURE_PATHS);
+    for (const [type, src] of entries) {
+      const img = new Image();
+      img.src = src;
+      img.onerror = () => {
+        textures[type] = null;
+      };
+      textures[type] = img;
+    }
+    ResourceSystem._textures = textures;
+    return textures;
   }
 }
 

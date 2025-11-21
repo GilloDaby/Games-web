@@ -238,3 +238,5 @@ export default class TileMap {
 function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
+
+export { TILE_TEXTURE_PATHS };

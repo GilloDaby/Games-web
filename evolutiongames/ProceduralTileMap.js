@@ -1,4 +1,5 @@
-import Tile from "./Tile.js";
+import Tile, { registerTileTexture } from "./Tile.js";
+import { TILE_TEXTURE_PATHS } from "./TileMap.js";
 
 function mulberry32(seed) {
   let t = seed + 0x6d2b79f5;
@@ -50,6 +51,9 @@ export default class ProceduralTileMap {
     this.moistureScale = moistureScale;
     this.tiles = new Map();
     this.random = mulberry32(this.seed);
+    this.textures = {};
+    this.texturesLoaded = false;
+    this.loadTextures();
   }
 
   seedFromString(str) {
@@ -122,8 +126,32 @@ export default class ProceduralTileMap {
     for (let ty = minY; ty <= maxY; ty += 1) {
       for (let tx = minX; tx <= maxX; tx += 1) {
         const tile = this.getTile(tx, ty);
-        tile.draw(ctx, null);
+        tile.draw(
+          ctx,
+          this.texturesLoaded && this.textures[tile.type] ? this.textures[tile.type] : null,
+        );
       }
+    }
+  }
+
+  loadTextures() {
+    const entries = Object.entries(TILE_TEXTURE_PATHS);
+    if (!entries.length) {
+      this.texturesLoaded = true;
+      return;
+    }
+    let loadedCount = 0;
+    for (const [type, src] of entries) {
+      const img = new Image();
+      img.addEventListener("load", () => {
+        loadedCount += 1;
+        if (loadedCount === entries.length) {
+          this.texturesLoaded = true;
+        }
+      });
+      img.src = src;
+      this.textures[type] = img;
+      registerTileTexture(type, img);
     }
   }
 }

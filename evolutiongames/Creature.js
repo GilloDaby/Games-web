@@ -15,8 +15,8 @@ const MIN_FOV = Math.PI * 0.55;
 const MAX_FOV = Math.PI * 1.15;
 const ENERGY_MAX_BASE = 120;
 const HYDRATION_MAX_BASE = 120;
-const METABOLIC_BASE_COST = 1.4;
-const MOVE_COST_MULTIPLIER = 0.95;
+const METABOLIC_BASE_COST = 0.9;
+const MOVE_COST_MULTIPLIER = 0.85;
 const KILL_RECOVERY = { energy: 20, hydration: 10, hp: 6 };
 const KILL_GROWTH = { size: 0.6, damage: 0.08, hp: 8 };
 const ANIMAL_GROWTH_MULTIPLIER = 2;
@@ -236,7 +236,7 @@ export default class Creature {
     this.reproductionCooldown = 0;
     this.warFamilies = new Set();
     this.geneScore = evaluateGenomeQuality(this.genome);
-    this.maxAge = randomBetween(90, 100);
+    this.maxAge = Number.POSITIVE_INFINITY;
     this.traits = generateTraitProfile();
   }
 
@@ -549,7 +549,7 @@ export default class Creature {
     this.metabolicStress = clamp((lowEnergy + lowHydration) * 0.5, 0, 1);
 
     if (this.energy <= 0 || this.hydration <= 0) {
-      this.takeDamage(8 * deltaSeconds);
+      this.takeDamage(3.2 * deltaSeconds);
     }
   }
 
@@ -646,9 +646,7 @@ export default class Creature {
     if (!this.alive) {
       return;
     }
-    if (this.survivalTime >= this.maxAge) {
-      this.takeDamage(this.maxHp * deltaSeconds * 2);
-    }
+    // vieillissement neutralisé pour le mode infini
   }
 
   getVisionRadius(weatherOrEnvironment = null) {
