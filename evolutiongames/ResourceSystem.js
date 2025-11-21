@@ -310,17 +310,26 @@ class ResourceNode {
     this.capacity = config.capacity;
     this.rate = config.rate;
     this.hardness = config.hardness;
+    this.durability = config.durability ?? this.capacity * 1.5;
     this.regenDelay = 3;
     this.cooldown = 0;
+    this.exhausted = false;
   }
 
   harvest(deltaSeconds, efficiency = 1) {
-    if (this.cooldown > 0 || this.amount <= 0) {
+    if (this.cooldown > 0 || this.amount <= 0 || this.exhausted) {
       return 0;
     }
     const harvestRate = (this.rate / this.hardness) * efficiency;
     const gathered = Math.min(this.amount, harvestRate * deltaSeconds);
     this.amount -= gathered;
+    this.durability = Math.max(0, this.durability - gathered);
+    if (this.durability <= 0.1) {
+      this.exhausted = true;
+      this.amount = 0;
+      this.cooldown = 0;
+      return gathered;
+    }
     if (this.amount <= 0.5) {
       this.amount = 0;
       this.cooldown = this.regenDelay;
@@ -329,6 +338,9 @@ class ResourceNode {
   }
 
   update(deltaSeconds) {
+    if (this.exhausted) {
+      return;
+    }
     if (this.cooldown > 0) {
       this.cooldown -= deltaSeconds;
       if (this.cooldown <= 0) {
@@ -437,6 +449,7 @@ export default class ResourceSystem {
       built: 0,
       destroyed: 0,
     };
+    this.targetNodeCount = 0;
 
     this.spawnInitialNodes();
   }
@@ -456,9 +469,10 @@ export default class ResourceSystem {
 
   spawnInitialNodes() {
     const area = this.bounds.width * this.bounds.height;
-    // For procedural "infinite" worlds cap density so we don't spawn millions of nodes.
-    const effectiveArea = Math.min(area, 60_000_000); // cap density for huge worlds
-    const baseCount = Math.max(400, Math.floor(effectiveArea / 45000));
+    // For procedural "infinite" worlds cap density so on huge worlds we still spawn plenty.
+    const effectiveArea = Math.min(area, 80_000_000); // higher cap for more resources
+    const baseCount = Math.max(800, Math.floor(effectiveArea / 25000));
+    this.targetNodeCount = baseCount;
     const spread = Object.keys(RESOURCE_TYPES).map((type) => ({ type, weight: 1 }));
 
     for (let i = 0; i < baseCount; i += 1) {
@@ -488,7 +502,7 @@ export default class ResourceSystem {
   }
 
   findValidPosition(radius, allowedTiles = null) {
-    const attempts = 80;
+    const attempts = 150;
     for (let i = 0; i < attempts; i += 1) {
       const x = radius + Math.random() * (this.bounds.width - radius * 2);
       const y = radius + Math.random() * (this.bounds.height - radius * 2);
@@ -512,6 +526,11 @@ export default class ResourceSystem {
   update(deltaSeconds) {
     for (const node of this.nodes) {
       node.update(deltaSeconds);
+    }
+    this.nodes = this.nodes.filter((node) => !node.exhausted);
+    const deficit = Math.max(0, this.targetNodeCount - this.nodes.length);
+    if (deficit > 0) {
+      this.spawnReplacementNodes(Math.min(deficit, 6));
     }
     this.structures = this.structures.filter((structure) => structure.hp > 0);
   }
@@ -649,6 +668,24 @@ export default class ResourceSystem {
     for (const structure of this.structures) {
       if (!isVisible(structure)) continue;
       structure.draw(ctx);
+    }
+  }
+
+  spawnReplacementNodes(count = 1) {
+    if (!count || count <= 0) {
+      return;
+    }
+    const spread = Object.keys(RESOURCE_TYPES).map((type) => ({ type, weight: 1 }));
+    for (let i = 0; i < count; i += 1) {
+      const type = this.pickType(spread);
+      const config = RESOURCE_TYPES[type];
+      const position = this.findValidPosition(config.radius, config.allowedTiles);
+      if (!position) {
+        continue;
+      }
+      this.nodes.push(
+        new ResourceNode(type, position.x, position.y, config, this.resourceTextures[type]),
+      );
     }
   }
 
