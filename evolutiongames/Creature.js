@@ -24,6 +24,13 @@ const STRUCTURE_BUILD_COOLDOWN = 7;
 const SNOWBALL_RANGE = 240;
 const SNOWBALL_DAMAGE = 6;
 const SNOWBALL_COOLDOWN = 2.5;
+const REACTIONS = {
+  ally: "🙂",
+  enemy: "😠",
+  neutral: "🤔",
+  panic: "😱",
+  boost: "😎",
+};
 
 export default class Creature {
   constructor({
@@ -40,6 +47,8 @@ export default class Creature {
   }) {
     Creature._id = (Creature._id ?? 0) + 1;
     this.id = Creature._id;
+    this.allegiance = Math.floor(Math.random() * 3);
+    this.relations = new Map();
     this.position = { x, y };
     this.speed = speed;
     this.direction = direction;
@@ -96,6 +105,7 @@ export default class Creature {
     this.resourceCapacity = RESOURCE_CAPACITY_BASE * this.genome.endurance;
     this.buildCooldown = 0;
     this.snowballCooldown = 0;
+    this.reaction = { emoji: null, ttl: 0 };
   }
 
   get fitness() {
@@ -170,6 +180,8 @@ export default class Creature {
     const structureInfo = resourceSystem
       ? resourceSystem.getNearestStructure(this.position.x, this.position.y, this.id)
       : { structure: null };
+    const allyInfo = this.findClosestByRelation(population, "ally");
+    const neutralInfo = this.findClosestByRelation(population, "neutral");
     this.targetDirection = detection.hasEnemy ? detection.enemyDirection : null;
     if (!this.targetDirection && zoneInfo.hasZone) {
       this.targetDirection = zoneInfo.zoneDirection;
@@ -217,6 +229,8 @@ export default class Creature {
     if (!hasEnemy && wantsResource) {
       desiredDirection = resourceInfo.direction;
     }
+
+    this.updateReactionState(deltaSeconds, detection, allyInfo, neutralInfo);
 
     desiredDirection += (Math.random() - 0.5) * 0.05;
 
@@ -425,11 +439,16 @@ export default class Creature {
       if (other === this || !other.alive) {
         continue;
       }
+      const relation = this.getRelationTo(other);
+      if (relation === "ally") {
+        continue;
+      }
+      const treatAsEnemy = relation === "enemy";
       const dx = other.position.x - this.position.x;
       const dy = other.position.y - this.position.y;
       const distSq = dx * dx + dy * dy;
       const distance = Math.sqrt(distSq);
-      if (distSq <= dangerRadiusSq) {
+      if (treatAsEnemy && distSq <= dangerRadiusSq) {
         threatCount += 1;
       }
 
@@ -456,12 +475,15 @@ export default class Creature {
 
     if (closest) {
       const arenaDiag = Math.hypot(bounds.width, bounds.height);
-      detection.hasEnemy = true;
-      detection.enemy = closest.ref;
+      const relation = this.getRelationTo(closest.ref);
+      const isEnemy = relation === "enemy";
+      detection.hasEnemy = isEnemy;
+      detection.enemy = isEnemy ? closest.ref : null;
       detection.distance = closest.distance;
       detection.distanceRatio = clamp(closest.distance / Math.max(visionRange, arenaDiag), 0, 1);
       detection.enemyDirection = closest.direction;
       detection.angleDelta = clamp(closest.diff / Math.PI, -1, 1);
+      detection.relation = relation;
     }
 
     const socialComfort = clamp(1 - (this.genome.social ?? 0) * 0.4, 0.55, 1);
@@ -1001,8 +1023,10 @@ getTerrainSpeedModifier(type) {
       this.hp = 0;
       this.alive = false;
       this.killedBy = attacker;
+      this.markEnemy(attacker);
       return true;
     }
+    this.markEnemy(attacker);
     return false;
   }
 
@@ -1096,6 +1120,13 @@ getTerrainSpeedModifier(type) {
     ctx.fillRect(barX, energyY, barWidth * energyRatio, barHeight);
     ctx.fillStyle = "#6fc3ff";
     ctx.fillRect(barX, hydrationY, barWidth * hydrationRatio, barHeight);
+    if (this.reaction?.emoji && this.reaction.ttl > 0) {
+      ctx.font = "16px sans-serif";
+      ctx.textAlign = "center";
+      const alpha = clamp(this.reaction.ttl / 1.5, 0, 1);
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.fillText(this.reaction.emoji, this.position.x, this.position.y - this.radius - 20);
+    }
     ctx.restore();
   }
 
@@ -1141,6 +1172,80 @@ getTerrainSpeedModifier(type) {
         radius: this.radius * 2,
         duration: 0.2,
       });
+    }
+  }
+
+  getRelationTo(other) {
+    if (!other || other === this) {
+      return "neutral";
+    }
+    if (this.relations.has(other.id)) {
+      return this.relations.get(other.id);
+    }
+    if (this.allegiance === other.allegiance) {
+      return "ally";
+    }
+    // deterministic neutral chance based on ids to avoid flicker
+    const pairValue = ((this.id * 97 + other.id * 13) % 100) / 100;
+    if (pairValue < 0.2) {
+      this.relations.set(other.id, "neutral");
+      return "neutral";
+    }
+    this.relations.set(other.id, "enemy");
+    return "enemy";
+  }
+
+  markEnemy(other) {
+    if (other?.id) {
+      this.relations.set(other.id, "enemy");
+    }
+  }
+
+  findClosestByRelation(population, relationTarget) {
+    let closest = null;
+    let minDist = Infinity;
+    for (const other of population) {
+      if (other === this || !other.alive) {
+        continue;
+      }
+      const relation = this.getRelationTo(other);
+      if (relation !== relationTarget) {
+        continue;
+      }
+      const dist = Math.hypot(other.position.x - this.position.x, other.position.y - this.position.y);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = other;
+      }
+    }
+    return closest
+      ? {
+          creature: closest,
+          distance: minDist,
+          direction: Math.atan2(closest.position.y - this.position.y, closest.position.x - this.position.x),
+        }
+      : { creature: null };
+  }
+
+  updateReactionState(deltaSeconds, detection, allyInfo, neutralInfo) {
+    let emoji = null;
+    let ttl = 1.5;
+    if (detection?.hasEnemy) {
+      const close = detection.distance < this.nearEnemyDistance * 0.7;
+      emoji = close && this.hp / this.maxHp < 0.35 ? REACTIONS.panic : REACTIONS.enemy;
+    } else if (this.stateFlags.boosted) {
+      emoji = REACTIONS.boost;
+      ttl = 2;
+    } else if (allyInfo?.creature) {
+      emoji = REACTIONS.ally;
+    } else if (neutralInfo?.creature) {
+      emoji = REACTIONS.neutral;
+    }
+
+    if (emoji) {
+      this.reaction = { emoji, ttl };
+    } else if (this.reaction.ttl > 0) {
+      this.reaction.ttl = Math.max(0, this.reaction.ttl - deltaSeconds);
     }
   }
 }
