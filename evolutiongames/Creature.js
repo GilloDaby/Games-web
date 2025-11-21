@@ -1112,6 +1112,13 @@ getTerrainSpeedModifier(type) {
       .map(([type, def]) => ({ type, def }))
       .filter(({ def }) => def?.cost);
 
+    const hpRatio = this.hp / this.maxHp;
+    const energyRatio = this.energy / this.energyMax;
+    const hydrationRatio = this.hydration / this.hydrationMax;
+    const needHeal = hpRatio < 0.7;
+    const needEnergy = energyRatio < 0.7 || hydrationRatio < 0.7;
+    const needDefense = this.stateFlags.inDanger || hpRatio < 0.5;
+
     let best = null;
     let bestScore = -Infinity;
     for (const entry of candidates) {
@@ -1123,9 +1130,52 @@ getTerrainSpeedModifier(type) {
       }
       const totalCost = Object.values(cost).reduce((sum, v) => sum + (v ?? 0), 0);
       const aura = def.aura ?? {};
-      const utility =
-        (aura.heal ? 4 : 0) + (aura.energy ? 3 : 0) + (aura.hydration ? 3 : 0) + (aura.speed ? 2 : 0);
-      const score = utility * 10 - totalCost;
+      const name = (def.label || type).toLowerCase();
+      const isFood =
+        name.includes("farm") ||
+        name.includes("bakery") ||
+        name.includes("brew") ||
+        name.includes("fish") ||
+        name.includes("orchard") ||
+        name.includes("greenhouse") ||
+        name.includes("canteen") ||
+        name.includes("restaurant");
+      const isHeal =
+        name.includes("hospital") ||
+        name.includes("clinic") ||
+        name.includes("temple") ||
+        name.includes("shrine") ||
+        name.includes("apothecary") ||
+        name.includes("chapel");
+      const isCombat =
+        name.includes("barracks") ||
+        name.includes("tower") ||
+        name.includes("gate") ||
+        name.includes("armory") ||
+        name.includes("arena") ||
+        name.includes("bunker") ||
+        name.includes("command") ||
+        name.includes("mil") ||
+        name.includes("fort");
+
+      let utility = 0;
+      utility += aura.heal ? 5 : 0;
+      utility += aura.energy ? 4 : 0;
+      utility += aura.hydration ? 4 : 0;
+      utility += aura.speed ? 2 : 0;
+      if (isFood) {
+        utility += needEnergy ? 10 : 3;
+      }
+      if (isHeal) {
+        utility += needHeal ? 10 : 3;
+      }
+      if (isCombat) {
+        utility += needDefense ? 8 : 3;
+      }
+      if (utility <= 0) {
+        continue; // évite de spammer des houses décoratives
+      }
+      const score = utility * 8 - totalCost + Math.random() * 2;
       if (score > bestScore) {
         bestScore = score;
         best = entry;
