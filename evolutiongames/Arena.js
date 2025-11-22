@@ -96,6 +96,8 @@ export default class Arena {
   constructor(canvas, statsElements, uiManager = null, options = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
+    this.minimapCanvas = document.getElementById("minimapCanvas");
+    this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext("2d") : null;
     this.statsElements = statsElements;
     this.uiManager = uiManager;
     this.config = { ...ARENA_SETTINGS };
@@ -625,6 +627,54 @@ export default class Arena {
     this.drawAttackEffects();
     this.drawFog();
     this.ctx.restore();
+    this.drawMinimap();
+  }
+
+  drawMinimap() {
+    if (!this.minimapCtx) return;
+
+    const ctx = this.minimapCtx;
+    const canvas = this.minimapCanvas;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const scaleX = canvas.width / this.bounds.width;
+    const scaleY = canvas.height / this.bounds.height;
+    const scale = Math.min(scaleX, scaleY);
+
+    ctx.save();
+    ctx.scale(scale, scale);
+
+    // Draw terrain
+    if (this.tileMap) {
+        const step = this.tileMap.tileSize * 4;
+        for (let y = 0; y < this.bounds.height; y += step) {
+            for (let x = 0; x < this.bounds.width; x += step) {
+                const tile = this.tileMap.getTileAt(x, y);
+                if (tile) {
+                    ctx.fillStyle = tile.fallbackColor();
+                    ctx.fillRect(x, y, step, step);
+                }
+            }
+        }
+    }
+
+    // Draw creatures
+    for (const creature of this.creatures) {
+      if (creature.alive) {
+        ctx.fillStyle = creature.color;
+        ctx.beginPath();
+        ctx.arc(creature.position.x, creature.position.y, creature.radius * 2 / scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Draw viewport
+    const viewport = this.getViewportBounds();
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 2 / scale;
+    ctx.strokeRect(viewport.minX, viewport.minY, viewport.maxX - viewport.minX, viewport.maxY - viewport.minY);
+
+    ctx.restore();
   }
 
   drawArena() {

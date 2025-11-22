@@ -241,7 +241,7 @@ export default class UIManager {
       this.selectedElements.traits.innerHTML = "";
       return;
     }
-    this.selectedElements.name.textContent = `#${creature.id} Famille ${creature.familyId}`;
+    this.selectedElements.name.textContent = `${creature.name} (${creature.profession.name})`;
     this.selectedElements.traits.innerHTML = "";
     const fragment = document.createDocumentFragment();
     for (const trait of creature.traits ?? []) {

@@ -3,9 +3,7 @@ import UIManager from "./UIManager.js";
 
 window.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("arenaCanvas");
-  const overlay = document.getElementById("startOverlay");
-  const modeSelect = document.getElementById("mapMode");
-  const seedInput = document.getElementById("mapSeed");
+  const overlay = document.getElementById("mainMenu");
   const startBtn = document.getElementById("startSimulation");
   const hudElements = {
     generation: document.getElementById("statGeneration"),
@@ -105,8 +103,8 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   const startSimulation = () => {
-    const mode = modeSelect?.value === "infinite" ? "infinite" : "fixed";
-    const seed = seedInput?.value?.trim() || null;
+    const mode = "infinite";
+    const seed = null;
     if (arena) {
       arena.stop();
     }
@@ -121,7 +119,5 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (startBtn) {
     startBtn.addEventListener("click", startSimulation);
-  } else {
-    startSimulation();
   }
 });
