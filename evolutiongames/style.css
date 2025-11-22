@@ -91,45 +91,44 @@ body {
 }
 
 .arena-canvas {
-    height: calc(100vh - 250px);
+    height: calc(100vh - 220px);
     width: 100%;
 }
 
 #bottom-panel {
     display: flex;
     width: 100%;
-    height: 250px;
+    height: 220px;
     background-color: var(--color-panel-bg);
-    border-top: 4px solid var(--color-border);
-    box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+    border-top: 1px solid var(--color-border);
     color: var(--color-text);
 }
 
 #left-panel, #right-panel {
     width: 25%;
     padding: 1rem;
-    border-right: 2px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
     overflow-y: auto;
 }
 
 #right-panel {
     border-right: none;
-    border-left: 2px solid var(--color-border);
+    border-left: 1px solid var(--color-border);
 }
 
 #center-panel {
     width: 50%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: space-around;
     padding: 1rem;
 }
 
 #minimap-container {
     width: 100%;
-    height: 180px;
+    height: 150px;
     background: #111;
-    border: 2px solid var(--color-border);
+    border: 1px solid var(--color-border);
     margin-bottom: 1rem;
 }
 
@@ -159,14 +158,22 @@ body {
 }
 
 .hud {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
     gap: 0.5rem;
 }
 
 .stat {
     display: flex;
     flex-direction: column;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.stat:hover {
+    background-color: #333;
 }
 
 .stat-label {
@@ -182,6 +189,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    margin-top: 1rem;
 }
 
 .button-stack {
@@ -199,12 +207,18 @@ body {
     color: var(--color-text-muted);
 }
 
+.label-line {
+    display: flex;
+    justify-content: space-between;
+}
+
 .number-input, .control-input {
     width: 100%;
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     color: var(--color-text);
     padding: 0.25rem;
+    margin-top: 0.5rem;
 }
 
 .traits-board {
