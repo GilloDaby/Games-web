@@ -2,6 +2,8 @@ import NeuralNetwork, { BRAIN_LAYOUT } from "./NeuralNetwork.js";
 import { ZONE_TYPES } from "./Zone.js";
 import { clampGenome, createRandomGenome, GENE_DEFS } from "./Genome.js";
 import { STRUCTURE_TYPES } from "./ResourceSystem.js";
+import { PROFESSION_LIST } from "./Professions.js";
+import { NPC_NAMES } from "./NpcNames.js";
 
 const ATTACK_ACTIVATION_THRESHOLD = 0.25;
 const NEAR_ENEMY_DISTANCE_MULTIPLIER = 1.5;
@@ -171,6 +173,8 @@ export default class Creature {
   }) {
     Creature._id = (Creature._id ?? 0) + 1;
     this.id = Creature._id;
+    this.name = NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)];
+    this.profession = PROFESSION_LIST[Math.floor(Math.random() * PROFESSION_LIST.length)];
     this.allegiance = Math.floor(Math.random() * 3);
     this.familyId = familyId ?? this.allegiance;
     this.sex = sex ?? (Math.random() < 0.5 ? "female" : "male");
@@ -240,6 +244,10 @@ export default class Creature {
     this.geneScore = evaluateGenomeQuality(this.genome);
     this.maxAge = Number.POSITIVE_INFINITY;
     this.traits = generateTraitProfile();
+
+    if (this.profession.apply) {
+      this.profession.apply(this);
+    }
   }
 
   get fitness() {
@@ -294,6 +302,9 @@ export default class Creature {
     }
 
     this.updateBuffs(deltaSeconds);
+    if (this.profession.name === "Médecin") {
+      this.applyMedicAura(deltaSeconds, population);
+    }
     this.survivalTime += deltaSeconds;
     this.stateFlags.inDanger = false;
     this.animationTime += deltaSeconds;
@@ -1119,7 +1130,10 @@ getTerrainSpeedModifier(type) {
     if (resourceInfo.distance > gatherDistance) {
       return;
     }
-    const efficiency = 0.75 + this.genome.endurance * 0.35;
+    let efficiency = 0.75 + this.genome.endurance * 0.35;
+    if (this.profession.resourceBonus && this.profession.resourceBonus[resourceInfo.node.type]) {
+      efficiency *= this.profession.resourceBonus[resourceInfo.node.type];
+    }
     resourceSystem.harvest(resourceInfo.node, this, deltaSeconds, efficiency);
   }
 
@@ -1214,7 +1228,13 @@ getTerrainSpeedModifier(type) {
       return;
     }
     const { type, def } = best;
-    const cost = def.cost ?? {};
+    let cost = def.cost ?? {};
+    if (this.profession.name === "Constructeur") {
+      cost = { ...cost };
+      for (const resource in cost) {
+        cost[resource] = Math.round(cost[resource] * 0.85);
+      }
+    }
 
     const spot = this.findBuildSpot(resourceSystem?.bounds);
     const structure = resourceSystem.buildStructure(type, spot.x, spot.y, this);
@@ -1223,7 +1243,11 @@ getTerrainSpeedModifier(type) {
       this.structuresBuilt += 1;
       this.craftingScore +=
         (cost?.wood ?? 0) + (cost?.stone ?? 0) + (cost?.crystal ?? 0);
-      this.buildCooldown = STRUCTURE_BUILD_COOLDOWN + Math.random() * 1.5;
+      let cooldown = STRUCTURE_BUILD_COOLDOWN + Math.random() * 1.5;
+      if (this.profession.name === "Constructeur") {
+        cooldown *= 0.8;
+      }
+      this.buildCooldown = cooldown;
     }
   }
 
@@ -1339,7 +1363,10 @@ getTerrainSpeedModifier(type) {
         break;
       }
       case "learning": {
-        const multiplier = zone.value ?? 1;
+        let multiplier = zone.value ?? 1;
+        if (this.profession.name === "Érudit") {
+          multiplier *= 1.25;
+        }
         this.zoneLearningTime += deltaSeconds * multiplier;
         this.learningMultiplierPeak = Math.max(this.learningMultiplierPeak, multiplier);
         this.zonePositiveTime += deltaSeconds * 0.4;
@@ -1527,7 +1554,10 @@ getTerrainSpeedModifier(type) {
       const distance = Math.hypot(dx, dy);
       if (ready && distance <= attackRange + preyTarget.radius) {
         this.lastAttackTime = currentTime;
-        const attackDamage = this.damage * this.buffMultipliers.damage;
+        let attackDamage = this.damage * this.buffMultipliers.damage;
+        if (this.profession.name === "Chasseur") {
+          attackDamage *= 1.25;
+        }
         const targetDied = preyTarget.takeDamage(attackDamage, this);
         this.attackSuccessCount += 0.5;
         if (targetDied) {
@@ -1551,7 +1581,10 @@ getTerrainSpeedModifier(type) {
       const distance = Math.hypot(dx, dy);
       if (ready && distance <= attackRange + bossTarget.radius) {
         this.lastAttackTime = currentTime;
-        const attackDamage = this.damage * this.buffMultipliers.damage;
+        let attackDamage = this.damage * this.buffMultipliers.damage;
+        if (this.profession.name === "Chasseur") {
+          attackDamage *= 1.25;
+        }
         const targetDied = bossTarget.takeDamage(attackDamage, this);
         this.attackSuccessCount += 1;
         if (targetDied) {
@@ -1587,6 +1620,25 @@ getTerrainSpeedModifier(type) {
         radius: attackRange * 0.65,
         duration: 0.25,
       });
+    }
+  }
+
+  applyMedicAura(deltaSeconds, population) {
+    const AURA_RADIUS = 100;
+    const HEALING_PER_SECOND = 2;
+
+    for (const other of population) {
+      if (other === this || !other.alive) {
+        continue;
+      }
+
+      const relation = this.getRelationTo(other);
+      if (relation === "ally") {
+        const distance = Math.hypot(other.position.x - this.position.x, other.position.y - this.position.y);
+        if (distance <= AURA_RADIUS) {
+          other.hp = Math.min(other.maxHp, other.hp + HEALING_PER_SECOND * deltaSeconds);
+        }
+      }
     }
   }
 
@@ -1700,16 +1752,24 @@ getTerrainSpeedModifier(type) {
     const barHeight = 4;
     const hpRatio = clamp(this.hp / this.maxHp, 0, 1);
     const barX = this.position.x - barWidth / 2;
-    const barY = this.position.y - this.radius - 8;
+    const barY = this.position.y - this.radius - 28;
+
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "white";
+    ctx.fillText(this.name, this.position.x, barY - 14);
+    ctx.font = "10px sans-serif";
+    ctx.fillText(this.profession.name, this.position.x, barY);
+
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-    ctx.fillRect(barX, barY, barWidth, barHeight);
+    ctx.fillRect(barX, barY + 10, barWidth, barHeight);
     ctx.fillStyle = hpRatio > 0.5 ? "#79ff95" : "#ff7979";
-    ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+    ctx.fillRect(barX, barY + 10, barWidth * hpRatio, barHeight);
 
     const energyRatio = clamp(this.energy / this.energyMax, 0, 1);
     const hydrationRatio = clamp(this.hydration / this.hydrationMax, 0, 1);
-    const energyY = barY - barHeight - 3;
+    const energyY = barY + 10 - barHeight - 3;
     const hydrationY = energyY - barHeight - 2;
     ctx.fillStyle = "rgba(255,255,255,0.15)";
     ctx.fillRect(barX, energyY, barWidth, barHeight);
@@ -1723,7 +1783,7 @@ getTerrainSpeedModifier(type) {
       ctx.textAlign = "center";
       const alpha = clamp(this.reaction.ttl / 1.5, 0, 1);
       ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-      ctx.fillText(this.reaction.emoji, this.position.x, this.position.y - this.radius - 20);
+      ctx.fillText(this.reaction.emoji, this.position.x, this.position.y - this.radius - 40);
     }
     ctx.restore();
   }
