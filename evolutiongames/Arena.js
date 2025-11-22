@@ -133,7 +133,8 @@ export default class Arena {
     this.nextFamilyId = 1;
     this.familiesAtWar = new Set();
     this.familyProjects = new Map();
-    this.territories = new Map();
+    this.familyLeaders = new Map();
+    this.villages = new Map();
     this.camera = {
       zoom: 1,
       targetZoom: 1,
@@ -341,7 +342,7 @@ export default class Arena {
     this.spawnAnimals();
     this.bosses = [];
     this.bossSpawnTimer = randomBetween(34, 50);
-    this.territories = new Map();
+    this.villages = new Map();
     this.hudUpdateAccumulator = 0;
     if (!brains || !brains.length) {
       this.stagnationCounter = 0;
@@ -544,8 +545,9 @@ export default class Arena {
     this.updateAnimals(scaledDelta);
     this.updateBosses(scaledDelta, generationTime);
     this.updateFamilyWars();
+    this.updateFamilyLeaders();
     this.updateFamilyProjects(scaledDelta);
-    this.updateTerritories(scaledDelta);
+    this.updateVillages(scaledDelta);
     this.resourceSystem?.update(scaledDelta);
 
     for (const creature of this.creatures) {
@@ -615,7 +617,7 @@ export default class Arena {
     this.ctx.save();
     this.applyCameraTransform();
     this.drawTileMap();
-    this.drawTerritories();
+    this.drawVillages();
     this.drawResources();
     this.drawArena();
     this.drawZones();
@@ -1015,9 +1017,9 @@ export default class Arena {
     this.ensureAnimals();
   }
 
-  updateTerritories(deltaSeconds) {
-    if (!this.territories) {
-      this.territories = new Map();
+  updateVillages(deltaSeconds) {
+    if (!this.villages) {
+      this.villages = new Map();
     }
     const familyPositions = new Map();
     for (const creature of this.creatures) {
@@ -1031,10 +1033,11 @@ export default class Arena {
 
     for (const [family, members] of familyPositions.entries()) {
       if (!members.length) continue;
+      const familyStructures = this.resourceSystem.structures.filter(s => s.familyId === family);
       const cx = members.reduce((sum, c) => sum + c.position.x, 0) / members.length;
       const cy = members.reduce((sum, c) => sum + c.position.y, 0) / members.length;
-      if (!this.territories.has(family)) {
-        this.territories.set(family, {
+      if (!this.villages.has(family)) {
+        this.villages.set(family, {
           familyId: family,
           x: cx,
           y: cy,
@@ -1042,23 +1045,24 @@ export default class Arena {
           strength: 0,
         });
       }
-      const territory = this.territories.get(family);
-      territory.x = (territory.x * 4 + cx) / 5;
-      territory.y = (territory.y * 4 + cy) / 5;
+      const village = this.villages.get(family);
+      village.x = (village.x * 4 + cx) / 5;
+      village.y = (village.y * 4 + cy) / 5;
       const insideCount = members.filter(
-        (m) => Math.hypot(m.position.x - territory.x, m.position.y - territory.y) <= territory.radius,
+        (m) => Math.hypot(m.position.x - village.x, m.position.y - village.y) <= village.radius,
       ).length;
-      const growth = Math.min(insideCount, members.length) * deltaSeconds * 3;
-      territory.strength += growth;
-      territory.radius = Math.min(420, territory.radius + growth * 0.2);
-      territory.radius = Math.max(60, territory.radius - deltaSeconds * 1.5);
+      const structureBonus = familyStructures.length * 5;
+      const growth = (Math.min(insideCount, members.length) + structureBonus) * deltaSeconds * 3;
+      village.strength += growth;
+      village.radius = Math.min(800, village.radius + growth * 0.1);
+      village.radius = Math.max(60, village.radius - deltaSeconds * 1.5);
     }
 
-    // fade old territories
-    for (const [family, territory] of this.territories.entries()) {
-      territory.strength = Math.max(0, territory.strength - deltaSeconds * 5);
-      if (territory.strength <= 0.1) {
-        this.territories.delete(family);
+    // fade old villages
+    for (const [family, village] of this.villages.entries()) {
+      village.strength = Math.max(0, village.strength - deltaSeconds * 5);
+      if (village.strength <= 0.1) {
+        this.villages.delete(family);
       }
     }
   }
@@ -1224,18 +1228,18 @@ export default class Arena {
     }
   }
 
-  drawTerritories() {
-    if (!this.territories?.size) {
+  drawVillages() {
+    if (!this.villages?.size) {
       return;
     }
-    for (const territory of this.territories.values()) {
-      const alpha = Math.min(0.3, 0.12 + (territory.strength ?? 0) / 300);
+    for (const village of this.villages.values()) {
+      const alpha = Math.min(0.3, 0.12 + (village.strength ?? 0) / 300);
       this.ctx.save();
       this.ctx.beginPath();
       this.ctx.fillStyle = `rgba(120, 190, 255, ${alpha})`;
       this.ctx.strokeStyle = "rgba(255,255,255,0.35)";
       this.ctx.lineWidth = 2;
-      this.ctx.arc(territory.x, territory.y, territory.radius, 0, Math.PI * 2);
+      this.ctx.arc(village.x, village.y, village.radius, 0, Math.PI * 2);
       this.ctx.fill();
       this.ctx.stroke();
       this.ctx.restore();
@@ -1337,6 +1341,31 @@ export default class Arena {
     }
   }
 
+  updateFamilyLeaders() {
+    const families = this.getFamilyIds();
+    for (const familyId of families) {
+      const members = this.creatures.filter(c => c.familyId === familyId && c.alive);
+      if (members.length === 0) {
+        this.familyLeaders.delete(familyId);
+        continue;
+      }
+
+      let leader = null;
+      const leaders = members.filter(c => c.traits.some(t => t.name === 'leader'));
+      if (leaders.length > 0) {
+        leader = leaders.reduce((best, c) => c.fitness > best.fitness ? c : best, leaders[0]);
+      } else {
+        leader = members.reduce((best, c) => c.fitness > best.fitness ? c : best, members[0]);
+      }
+      
+      this.familyLeaders.set(familyId, leader);
+
+      for (const member of members) {
+        member.isLeader = member === leader;
+      }
+    }
+  }
+
   updateFamilyProjects(deltaSeconds) {
     if (!this.resourceSystem) return;
 
@@ -1355,27 +1384,29 @@ export default class Arena {
           }
         }
       } else {
-        const members = this.creatures.filter(c => c.familyId === familyId && c.alive);
-        const hasWarehouse = this.resourceSystem.structures.some(s => s.type === 'warehouse' && s.familyId === familyId);
-        const hasArchitect = members.some(c => c.traits.some(t => t.name === 'architecte'));
+        const leader = this.familyLeaders.get(familyId);
+        if (leader) {
+            const members = this.creatures.filter(c => c.familyId === familyId && c.alive);
+            const hasWarehouse = this.resourceSystem.structures.some(s => s.type === 'warehouse' && s.familyId === familyId);
 
-        if (members.length > 5 && hasWarehouse && hasArchitect && Math.random() < 0.001) {
-          const structureTypes = Object.keys(STRUCTURE_TYPES).filter(type => type !== 'warehouse' && type !== 'camp' && STRUCTURE_TYPES[type].cost);
-          const type = structureTypes[Math.floor(Math.random() * structureTypes.length)];
-          const cost = STRUCTURE_TYPES[type].cost;
-          
-          const home = this.getFamilyHome(familyId);
-          const radius = STRUCTURE_TYPES[type].radius;
-          const position = this.getSafeSpawnPosition(radius, home, 200);
+            if (members.length > 5 && hasWarehouse && Math.random() < 0.01) {
+              const structureTypes = Object.keys(STRUCTURE_TYPES).filter(type => type !== 'warehouse' && type !== 'camp' && STRUCTURE_TYPES[type].cost);
+              const type = structureTypes[Math.floor(Math.random() * structureTypes.length)];
+              const cost = STRUCTURE_TYPES[type].cost;
+              
+              const home = this.getFamilyHome(familyId);
+              const radius = STRUCTURE_TYPES[type].radius;
+              const position = this.getSafeSpawnPosition(radius, home, 200);
 
-          if (position) {
-            this.familyProjects.set(familyId, {
-              type,
-              cost,
-              position,
-              status: 'pending'
-            });
-          }
+              if (position) {
+                this.familyProjects.set(familyId, {
+                  type,
+                  cost,
+                  position,
+                  status: 'pending'
+                });
+              }
+            }
         }
       }
     }

@@ -175,6 +175,7 @@ export default class Creature {
     this.id = Creature._id;
     this.name = NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)];
     this.profession = PROFESSION_LIST[Math.floor(Math.random() * PROFESSION_LIST.length)];
+    this.isLeader = false;
     this.project = null;
     this.currentAction = null;
     this.targetNode = null;
@@ -1946,6 +1947,13 @@ getTerrainSpeedModifier(type) {
       ctx.fillStyle = `rgba(255,255,255,${alpha})`;
       ctx.fillText(this.reaction.emoji, this.position.x, this.position.y - this.radius - 40);
     }
+
+    if (this.isLeader) {
+      ctx.font = "16px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("👑", this.position.x, this.position.y - this.radius - 45);
+    }
+    
     ctx.restore();
   }
 

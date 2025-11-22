@@ -212,6 +212,13 @@ export default class TileMap {
     return this.grid[y][x];
   }
 
+  getTile(x, y) {
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
+      return null;
+    }
+    return this.grid[y][x];
+  }
+
   loadTextures() {
     const entries = Object.entries(TILE_TEXTURE_PATHS);
     let loadedCount = 0;
