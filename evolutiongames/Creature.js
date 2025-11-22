@@ -244,11 +244,11 @@ export default class Creature {
 
   get fitness() {
     const baseFitness =
-      this.distanceTravelled +
-      this.survivalTime +
+      this.distanceTravelled * 1.2 +
+      this.survivalTime * 1.5 +
       this.proximityTime +
-      this.attackSuccessCount * 5 +
-      this.killCount * 20 +
+      this.attackSuccessCount * 1 +
+      this.killCount * 5 +
       this.zonePositiveTime * 0.5 +
       this.zoneBonusesAcquired * 15 +
       this.zoneLearningTime * 0.75 -
@@ -256,14 +256,14 @@ export default class Creature {
       this.bridgeCrossings * 10 -
       this.blockedByWaterTime * 4 -
       this.difficultTerrainTime +
-      this.biomesVisited.size * 1 +
-      this.resourcesGathered.wood * 0.7 +
-      this.resourcesGathered.stone * 1 +
-      this.resourcesGathered.crystal * 1.2 +
-      (this.resourcesGathered.food ?? 0) * 0.8 +
+      this.biomesVisited.size * 5 +
+      this.resourcesGathered.wood * 1.0 +
+      this.resourcesGathered.stone * 1.5 +
+      this.resourcesGathered.crystal * 2.0 +
+      (this.resourcesGathered.food ?? 0) * 1.2 +
       this.resourcesGathered.snowball * 0.2 +
       this.structuresBuilt * 30 +
-      this.structuresDestroyed * 26 +
+      this.structuresDestroyed * 10 +
       this.craftingScore * 3;
 
     const explorationBonus = 1 + Math.min(this.uniqueZoneTypes.size * 0.15, 0.6);
