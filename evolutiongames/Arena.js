@@ -132,6 +132,7 @@ export default class Arena {
     this.familyCount = 4;
     this.nextFamilyId = 1;
     this.familiesAtWar = new Set();
+    this.familyProjects = new Map();
     this.territories = new Map();
     this.camera = {
       zoom: 1,
@@ -543,10 +544,12 @@ export default class Arena {
     this.updateAnimals(scaledDelta);
     this.updateBosses(scaledDelta, generationTime);
     this.updateFamilyWars();
+    this.updateFamilyProjects(scaledDelta);
     this.updateTerritories(scaledDelta);
     this.resourceSystem?.update(scaledDelta);
 
     for (const creature of this.creatures) {
+      creature.project = this.familyProjects.get(creature.familyId) || null;
       creature.update(
         scaledDelta,
         this.bounds,
@@ -1331,6 +1334,50 @@ export default class Arena {
       const family = creature.familyId ?? 0;
       const enemies = warMap.get(family) ?? new Set();
       creature.setWarFamilies(enemies);
+    }
+  }
+
+  updateFamilyProjects(deltaSeconds) {
+    if (!this.resourceSystem) return;
+
+    const families = this.getFamilyIds();
+    for (const familyId of families) {
+      if (this.familyProjects.has(familyId)) {
+        const project = this.familyProjects.get(familyId);
+        const familyInventory = this.resourceSystem.getFamilyInventory(familyId);
+        const hasEnoughResources = Object.keys(project.cost).every(key => (familyInventory[key] ?? 0) >= project.cost[key]);
+
+        if (hasEnoughResources) {
+          const structure = this.resourceSystem.buildStructure(project.type, project.position.x, project.position.y, { familyId, color: randomPastel() });
+          if (structure) {
+            this.resourceSystem.spendFromFamilyInventory(familyId, project.cost);
+            this.familyProjects.delete(familyId);
+          }
+        }
+      } else {
+        const members = this.creatures.filter(c => c.familyId === familyId && c.alive);
+        const hasWarehouse = this.resourceSystem.structures.some(s => s.type === 'warehouse' && s.familyId === familyId);
+        const hasArchitect = members.some(c => c.traits.some(t => t.name === 'architecte'));
+
+        if (members.length > 5 && hasWarehouse && hasArchitect && Math.random() < 0.001) {
+          const structureTypes = Object.keys(STRUCTURE_TYPES).filter(type => type !== 'warehouse' && type !== 'camp' && STRUCTURE_TYPES[type].cost);
+          const type = structureTypes[Math.floor(Math.random() * structureTypes.length)];
+          const cost = STRUCTURE_TYPES[type].cost;
+          
+          const home = this.getFamilyHome(familyId);
+          const radius = STRUCTURE_TYPES[type].radius;
+          const position = this.getSafeSpawnPosition(radius, home, 200);
+
+          if (position) {
+            this.familyProjects.set(familyId, {
+              type,
+              cost,
+              position,
+              status: 'pending'
+            });
+          }
+        }
+      }
     }
   }
 

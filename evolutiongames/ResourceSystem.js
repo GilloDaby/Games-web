@@ -438,6 +438,7 @@ export default class ResourceSystem {
       built: 0,
       destroyed: 0,
     };
+    this.familyInventories = new Map();
 
     this.spawnInitialNodes();
   }
@@ -452,6 +453,7 @@ export default class ResourceSystem {
       built: 0,
       destroyed: 0,
     };
+    this.familyInventories.clear();
     this.spawnInitialNodes();
   }
 
@@ -649,6 +651,27 @@ export default class ResourceSystem {
       : { structure: null };
   }
 
+  getNearestStructureOfType(x, y, type, familyId = null) {
+    let closest = null;
+    let minDist = Infinity;
+    for (const structure of this.structures) {
+      if (structure.type === type && (familyId === null || structure.familyId === familyId)) {
+        const dist = Math.hypot(structure.x - x, structure.y - y);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = structure;
+        }
+      }
+    }
+    return closest
+      ? {
+          structure: closest,
+          distance: minDist,
+          direction: Math.atan2(closest.y - y, closest.x - x),
+        }
+      : { structure: null };
+  }
+
   draw(ctx, viewport = null) {
     const isVisible = (entity) => {
       if (!viewport) return true;
@@ -692,6 +715,33 @@ export default class ResourceSystem {
     const structures = this.structures.length;
     const gathered = { ...this.stats.gathered };
     return { gathered, structures };
+  }
+
+  getFamilyInventory(familyId) {
+    if (!this.familyInventories.has(familyId)) {
+      this.familyInventories.set(familyId, ResourceSystem.createGatheredMap());
+    }
+    return this.familyInventories.get(familyId);
+  }
+
+  addToFamilyInventory(familyId, resourceType, amount) {
+    const inventory = this.getFamilyInventory(familyId);
+    if (inventory[resourceType] !== undefined) {
+      inventory[resourceType] += amount;
+    }
+  }
+
+  spendFromFamilyInventory(familyId, cost) {
+    const inventory = this.getFamilyInventory(familyId);
+    for (const resourceType in cost) {
+      if ((inventory[resourceType] ?? 0) < cost[resourceType]) {
+        return false;
+      }
+    }
+    for (const resourceType in cost) {
+      inventory[resourceType] -= cost[resourceType];
+    }
+    return true;
   }
 
   static createGatheredMap() {

@@ -175,6 +175,7 @@ export default class Creature {
     this.id = Creature._id;
     this.name = NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)];
     this.profession = PROFESSION_LIST[Math.floor(Math.random() * PROFESSION_LIST.length)];
+    this.project = null;
     this.currentAction = null;
     this.targetNode = null;
     this.allegiance = Math.floor(Math.random() * 3);
@@ -399,6 +400,15 @@ export default class Creature {
         }
     }
     
+    const inventoryLoad = this.getInventoryLoad();
+    if (this.currentAction !== 'depositing' && inventoryLoad >= this.resourceCapacity) {
+        const warehouse = this.findNearestWarehouse(resourceSystem);
+        if (warehouse) {
+            this.currentAction = 'depositing';
+            this.targetNode = warehouse;
+        }
+    }
+
     if (!this.targetDirection && resourceInfo?.hasResource && this.shouldSeekResources()) {
       this.targetDirection = resourceInfo.direction;
     }
@@ -431,7 +441,22 @@ export default class Creature {
     const avoidZone = zoneDesire && avoidZoneSignal > 0.4;
 
     let desiredDirection;
-    if (this.currentAction === 'gathering') {
+    if (this.currentAction === 'depositing') {
+        const distanceToWarehouse = Math.hypot(this.targetNode.x - this.position.x, this.targetNode.y - this.position.y);
+        if (distanceToWarehouse < this.targetNode.radius + this.radius) {
+            for (const resourceType in this.resources) {
+                if (this.resources[resourceType] > 0) {
+                    resourceSystem.addToFamilyInventory(this.familyId, resourceType, this.resources[resourceType]);
+                    this.resources[resourceType] = 0;
+                }
+            }
+            this.currentAction = null;
+            this.targetNode = null;
+            desiredDirection = mapSignalToAngle(directionSignal); // Go back to wandering
+        } else {
+            desiredDirection = Math.atan2(this.targetNode.y - this.position.y, this.targetNode.x - this.position.y);
+        }
+    } else if (this.currentAction === 'gathering') {
         const wantsToContinue = this.targetNode && this.targetNode.amount > 0 && this.getInventoryLoad() < this.resourceCapacity;
         const isSafe = !detection.hasEnemy || detection.distance > this.nearEnemyDistance;
         if (wantsToContinue && isSafe) {
@@ -654,6 +679,32 @@ export default class Creature {
       this.resources[key] -= cost[key];
     }
     return true;
+  }
+
+  hasEnoughResources(cost, resourceSystem) {
+    const familyInventory = resourceSystem.getFamilyInventory(this.familyId);
+    for (const key in cost) {
+      const totalAvailable = (this.resources[key] ?? 0) + (familyInventory[key] ?? 0);
+      if (totalAvailable < cost[key]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  spendResourcesFromAnySource(cost, resourceSystem) {
+    const familyInventory = resourceSystem.getFamilyInventory(this.familyId);
+    for (const key in cost) {
+        const costAmount = cost[key];
+        const personalAmount = this.resources[key] ?? 0;
+        if (personalAmount >= costAmount) {
+            this.resources[key] -= costAmount;
+        } else {
+            const remainingCost = costAmount - personalAmount;
+            this.resources[key] = 0;
+            familyInventory[key] -= remainingCost;
+        }
+    }
   }
 
   getResourceSpeedModifier() {
@@ -966,6 +1017,23 @@ export default class Creature {
     if (!resourceSystem) {
       return { hasResource: false };
     }
+
+    if (this.project) {
+        const familyInventory = resourceSystem.getFamilyInventory(this.familyId);
+        const neededResources = [];
+        for (const resource in this.project.cost) {
+            if ((familyInventory[resource] ?? 0) < this.project.cost[resource]) {
+                neededResources.push(resource);
+            }
+        }
+        if (neededResources.length > 0) {
+            const infoProject = resourceSystem.getNearestResource(this.position.x, this.position.y, neededResources);
+            if (infoProject?.hasResource) {
+                return { ...infoProject, priority: true };
+            }
+        }
+    }
+
     if (this.resourceMemory?.ttl > 0) {
       this.resourceMemory.ttl = Math.max(0, this.resourceMemory.ttl - 0.1);
       const targetNode = resourceSystem.getNodeById(this.resourceMemory.nodeId);
@@ -1162,6 +1230,9 @@ getTerrainSpeedModifier(type) {
     if (this.profession.resourceBonus && this.profession.resourceBonus[resourceInfo.node.type]) {
       efficiency *= this.profession.resourceBonus[resourceInfo.node.type];
     }
+    if (this.profession.name === 'Constructeur' && this.project && this.project.cost[resourceInfo.node.type]) {
+        efficiency *= 1.5; // 50% bonus for builders gathering project resources
+    }
     resourceSystem.harvest(resourceInfo.node, this, deltaSeconds, efficiency);
   }
 
@@ -1196,7 +1267,7 @@ getTerrainSpeedModifier(type) {
     for (const entry of candidates) {
       const { type, def } = entry;
       const cost = def.cost ?? {};
-      const affordable = Object.keys(cost).every((key) => (this.resources[key] ?? 0) >= cost[key]);
+      const affordable = this.hasEnoughResources(cost, resourceSystem);
       if (!affordable) {
         continue;
       }
@@ -1286,7 +1357,7 @@ getTerrainSpeedModifier(type) {
     }
     const structure = resourceSystem.buildStructure(type, spot.x, spot.y, this);
     if (structure) {
-      this.spendResources(cost);
+      this.spendResourcesFromAnySource(cost, resourceSystem);
       this.structuresBuilt += 1;
       this.craftingScore +=
         (cost?.wood ?? 0) + (cost?.stone ?? 0) + (cost?.crystal ?? 0);
@@ -2005,6 +2076,14 @@ getTerrainSpeedModifier(type) {
           direction: Math.atan2(closest.position.y - this.position.y, closest.position.x - this.position.x),
         }
       : { creature: null };
+  }
+
+  findNearestWarehouse(resourceSystem) {
+    if (!resourceSystem) {
+      return null;
+    }
+    const warehouseInfo = resourceSystem.getNearestStructureOfType(this.position.x, this.position.y, 'warehouse', this.familyId);
+    return warehouseInfo.structure;
   }
 
   updateReactionState(deltaSeconds, detection, allyInfo, neutralInfo) {
