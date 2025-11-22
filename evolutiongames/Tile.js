@@ -5,6 +5,7 @@ const TILE_TEXTURES = {
   water: null,
   river: null,
   bridge: null,
+  road: null,
 };
 
 export function registerTileTexture(type, image) {
@@ -52,6 +53,8 @@ export default class Tile {
         return "#3a6ea5";
       case "bridge":
         return "#8b6640";
+      case "road":
+        return "#4a4a4a";
       case "grass":
       default:
         return "#2b6c3f";

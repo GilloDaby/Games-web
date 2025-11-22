@@ -501,7 +501,7 @@ export default class Creature {
 
     this.handleResourceHarvest(resourceSystem, resourceInfo, deltaSeconds);
     this.applyStructureEffects(structureInfo, deltaSeconds);
-    this.tryCraftStructure(resourceSystem);
+    this.tryCraftStructure(resourceSystem, tileMap, population);
     this.handleHealthPickupCollision(healthPickups);
     this.updateMetabolism(
       deltaSeconds,
@@ -1137,7 +1137,7 @@ getTerrainSpeedModifier(type) {
     resourceSystem.harvest(resourceInfo.node, this, deltaSeconds, efficiency);
   }
 
-  tryCraftStructure(resourceSystem) {
+  tryCraftStructure(resourceSystem, tileMap, population) {
     if (!resourceSystem || this.buildCooldown > 0 || !this.alive) {
       return;
     }
@@ -1163,6 +1163,8 @@ getTerrainSpeedModifier(type) {
 
     let best = null;
     let bestScore = -Infinity;
+    const houseTypes = ['house', 'apartment', 'residence', 'housingblock'];
+
     for (const entry of candidates) {
       const { type, def } = entry;
       const cost = def.cost ?? {};
@@ -1170,6 +1172,16 @@ getTerrainSpeedModifier(type) {
       if (!affordable) {
         continue;
       }
+
+      const isHouse = houseTypes.includes(type);
+      if (isHouse) {
+          const familyMembers = population.filter(c => c.familyId === this.familyId && c.alive).length;
+          const familyHouses = resourceSystem.structures.filter(s => s.familyId === this.familyId && houseTypes.includes(s.type)).length;
+          if (familyHouses >= familyMembers / 2) {
+              continue;
+          }
+      }
+
       const totalCost = Object.values(cost).reduce((sum, v) => sum + (v ?? 0), 0);
       const aura = def.aura ?? {};
       const name = (def.label || type).toLowerCase();
@@ -1214,6 +1226,9 @@ getTerrainSpeedModifier(type) {
       if (isCombat) {
         utility += needDefense ? 8 : 3;
       }
+      if (isHouse) {
+        utility += 5; // some base utility for houses
+      }
       if (utility <= 0) {
         continue; // évite de spammer des houses décoratives
       }
@@ -1237,6 +1252,10 @@ getTerrainSpeedModifier(type) {
     }
 
     const spot = this.findBuildSpot(resourceSystem?.bounds);
+    const tile = tileMap?.getTileAt(spot.x, spot.y);
+    if (tile && tile.type === 'forest') {
+        tile.type = 'grass';
+    }
     const structure = resourceSystem.buildStructure(type, spot.x, spot.y, this);
     if (structure) {
       this.spendResources(cost);
@@ -1248,6 +1267,49 @@ getTerrainSpeedModifier(type) {
         cooldown *= 0.8;
       }
       this.buildCooldown = cooldown;
+
+      const nearestStructure = resourceSystem.getNearestStructure(structure.x, structure.y, structure.id, this.familyId);
+      if (nearestStructure.structure) {
+          this.createRoad(structure, nearestStructure.structure, tileMap);
+      }
+    }
+  }
+
+  createRoad(startStructure, endStructure, tileMap) {
+    if (!tileMap) return;
+
+    const startTile = tileMap.getTileAt(startStructure.x, startStructure.y);
+    const endTile = tileMap.getTileAt(endStructure.x, endStructure.y);
+
+    if (!startTile || !endTile) return;
+
+    let x0 = startTile.x;
+    let y0 = startTile.y;
+    const x1 = endTile.x;
+    const y1 = endTile.y;
+
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+
+    while (true) {
+      const tile = tileMap.getTile(x0, y0);
+      if (tile && tile.type !== 'water' && tile.type !== 'river') {
+        tile.type = 'road';
+      }
+
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x0 += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y0 += sy;
+      }
     }
   }
 

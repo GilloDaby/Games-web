@@ -379,6 +379,7 @@ class Structure {
     this.aura = config.aura ?? {};
     this.color = config.color ?? "#ffffff";
     this.ownerId = ownerId;
+    this.familyId = null;
     this.ownerColor = ownerColor;
     this.icon = icon;
     this.label = config.label || type;
@@ -600,6 +601,7 @@ export default class ResourceSystem {
       creature?.color ?? null,
       this.structureTextures[type],
     );
+    structure.familyId = creature?.familyId;
     this.structures.push(structure);
     this.stats.built += 1;
     return structure;
@@ -620,10 +622,17 @@ export default class ResourceSystem {
     return destroyed;
   }
 
-  getNearestStructure(x, y, ownerId = null) {
+  getNearestStructure(x, y, excludeOwnerId = null, familyId = null) {
     let closest = null;
     let minDist = Infinity;
     for (const structure of this.structures) {
+      if (excludeOwnerId && structure.ownerId === excludeOwnerId) {
+        continue;
+      }
+      if (familyId && structure.familyId !== familyId) {
+        continue;
+      }
+
       const dist = Math.hypot(structure.x - x, structure.y - y);
       if (dist < minDist) {
         minDist = dist;
@@ -635,7 +644,7 @@ export default class ResourceSystem {
           structure: closest,
           distance: minDist,
           direction: Math.atan2(closest.y - y, closest.x - x),
-          isOwned: ownerId && closest.ownerId === ownerId,
+          isOwned: excludeOwnerId && closest.ownerId === excludeOwnerId,
         }
       : { structure: null };
   }
