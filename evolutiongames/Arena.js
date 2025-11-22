@@ -107,8 +107,8 @@ export default class Arena {
       this.config.generationDuration = Number.POSITIVE_INFINITY;
     }
     this.viewSize = {
-      width: this.config.viewWidth ?? this.config.width,
-      height: this.config.viewHeight ?? this.config.height,
+      width: options.viewWidth ?? this.config.viewWidth ?? this.config.width,
+      height: options.viewHeight ?? this.config.viewHeight ?? this.config.height,
     };
     this.bounds = { width: this.config.width, height: this.config.height };
     this.canvas.width = this.viewSize.width;

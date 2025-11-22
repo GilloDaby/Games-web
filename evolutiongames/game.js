@@ -108,7 +108,19 @@ window.addEventListener("DOMContentLoaded", () => {
     if (arena) {
       arena.stop();
     }
-    const nextArena = new Arena(canvas, hudElements, uiManager, { worldMode: mode, seed });
+    
+    // Get the actual size of the canvas from the layout
+    const viewWidth = canvas.clientWidth;
+    const viewHeight = canvas.clientHeight;
+
+    const arenaOptions = {
+      worldMode: mode,
+      seed,
+      viewWidth,
+      viewHeight,
+    };
+
+    const nextArena = new Arena(canvas, hudElements, uiManager, arenaOptions);
     if (mode === "infinite") {
       nextArena.setGenerationDuration(Number.POSITIVE_INFINITY);
     }
