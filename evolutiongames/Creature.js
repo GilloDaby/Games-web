@@ -175,6 +175,8 @@ export default class Creature {
     this.id = Creature._id;
     this.name = NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)];
     this.profession = PROFESSION_LIST[Math.floor(Math.random() * PROFESSION_LIST.length)];
+    this.currentAction = null;
+    this.targetNode = null;
     this.allegiance = Math.floor(Math.random() * 3);
     this.familyId = familyId ?? this.allegiance;
     this.sex = sex ?? (Math.random() < 0.5 ? "female" : "male");
@@ -379,6 +381,24 @@ export default class Creature {
     if (!this.targetDirection && preyInfo.hasPrey) {
       this.targetDirection = preyInfo.direction;
     }
+    // Déclencher l'état de collecte
+    if (this.currentAction !== "gathering" && resourceInfo?.hasResource && this.shouldSeekResources()) {
+        this.currentAction = "gathering";
+        this.targetNode = resourceInfo.node;
+    }
+
+    if (this.currentAction === "gathering") {
+        const wantsToContinue = this.targetNode && this.targetNode.amount > 0 && this.getInventoryLoad() < this.resourceCapacity;
+        const isSafe = !detection.hasEnemy || detection.distance > this.nearEnemyDistance;
+
+        if (wantsToContinue && isSafe) {
+            this.targetDirection = Math.atan2(this.targetNode.y - this.position.y, this.targetNode.x - this.position.y);
+        } else {
+            this.currentAction = null;
+            this.targetNode = null;
+        }
+    }
+    
     if (!this.targetDirection && resourceInfo?.hasResource && this.shouldSeekResources()) {
       this.targetDirection = resourceInfo.direction;
     }
@@ -410,35 +430,43 @@ export default class Creature {
     const moveTowardZone = zoneDesire && towardZoneSignal > 0.4;
     const avoidZone = zoneDesire && avoidZoneSignal > 0.4;
 
-    let desiredDirection = mapSignalToAngle(directionSignal);
-    if (wantsCombat) {
-      const targetDir = hasBoss
-        ? bossInfo.direction
-        : detection.hasEnemy
-          ? detection.enemyDirection
-          : preyInfo.direction;
-      const pursuitDirection = moveToward
-        ? targetDir
-        : normalizeAngle(targetDir + Math.PI);
-      desiredDirection = attackIntent ? targetDir : pursuitDirection;
-    }
+    let desiredDirection;
+    if (this.currentAction === 'gathering') {
+        const wantsToContinue = this.targetNode && this.targetNode.amount > 0 && this.getInventoryLoad() < this.resourceCapacity;
+        const isSafe = !detection.hasEnemy || detection.distance > this.nearEnemyDistance;
+        if (wantsToContinue && isSafe) {
+            desiredDirection = Math.atan2(this.targetNode.y - this.position.y, this.targetNode.x - this.position.y);
+        } else {
+            this.currentAction = null;
+            this.targetNode = null;
+            desiredDirection = mapSignalToAngle(directionSignal); // fallback to wandering
+        }
+    } else {
+        desiredDirection = mapSignalToAngle(directionSignal);
+        if (wantsCombat) {
+          const targetDir = hasBoss
+            ? bossInfo.direction
+            : detection.hasEnemy
+              ? detection.enemyDirection
+              : preyInfo.direction;
+          const pursuitDirection = moveToward
+            ? targetDir
+            : normalizeAngle(targetDir + Math.PI);
+          desiredDirection = attackIntent ? targetDir : pursuitDirection;
+        }
 
-    if (zoneDesire) {
-      if (avoidZone && zoneInfo.zoneType === "danger") {
-        desiredDirection = normalizeAngle(zoneInfo.zoneDirection + Math.PI);
-      } else if (moveTowardZone && zoneInfo.zoneType !== "danger") {
-        desiredDirection = zoneInfo.zoneDirection;
-      }
+        if (zoneDesire) {
+          if (avoidZone && zoneInfo.zoneType === "danger") {
+            desiredDirection = normalizeAngle(zoneInfo.zoneDirection + Math.PI);
+          } else if (moveTowardZone && zoneInfo.zoneType !== "danger") {
+            desiredDirection = zoneInfo.zoneDirection;
+          }
+        }
     }
 
     const wantsPickup = pickupInfo?.hasPickup && (this.hp / this.maxHp < 0.75 || !hasEnemy);
     if (wantsPickup) {
       desiredDirection = pickupInfo.direction;
-    }
-
-    const wantsResource = resourceInfo.hasResource && this.shouldSeekResources();
-    if (!hasEnemy && wantsResource) {
-      desiredDirection = resourceInfo.direction;
     }
 
     if (this.home) {
