@@ -13,8 +13,8 @@ import FogOfWar from "./FogOfWar.js";
 import { crossoverGenomes } from "./Genome.js";
 
 const ARENA_SETTINGS = {
-  width: 2200,
-  height: 1300,
+  width: 1100,
+  height: 650,
   viewWidth: 1400,
   viewHeight: 900,
   gridSize: 64,
@@ -43,7 +43,7 @@ const ARENA_SETTINGS = {
 
 const WORLD_DIMENSIONS = {
   fixed: { width: ARENA_SETTINGS.width, height: ARENA_SETTINGS.height, spanTiles: null },
-  infinite: { width: 10000, height: 10000, spanTiles: 320 },
+  infinite: { width: 5000, height: 5000, spanTiles: 160 },
 };
 
 const STORAGE_KEY = "genetic-ai-battle-state";

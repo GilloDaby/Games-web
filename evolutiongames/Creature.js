@@ -1853,6 +1853,13 @@ getTerrainSpeedModifier(type) {
       return;
     }
 
+    const onScreenRadius = this.radius * ctx.getTransform().a;
+    if (onScreenRadius < 2) {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.position.x - 1, this.position.y - 1, 2, 2);
+        return;
+    }
+
     if (this.targetDirection !== null) {
       ctx.save();
       ctx.strokeStyle = "rgba(255, 95, 95, 0.65)";
