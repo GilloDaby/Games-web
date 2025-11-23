@@ -460,6 +460,7 @@
         const sprite = new PIXI.Sprite(textures[tile]);
         sprite.x = x * TILE_SIZE;
         sprite.y = y * TILE_SIZE;
+        sprite.tint = getTintForTile(tile, biomeMapGlobal?.[x]);
         worldContainer.addChild(sprite);
         worldSprites[y][x] = sprite;
         if (tile === TILE.TORCH) torchPositions.add(`${x},${y}`);
@@ -593,6 +594,7 @@
     const sprite = new PIXI.Sprite(tileTextures[tile]);
     sprite.x = x * TILE_SIZE;
     sprite.y = y * TILE_SIZE;
+    sprite.tint = getTintForTile(tile, biomeMapGlobal?.[x]);
     worldSprites[y][x] = sprite;
     worldContainer.addChild(sprite);
     ensurePlayerOnTop();
@@ -939,6 +941,32 @@
         if (grid[y][x] !== TILE.BEDROCK) grid[y][x] = subsurfaceTile;
       }
     }
+  }
+
+  function getTintForTile(tile, biome) {
+    if (tile === TILE.GRASS_PLAINS || tile === TILE.GRASS_FOREST || tile === TILE.LEAF) {
+      switch (biome) {
+        case "forest":
+          return 0x6da851; // lush green
+        case "desert":
+          return 0xd8c57f; // dried grass
+        case "snow":
+          return 0xcde4f5; // cold tint
+        default:
+          return 0x8bcf6b; // plains default
+      }
+    }
+    if (tile === TILE.WATER) {
+      switch (biome) {
+        case "desert":
+          return 0x5fa6c9;
+        case "snow":
+          return 0x8fc5ff;
+        default:
+          return 0x6db9ff;
+      }
+    }
+    return 0xffffff;
   }
 
   function inWorld(x, y) {

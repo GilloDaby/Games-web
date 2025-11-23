@@ -11,9 +11,9 @@ class Player {
     this.jumpSpeed = 900;
     this.onGround = false;
 
-    if (!Player.textureCache || Player.textureCacheSize !== size) {
-      Player.textureCache = PIXI.Texture.from("textures/entity/player/slim/steve.png");
-      Player.textureCacheSize = size;
+    if (!Player.textureCache) {
+      const base = PIXI.BaseTexture.from("textures/entity/player/slim/steve.png");
+      Player.textureCache = new PIXI.Texture(base, new PIXI.Rectangle(8, 8, 8, 8));
     }
     this.sprite = new PIXI.Sprite(Player.textureCache);
     this.sprite.width = size;
