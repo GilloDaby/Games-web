@@ -45,7 +45,13 @@ function generateWorld() {
     console.log('World Matrix Generated:', worldMatrix);
 }
 
-let player; // Declare player globally
+// Initialize Player immediately
+// Place player at initial position (e.g., above the first grass block)
+const initialPlayerX = (WORLD_WIDTH / 4) * BLOCK_SIZE;
+const initialPlayerY = (WORLD_HEIGHT - 35) * BLOCK_SIZE; // Roughly 1 block above grass
+const player = new Player(app, worldMatrix, BLOCK_SIZE, initialPlayerX, initialPlayerY);
+worldContainer.addChild(player.render());
+
 
 // --- Load Textures and Render World ---
 async function loadTexturesAndRenderWorld() {
@@ -75,12 +81,9 @@ async function loadTexturesAndRenderWorld() {
     }
     console.log('World Rendered!');
 
-    // Initialize Player after world is rendered
-    // Place player at initial position (e.g., above the first grass block)
-    const initialPlayerX = (WORLD_WIDTH / 4) * BLOCK_SIZE;
-    const initialPlayerY = (WORLD_HEIGHT - 35) * BLOCK_SIZE; // Roughly 1 block above grass
-    player = new Player(app, worldMatrix, BLOCK_SIZE, initialPlayerX, initialPlayerY);
-    worldContainer.addChild(player.render());
+    // Adjust player's initial Y position after world is rendered and collisions can be checked
+    // This is useful if initialPlayerY is an estimate and actual ground is slightly different
+    // player.sprite.y = initialPlayerY; // Or use a more robust ground-finding mechanism
 }
 
 // --- Keyboard Input for Player ---
@@ -107,6 +110,7 @@ app.ticker.add((delta) => {
         player.stopMoving();
     }
 
+    // Update player's state
     player.update(delta);
 
     // Camera follows player
@@ -124,11 +128,7 @@ app.ticker.add((delta) => {
 // --- Game Initialization ---
 generateWorld();
 loadTexturesAndRenderWorld().then(() => {
-    // Initial camera position after player is loaded
-    const targetCameraX = app.screen.width / 2 - player.sprite.x;
-    const maxCameraX = 0;
-    const minCameraX = -(WORLD_WIDTH * BLOCK_SIZE - app.screen.width);
-    worldContainer.x = Math.max(minCameraX, Math.min(maxCameraX, targetCameraX));
+    // No need to re-initialize camera position here, as it's handled in the ticker now
 });
 
 console.log('Minecraft 2D game initialized!');
