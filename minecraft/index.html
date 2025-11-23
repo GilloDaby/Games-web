@@ -1,16 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft 2D</title>
-    <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft 2D - Pixi.js</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #0f111a;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    #game-canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@7/dist/pixi.min.js"></script>
 </head>
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
-    <script src="game.js"></script>
+  <canvas id="game-canvas"></canvas>
+  <script defer src="game.js"></script>
 </body>
 </html>
