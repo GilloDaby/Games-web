@@ -3,7 +3,7 @@
 
   const TILE_SIZE = 32;
   const WORLD_WIDTH = 200;
-  const WORLD_HEIGHT = 50;
+  const WORLD_HEIGHT = 120;
 
   const TILE = {
     AIR: 0,
@@ -17,6 +17,8 @@
     LEAF: 8,
     CACTUS: 9,
     TORCH: 10,
+    BEDROCK: 11,
+    WATER: 12,
   };
 
   const TILE_KEY = {
@@ -30,10 +32,11 @@
     [TILE.LEAF]: "leaf",
     [TILE.CACTUS]: "cactus",
     [TILE.TORCH]: "torch",
+    [TILE.BEDROCK]: "bedrock",
   };
 
   function isSolidTile(tile) {
-    return tile !== TILE.AIR && tile !== TILE.TORCH;
+    return tile !== TILE.AIR && tile !== TILE.TORCH && tile !== TILE.WATER;
   }
 
   const canvas = document.getElementById("game-canvas");
@@ -48,7 +51,7 @@
   const keys = new Set();
   const worldContainer = new PIXI.Container();
   const mobContainer = new PIXI.Container();
-  const camera = { x: 0, y: 0, extraX: 0 };
+  const camera = { x: 0, y: 0 };
   const world = Array.from({ length: WORLD_HEIGHT }, () =>
     Array.from({ length: WORLD_WIDTH }, () => TILE.AIR)
   );
@@ -57,10 +60,16 @@
   );
   const torchPositions = new Set();
   const inventoryManager = new InventoryManager(9);
-  let selectedTile = TILE.GRASS_PLAINS;
+  let selectedSlot = 0;
   let tileTextures = null;
   let ui = null;
   let player = null;
+  const foodEffects = {
+    berry: { hunger: 15, health: 5 },
+    meat: { hunger: 25, health: 10 },
+    pork: { hunger: 30, health: 8 },
+    chicken_meat: { hunger: 20, health: 6 },
+  };
   const mobs = [];
   let spawnTimer = 0;
   let biomeMapGlobal = null;
@@ -69,6 +78,7 @@
   let craftingUI = null;
   let saveSystem = null;
   let autoSaveTimer = 0;
+  const hungerDrainPerSecond = 0.6;
 
   app.stage.addChild(worldContainer);
   app.stage.addChild(mobContainer);
@@ -110,7 +120,7 @@
   }
 
   function createTileset() {
-    const width = TILE_SIZE * 10;
+    const width = TILE_SIZE * 12;
     const height = TILE_SIZE;
     const atlas = document.createElement("canvas");
     atlas.width = width;
@@ -154,24 +164,31 @@
     const torchX = TILE_SIZE * 9;
     drawTorch(ctx, torchX);
 
+    // Bedrock
+    const bedrockX = TILE_SIZE * 10;
+    drawBedrock(ctx, bedrockX);
+
+    // Water
+    const waterX = TILE_SIZE * 11;
+    drawWater(ctx, waterX);
+
     return atlas.toDataURL("image/png");
   }
 
   async function loadTileTextures() {
-    const url = createTileset();
-    const baseTexture = await PIXI.Assets.load(url);
-    const src = baseTexture.baseTexture ?? baseTexture;
     return {
-      [TILE.GRASS_PLAINS]: new PIXI.Texture(src, new PIXI.Rectangle(0, 0, TILE_SIZE, TILE_SIZE)),
-      [TILE.GRASS_FOREST]: new PIXI.Texture(src, new PIXI.Rectangle(TILE_SIZE, 0, TILE_SIZE, TILE_SIZE)),
-      [TILE.DIRT]: new PIXI.Texture(src, new PIXI.Rectangle(TILE_SIZE * 2, 0, TILE_SIZE, TILE_SIZE)),
-      [TILE.STONE]: new PIXI.Texture(src, new PIXI.Rectangle(TILE_SIZE * 3, 0, TILE_SIZE, TILE_SIZE)),
-      [TILE.SAND]: new PIXI.Texture(src, new PIXI.Rectangle(TILE_SIZE * 4, 0, TILE_SIZE, TILE_SIZE)),
-      [TILE.SNOW]: new PIXI.Texture(src, new PIXI.Rectangle(TILE_SIZE * 5, 0, TILE_SIZE, TILE_SIZE)),
-      [TILE.LOG]: new PIXI.Texture(src, new PIXI.Rectangle(TILE_SIZE * 6, 0, TILE_SIZE, TILE_SIZE)),
-      [TILE.LEAF]: new PIXI.Texture(src, new PIXI.Rectangle(TILE_SIZE * 7, 0, TILE_SIZE, TILE_SIZE)),
-      [TILE.CACTUS]: new PIXI.Texture(src, new PIXI.Rectangle(TILE_SIZE * 8, 0, TILE_SIZE, TILE_SIZE)),
-      [TILE.TORCH]: new PIXI.Texture(src, new PIXI.Rectangle(TILE_SIZE * 9, 0, TILE_SIZE, TILE_SIZE)),
+      [TILE.GRASS_PLAINS]: PIXI.Texture.from("textures/block/grass_block_top.png"),
+      [TILE.GRASS_FOREST]: PIXI.Texture.from("textures/block/grass_block_top.png"),
+      [TILE.DIRT]: PIXI.Texture.from("textures/block/dirt.png"),
+      [TILE.STONE]: PIXI.Texture.from("textures/block/stone.png"),
+      [TILE.SAND]: PIXI.Texture.from("textures/block/sand.png"),
+      [TILE.SNOW]: PIXI.Texture.from("textures/block/snow.png"),
+      [TILE.LOG]: PIXI.Texture.from("textures/block/oak_log.png"),
+      [TILE.LEAF]: PIXI.Texture.from("textures/block/oak_leaves.png"),
+      [TILE.CACTUS]: PIXI.Texture.from("textures/block/cactus_side.png"),
+      [TILE.TORCH]: PIXI.Texture.from("textures/block/torch.png"),
+      [TILE.BEDROCK]: PIXI.Texture.from("textures/block/bedrock.png"),
+      [TILE.WATER]: PIXI.Texture.from("textures/block/water_still.png"),
     };
   }
 
@@ -261,6 +278,29 @@
     ctx.fillRect(offsetX + TILE_SIZE / 2 - 3, flameY + 2, 6, 4);
   }
 
+  function drawBedrock(ctx, offsetX) {
+    ctx.fillStyle = "#444444";
+    ctx.fillRect(offsetX, 0, TILE_SIZE, TILE_SIZE);
+    ctx.fillStyle = "#2f2f2f";
+    for (let y = 2; y < TILE_SIZE; y += 5) {
+      for (let x = offsetX + (y % 6); x < offsetX + TILE_SIZE; x += 6) {
+        ctx.fillRect(x, y, 4, 3);
+      }
+    }
+  }
+
+  function drawWater(ctx, offsetX) {
+    const grad = ctx.createLinearGradient(0, 0, 0, TILE_SIZE);
+    grad.addColorStop(0, "#4aa4ff");
+    grad.addColorStop(1, "#1f5ea8");
+    ctx.fillStyle = grad;
+    ctx.fillRect(offsetX, 0, TILE_SIZE, TILE_SIZE);
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    for (let x = offsetX; x < offsetX + TILE_SIZE; x += 6) {
+      ctx.fillRect(x, 6, 3, 2);
+    }
+  }
+
   function addStructures(grid, biomeMap, heightMap) {
     for (let x = 2; x < WORLD_WIDTH - 2; x++) {
       const biome = biomeMap[x];
@@ -303,12 +343,32 @@
   async function init() {
     tileTextures = await loadTileTextures();
     biomeMapGlobal = generateBiomeMap(WORLD_WIDTH);
-    heightMapGlobal = generateHeightMap(WORLD_WIDTH, biomeMapGlobal, 20, 5);
-    const worldGrid = createWorld(biomeMapGlobal, heightMapGlobal);
-    // replace world reference
+    const worldGrid = generateWorldWithCaves({
+      width: WORLD_WIDTH,
+      height: WORLD_HEIGHT,
+      tiles: {
+        AIR: TILE.AIR,
+        GRASS: TILE.GRASS_PLAINS,
+        DIRT: TILE.DIRT,
+        STONE: TILE.STONE,
+        BEDROCK: TILE.BEDROCK,
+        WATER: TILE.WATER,
+      },
+    });
+    applyBiomeSurface(worldGrid, biomeMapGlobal);
+    heightMapGlobal = Array.from({ length: WORLD_WIDTH }, () => 10);
     for (let y = 0; y < WORLD_HEIGHT; y++) {
       for (let x = 0; x < WORLD_WIDTH; x++) {
         world[y][x] = worldGrid[y][x];
+      }
+    }
+    // recompute height map from generated world
+    for (let x = 0; x < WORLD_WIDTH; x++) {
+      for (let y = 0; y < WORLD_HEIGHT; y++) {
+        if (world[y][x] !== TILE.AIR) {
+          heightMapGlobal[x] = y - 1 >= 0 ? y - 1 : 0;
+          break;
+        }
       }
     }
     drawWorld(tileTextures);
@@ -316,26 +376,27 @@
     player = new Player({
       size: TILE_SIZE,
       x: TILE_SIZE * 5,
-      y: TILE_SIZE * 5,
+      y: TILE_SIZE * 12,
       color: 0x3a8ee6,
     });
     player.maxHealth = 100;
     player.health = 100;
+    player.maxHunger = 100;
+    player.hunger = 80;
 
     worldContainer.addChild(player.sprite);
 
-    inventoryManager.addItem("dirt", 20);
-    inventoryManager.addItem("stone", 12);
-    inventoryManager.addItem("log", 8);
     inventoryManager.addItem("torch", 6);
 
-    ui = createHotbarUI(app, tileTextures, inventoryManager, () => selectedTile);
-    ui.updateInventory((key) => inventoryManager.getCount(key));
-    ui.setSelection(selectedTile);
+    ui = createHotbarUI(app, tileTextures, inventoryManager, itemToTile);
+    ui.updateInventory();
+    ui.setSelectionIndex(selectedSlot);
     ui.setHealth(player.health, player.maxHealth);
+    ui.setHunger(player.hunger, player.maxHunger);
 
-    inventoryUI = createInventoryUI(app, inventoryManager);
+    inventoryUI = createInventoryUI(app, inventoryManager, tileTextures, itemToTile);
     app.stage.addChild(inventoryUI.container);
+    inventoryUI.container.visible = false;
     craftingUI = createCraftingUI(app, inventoryManager);
     app.stage.addChild(craftingUI.container);
     craftingUI.container.visible = false;
@@ -360,7 +421,7 @@
 
     app.ticker.add((delta) => {
       const dt = delta / 60;
-      player.update(dt, world, TILE_SIZE, keys);
+      player.update(dt, world, TILE_SIZE, keys, TILE.WATER);
       updateBiomeLabel(player.x, biomeMapGlobal);
       updateMobs(delta, dt);
       spawnTimer -= dt;
@@ -368,6 +429,7 @@
         spawnMobsAroundPlayer(player);
         spawnTimer = 2.5;
       }
+      updateHunger(dt);
       autoSaveTimer += dt;
       if (autoSaveTimer >= 30 && saveSystem) {
         saveSystem.save(false);
@@ -377,7 +439,11 @@
       if (saveSystem) saveSystem.update(dt);
       updateCamera(player);
       applyCamera();
-      if (ui) ui.tick(delta);
+      if (ui) {
+        ui.tick(delta);
+        ui.setHealth(player.health, player.maxHealth);
+        ui.setHunger(player.hunger, player.maxHunger);
+      }
       if (inventoryUI) inventoryUI.refresh();
       if (craftingUI && craftingUI.container.visible) craftingUI.refresh();
     });
@@ -407,39 +473,54 @@
 
   function handleKey(event, isDown) {
     const key = event.key.toLowerCase();
-    const handled = [
-      "arrowleft",
-      "arrowright",
+  const handled = [
       "a",
       "d",
       " ",
+      "e",
       "1",
       "2",
       "3",
       "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "0",
       "c",
+      "i",
     ].includes(key);
     if (handled) event.preventDefault();
     if (isDown) keys.add(key);
     else keys.delete(key);
 
     if (isDown) {
-      if (key === "arrowleft") camera.extraX += 10;
-      if (key === "arrowright") camera.extraX -= 10;
-      if (key === "1") selectTile(TILE.GRASS_PLAINS);
-      if (key === "2") selectTile(TILE.DIRT);
-      if (key === "3") selectTile(TILE.STONE);
-      if (key === "4") selectTile(TILE.TORCH);
+      if (key === "1") selectSlot(0);
+      if (key === "2") selectSlot(1);
+      if (key === "3") selectSlot(2);
+      if (key === "4") selectSlot(3);
+      if (key === "5") selectSlot(4);
+      if (key === "6") selectSlot(5);
+      if (key === "7") selectSlot(6);
+      if (key === "8") selectSlot(7);
+      if (key === "9") selectSlot(8);
+      if (key === "0") selectSlot(8);
       if (key === "c" && craftingUI) craftingUI.container.visible = !craftingUI.container.visible;
+      if (key === "i" && inventoryUI) inventoryUI.container.visible = !inventoryUI.container.visible;
+      if (key === "e") eatSelected();
     }
   }
 
   function updateCamera(player) {
     const viewportWidth = app.renderer.width;
+    const viewportHeight = app.renderer.height;
     const worldWidthPx = WORLD_WIDTH * TILE_SIZE;
-    const desired = player.x - viewportWidth / 2 + camera.extraX;
-    const maxX = Math.max(0, worldWidthPx - viewportWidth);
-    camera.x = clamp(desired, 0, maxX);
+    const worldHeightPx = WORLD_HEIGHT * TILE_SIZE;
+    const targetX = clamp(player.x + player.size / 2 - viewportWidth / 2, 0, Math.max(0, worldWidthPx - viewportWidth));
+    const targetY = clamp(player.y + player.size / 2 - viewportHeight / 2, 0, Math.max(0, worldHeightPx - viewportHeight));
+    camera.x += (targetX - camera.x) * 0.15;
+    camera.y += (targetY - camera.y) * 0.15;
     worldContainer.position.set(-camera.x, -camera.y);
   }
 
@@ -458,8 +539,12 @@
     if (!inWorld(tileX, tileY)) return;
 
     if (event.button === 2) {
-      placeTile(tileX, tileY, selectedTile);
+      const tile = getSelectedTileFromInventory();
+      // If no placeable tile, try eat
+      if (tile) placeTile(tileX, tileY, tile);
+      else eatSelected();
     } else if (event.button === 0) {
+      if (tryAttackMob(worldX, worldY)) return;
       breakTile(tileX, tileY);
     }
   }
@@ -467,17 +552,21 @@
   function breakTile(x, y) {
     const tile = world[y][x];
     if (tile === TILE.AIR) return;
+    if (tile === TILE.BEDROCK) return;
     if (tile === TILE.TORCH) torchPositions.delete(`${x},${y}`);
     const key = TILE_KEY[tile];
     setTile(x, y, TILE.AIR);
     if (key) {
       inventoryManager.addItem(key, 1);
-      if (ui) ui.updateInventory((k) => inventoryManager.getCount(k));
+      if (tile === TILE.LEAF && Math.random() < 0.25) {
+        inventoryManager.addItem("berry", 1);
+      }
+      if (ui) ui.updateInventory();
     }
   }
 
   function placeTile(x, y, tile) {
-    if (tile === TILE.AIR) return;
+    if (!tile || tile === TILE.AIR) return;
     const key = TILE_KEY[tile];
     if (!key || inventoryManager.getCount(key) <= 0) return;
     if (world[y][x] !== TILE.AIR) return;
@@ -485,7 +574,7 @@
 
     if (!inventoryManager.removeItem(key, 1)) return;
     setTile(x, y, tile);
-    if (ui) ui.updateInventory((k) => inventoryManager.getCount(k));
+    if (ui) ui.updateInventory();
     if (tile === TILE.TORCH) torchPositions.add(`${x},${y}`);
   }
 
@@ -549,11 +638,6 @@
     };
   }
 
-  function selectTile(tile) {
-    selectedTile = tile;
-    ui.setSelection(tile);
-  }
-
   function updateBiomeLabel(playerX, biomeMap) {
     if (!ui) return;
     const col = Math.floor(playerX / TILE_SIZE);
@@ -583,7 +667,7 @@
         if (mob.tryAttack(player)) {
           applyPlayerDamage(10);
         }
-      } else if (mob instanceof Cow) {
+      } else if (mob instanceof Cow || mob instanceof Pig || mob instanceof Sheep || mob instanceof Chicken) {
         mob.updateAI(dt, world, TILE_SIZE);
       }
     }
@@ -593,7 +677,9 @@
   function spawnMobsAroundPlayer(player) {
     const playerCol = Math.floor(player.x / TILE_SIZE);
     spawnMobNear(playerCol, "zombie", (x) => isDarkColumn(x));
-    spawnMobNear(playerCol, "cow", (x) => !isDarkColumn(x));
+    const passives = ["cow", "pig", "sheep", "chicken"];
+    const passiveType = passives[Math.floor(Math.random() * passives.length)];
+    spawnMobNear(playerCol, passiveType, (x) => !isDarkColumn(x));
   }
 
   function spawnMobNear(centerCol, type, predicate) {
@@ -616,6 +702,24 @@
         mobContainer.addChild(c.sprite);
         return;
       }
+      if (type === "pig") {
+        const m = new Pig({ x: spawnX, y: spawnY, size: TILE_SIZE });
+        mobs.push(m);
+        mobContainer.addChild(m.sprite);
+        return;
+      }
+      if (type === "sheep") {
+        const m = new Sheep({ x: spawnX, y: spawnY, size: TILE_SIZE });
+        mobs.push(m);
+        mobContainer.addChild(m.sprite);
+        return;
+      }
+      if (type === "chicken") {
+        const m = new Chicken({ x: spawnX, y: spawnY, size: TILE_SIZE });
+        mobs.push(m);
+        mobContainer.addChild(m.sprite);
+        return;
+      }
     }
   }
 
@@ -632,7 +736,7 @@
     const surface = findSurface(col);
     if (surface == null) return false;
     // Consider dark if surface is deep underground
-    return surface > 24;
+    return surface > 60;
   }
 
   function applyPlayerDamage(amount) {
@@ -677,7 +781,7 @@
     }
     if (state.inventory) {
       inventoryManager.setState(state.inventory);
-      if (ui) ui.updateInventory((k) => inventoryManager.getCount(k));
+      if (ui) ui.updateInventory();
     }
     // rebuild mobs
     mobContainer.removeChildren();
@@ -693,16 +797,155 @@
   }
 
   function dropLoot(mob) {
+    const addLoot = (key) => {
+      if (!key) return;
+      const count = Math.floor(Math.random() * 4); // 0..3
+      if (count <= 0) return;
+      inventoryManager.addItem(key, count);
+    };
+
     if (mob instanceof Zombie) {
       const loot = ["dirt", "stone", "torch"];
-      const key = loot[Math.floor(Math.random() * loot.length)];
-      inventoryManager.addItem(key, 1);
-      if (ui) ui.updateInventory((k) => inventoryManager.getCount(k));
+      addLoot(loot[Math.floor(Math.random() * loot.length)]);
     } else if (mob instanceof Cow) {
-      const loot = ["grass", "leaf"];
-      const key = loot[Math.floor(Math.random() * loot.length)];
-      inventoryManager.addItem(key, 1);
-      if (ui) ui.updateInventory((k) => inventoryManager.getCount(k));
+      const loot = ["meat"];
+      addLoot(loot[Math.floor(Math.random() * loot.length)]);
+    } else if (mob instanceof Pig) {
+      addLoot("pork");
+    } else if (mob instanceof Sheep) {
+      addLoot("wool");
+    } else if (mob instanceof Chicken) {
+      const loot = ["feather", "chicken_meat"];
+      addLoot(loot[Math.floor(Math.random() * loot.length)]);
     }
+    if (ui) ui.updateInventory();
+  }
+
+  function tryAttackMob(worldX, worldY) {
+    const range = TILE_SIZE * 2;
+    const cx = worldX;
+    const cy = worldY;
+    for (let i = mobs.length - 1; i >= 0; i--) {
+      const m = mobs[i];
+      const mx = m.x + m.size / 2;
+      const my = m.y + m.size / 2;
+      const dx = mx - cx;
+      const dy = my - cy;
+      const dist = Math.hypot(dx, dy);
+      const playerDist = Math.hypot(mx - (player.x + player.size / 2), my - (player.y + player.size / 2));
+      if (dist <= range && playerDist <= range) {
+        m.takeDamage(999);
+        if (m.dead) {
+          dropLoot(m);
+          mobContainer.removeChild(m.sprite);
+          mobs.splice(i, 1);
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function eatSelected() {
+    const slot = inventoryManager.slots[selectedSlot];
+    if (!slot?.itemId) return;
+    const effect = foodEffects[slot.itemId];
+    if (!effect) return;
+    if (!inventoryManager.removeItem(slot.itemId, 1)) return;
+    player.hunger = Math.min(player.maxHunger, player.hunger + effect.hunger);
+    player.health = Math.min(player.maxHealth, player.health + effect.health);
+    if (ui) {
+      ui.updateInventory();
+      ui.setHunger(player.hunger, player.maxHunger);
+      ui.setHealth(player.health, player.maxHealth);
+    }
+  }
+
+  function updateHunger(dt) {
+    player.hunger = Math.max(0, player.hunger - hungerDrainPerSecond * dt);
+    if (player.hunger <= 0) {
+      player.health = Math.max(0, player.health - 5 * dt);
+    } else if (player.hunger > 80 && player.health < player.maxHealth) {
+      player.health = Math.min(player.maxHealth, player.health + 2 * dt);
+    }
+  }
+
+  function selectSlot(index) {
+    selectedSlot = clamp(index, 0, inventoryManager.size - 1);
+    if (ui) ui.setSelectionIndex(selectedSlot);
+  }
+
+  function getSelectedTileFromInventory() {
+    const slot = inventoryManager.slots[selectedSlot];
+    if (!slot || !slot.itemId) return null;
+    return itemToTile(slot.itemId);
+  }
+
+  function itemToTile(itemId) {
+    switch (itemId) {
+      case "grass":
+        return TILE.GRASS_PLAINS;
+      case "dirt":
+        return TILE.DIRT;
+      case "stone":
+        return TILE.STONE;
+      case "sand":
+        return TILE.SAND;
+      case "snow":
+        return TILE.SNOW;
+      case "log":
+        return TILE.LOG;
+      case "leaf":
+        return TILE.LEAF;
+      case "cactus":
+        return TILE.CACTUS;
+      case "torch":
+        return TILE.TORCH;
+      case "water":
+        return TILE.WATER;
+      default:
+        return null;
+    }
+  }
+
+  function applyBiomeSurface(grid, biomeMap) {
+    for (let x = 0; x < WORLD_WIDTH; x++) {
+      let surfaceY = -1;
+      for (let y = 0; y < WORLD_HEIGHT; y++) {
+        if (grid[y][x] !== TILE.AIR) {
+          surfaceY = y;
+          break;
+        }
+      }
+      if (surfaceY < 0) continue;
+      // ensure caves didn't eat the surface band entirely
+      if (surfaceY < 10) surfaceY = 10;
+      const biome = biomeMap[x] || "plains";
+      let topTile = TILE.GRASS_PLAINS;
+      let subsurfaceTile = TILE.DIRT;
+      if (biome === "desert") {
+        topTile = TILE.SAND;
+        subsurfaceTile = TILE.SAND;
+      } else if (biome === "snow") {
+        topTile = TILE.SNOW;
+        subsurfaceTile = TILE.DIRT;
+      } else if (biome === "forest") {
+        topTile = TILE.GRASS_FOREST;
+        subsurfaceTile = TILE.DIRT;
+      }
+      grid[surfaceY][x] = topTile;
+      for (let d = 1; d <= 4 && surfaceY + d < WORLD_HEIGHT - 1; d++) {
+        const y = surfaceY + d;
+        if (grid[y][x] !== TILE.BEDROCK) grid[y][x] = subsurfaceTile;
+      }
+    }
+  }
+
+  function inWorld(x, y) {
+    return x >= 0 && x < WORLD_WIDTH && y >= 0 && y < WORLD_HEIGHT;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
   }
 })();

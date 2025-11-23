@@ -12,11 +12,12 @@
     cactus: { id: "cactus", name: "Cactus", color: 0x1f8a5c, stack: 64 },
     torch: { id: "torch", name: "Torche", color: 0xf9d976, stack: 64 },
     stone_pickaxe: { id: "stone_pickaxe", name: "Pioche", color: 0x888888, stack: 1 },
-  };
-
-  const ItemDragState = {
-    itemId: null,
-    count: 0,
+    berry: { id: "berry", name: "Baie", color: 0xc23b3b, stack: 32 },
+    meat: { id: "meat", name: "Viande", color: 0xcc6b5c, stack: 32 },
+    pork: { id: "pork", name: "Porc", color: 0xd8957a, stack: 32 },
+    wool: { id: "wool", name: "Laine", color: 0xe4e4e4, stack: 64 },
+    feather: { id: "feather", name: "Plume", color: 0xf8f5ef, stack: 64 },
+    chicken_meat: { id: "chicken_meat", name: "Poulet", color: 0xf2c7a5, stack: 32 },
   };
 
   class InventoryManager {
@@ -116,14 +117,19 @@
   }
 
   class InventoryUI {
-    constructor(app, manager, opts = {}) {
+    constructor(app, manager, tileTextures, itemToTile) {
       this.app = app;
       this.manager = manager;
+      this.tileTextures = tileTextures;
+      this.itemToTile = itemToTile;
       this.container = new PIXI.Container();
       this.slotSize = 52;
       this.gap = 8;
       this.slots = [];
       this.iconCache = new Map();
+      this.dragFrom = null;
+      this.container.eventMode = "static";
+      this.container.hitArea = new PIXI.Rectangle(0, 0, this.slotSize * this.manager.size + this.gap * (this.manager.size - 1), this.slotSize);
       this.buildSlots();
       this.onResize();
     }
@@ -140,6 +146,7 @@
 
     createSlot(index) {
       const container = new PIXI.Container();
+      container.eventMode = "static";
       const bg = new PIXI.Graphics();
       bg.lineStyle(2, 0x1c1f2a, 1);
       bg.beginFill(0x141722);
@@ -163,9 +170,18 @@
       count.position.set(this.slotSize - 6, this.slotSize - 6);
       container.addChild(count);
 
-      container.eventMode = "static";
       container.cursor = "pointer";
-      container.on("pointerdown", () => this.handleSlot(index));
+      container.on("pointerdown", (e) => {
+        e.stopPropagation();
+        this.dragFrom = index;
+      });
+      container.on("pointerup", (e) => {
+        e.stopPropagation();
+        this.handleDrop(index);
+      });
+      container.on("pointerupoutside", () => {
+        this.dragFrom = null;
+      });
 
       return { container, icon, count };
     }
@@ -186,42 +202,29 @@
       }
     }
 
-    handleSlot(index) {
-      const slot = this.manager.slots[index];
-      const drag = ItemDragState;
-      if (!drag.itemId && slot.itemId) {
-        // pick up
-        drag.itemId = slot.itemId;
-        drag.count = slot.count;
-        this.manager.slots[index] = { itemId: null, count: 0 };
-      } else if (drag.itemId) {
-        if (!slot.itemId) {
-          this.manager.slots[index] = { itemId: drag.itemId, count: drag.count };
-          drag.itemId = null;
-          drag.count = 0;
-        } else if (slot.itemId === drag.itemId) {
-          const def = ITEM_DEFS[slot.itemId];
-          const space = def.stack - slot.count;
-          const moved = Math.min(space, drag.count);
-          slot.count += moved;
-          drag.count -= moved;
-          if (drag.count <= 0) {
-            drag.itemId = null;
-            drag.count = 0;
-          }
-        } else {
-          const temp = { itemId: slot.itemId, count: slot.count };
-          this.manager.slots[index] = { itemId: drag.itemId, count: drag.count };
-          drag.itemId = temp.itemId;
-          drag.count = temp.count;
-        }
+    handleDrop(index) {
+      if (this.dragFrom == null) return;
+      if (this.dragFrom !== index) {
+        this.manager.moveStack(this.dragFrom, index);
       }
+      this.dragFrom = null;
       this.refresh();
     }
 
     getIcon(itemId) {
       if (this.iconCache.has(itemId)) return this.iconCache.get(itemId);
       const def = ITEM_DEFS[itemId];
+      // custom item icons
+      const customTex = createItemIconTexture(this.app, itemId);
+      if (customTex) {
+        this.iconCache.set(itemId, customTex);
+        return customTex;
+      }
+      const tileId = this.itemToTile ? this.itemToTile(itemId) : null;
+      if (tileId != null && this.tileTextures?.[tileId]) {
+        this.iconCache.set(itemId, this.tileTextures[tileId]);
+        return this.tileTextures[tileId];
+      }
       const g = new PIXI.Graphics();
       g.beginFill(def?.color ?? 0xffffff);
       g.drawRoundedRect(0, 0, 40, 40, 6);
@@ -240,11 +243,63 @@
   }
 
   window.ITEM_DEFS = ITEM_DEFS;
-  window.ItemDragState = ItemDragState;
   window.InventoryManager = InventoryManager;
-  window.createInventoryUI = function createInventoryUI(app, manager) {
-    const ui = new InventoryUI(app, manager);
+  window.createInventoryUI = function createInventoryUI(app, manager, tileTextures, itemToTile) {
+    const ui = new InventoryUI(app, manager, tileTextures, itemToTile);
     ui.refresh();
     return ui;
   };
+
+  function createItemIconTexture(app, itemId) {
+    const size = 42;
+    const c = document.createElement("canvas");
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext("2d");
+
+    if (itemId === "berry") {
+      ctx.fillStyle = "#b12c2c";
+      ctx.beginPath();
+      ctx.ellipse(size / 2, size / 2 + 4, 14, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#2e7d32";
+      ctx.fillRect(size / 2 - 3, size / 2 - 12, 6, 8);
+    } else if (itemId === "meat" || itemId === "pork" || itemId === "chicken_meat") {
+      const base = itemId === "pork" ? "#d48f73" : itemId === "chicken_meat" ? "#e8c7a5" : "#c36b5a";
+      ctx.fillStyle = base;
+      ctx.beginPath();
+      ctx.ellipse(size / 2, size / 2, 16, 12, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.fillRect(size / 2 - 4, size / 2 - 6, 8, 12);
+    } else if (itemId === "wool") {
+      ctx.fillStyle = "#f5f5f5";
+      ctx.beginPath();
+      ctx.ellipse(size / 2, size / 2, 16, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#dcdcdc";
+      ctx.beginPath();
+      ctx.ellipse(size / 2 - 5, size / 2 - 4, 6, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (itemId === "feather") {
+      ctx.strokeStyle = "#fdfaf2";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.25, size * 0.7);
+      ctx.lineTo(size * 0.7, size * 0.2);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(0,0,0,0.2)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.35, size * 0.6);
+      ctx.lineTo(size * 0.6, size * 0.3);
+      ctx.stroke();
+    } else {
+      return null;
+    }
+
+    return PIXI.Texture.from(c);
+  }
+
+  window.getItemIconTexture = createItemIconTexture;
 })();

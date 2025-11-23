@@ -11,36 +11,47 @@ class Player {
     this.jumpSpeed = 900;
     this.onGround = false;
 
-    this.sprite = new PIXI.Graphics()
-      .beginFill(color)
-      .drawRect(0, 0, size, size)
-      .endFill();
+    if (!Player.textureCache || Player.textureCacheSize !== size) {
+      Player.textureCache = PIXI.Texture.from("textures/entity/player/slim/steve.png");
+      Player.textureCacheSize = size;
+    }
+    this.sprite = new PIXI.Sprite(Player.textureCache);
+    this.sprite.width = size;
+    this.sprite.height = size;
     this.sprite.position.set(this.x, this.y);
   }
 
-  update(dt, world, tileSize, keys) {
-    this.handleInput(keys);
-    this.vy += this.gravity * dt;
+  update(dt, world, tileSize, keys, waterTile = null) {
+    const inWater = waterTile != null ? this.isInWater(world, tileSize, waterTile) : false;
+    const gravity = inWater ? this.gravity * 0.35 : this.gravity;
+    this.handleInput(keys, inWater);
+    this.vy += gravity * dt;
 
-    this.moveHorizontal(dt, world, tileSize);
-    this.moveVertical(dt, world, tileSize);
+    this.moveHorizontal(dt, world, tileSize, inWater);
+    this.moveVertical(dt, world, tileSize, inWater);
     this.syncSprite();
   }
 
-  handleInput(keys) {
+  handleInput(keys, inWater) {
     const left = keys.has("a");
     const right = keys.has("d");
-    if (left && !right) this.vx = -this.moveSpeed;
-    else if (right && !left) this.vx = this.moveSpeed;
+    const speed = inWater ? this.moveSpeed * 0.6 : this.moveSpeed;
+    if (left && !right) this.vx = -speed;
+    else if (right && !left) this.vx = speed;
     else this.vx *= this.friction;
 
-    if (keys.has(" ") && this.onGround) {
-      this.vy = -this.jumpSpeed;
-      this.onGround = false;
+    if (keys.has(" ")) {
+      if (inWater) {
+        this.vy = -this.jumpSpeed * 0.35;
+        this.onGround = false;
+      } else if (this.onGround) {
+        this.vy = -this.jumpSpeed;
+        this.onGround = false;
+      }
     }
   }
 
-  moveHorizontal(dt, world, tileSize) {
+  moveHorizontal(dt, world, tileSize, inWater) {
     const nextX = this.x + this.vx * dt;
     const bounds = {
       left: nextX,
@@ -128,5 +139,14 @@ class Player {
 
   syncSprite() {
     this.sprite.position.set(this.x, this.y);
+  }
+
+  isInWater(world, tileSize, waterTile) {
+    const cx = this.x + this.size / 2;
+    const cy = this.y + this.size / 2;
+    const tx = Math.floor(cx / tileSize);
+    const ty = Math.floor(cy / tileSize);
+    if (ty < 0 || ty >= world.length || tx < 0 || tx >= world[0].length) return false;
+    return world[ty][tx] === waterTile;
   }
 }

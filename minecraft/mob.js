@@ -1,6 +1,6 @@
 (() => {
   class Mob {
-    constructor({ x, y, size, color, speed = 90, maxHealth = 20 }) {
+    constructor({ x, y, size, texture, speed = 90, maxHealth = 20 }) {
       this.x = x;
       this.y = y;
       this.vx = 0;
@@ -14,10 +14,9 @@
       this.health = maxHealth;
       this.dead = false;
 
-      this.sprite = new PIXI.Graphics()
-        .beginFill(color)
-        .drawRect(0, 0, size, size)
-        .endFill();
+      this.sprite = new PIXI.Sprite(texture);
+      this.sprite.width = size;
+      this.sprite.height = size;
       this.sprite.position.set(this.x, this.y);
     }
 
@@ -124,7 +123,12 @@
 
   class Zombie extends Mob {
     constructor(opts = {}) {
-      super({ ...opts, color: 0x3c9f4a, speed: 120, maxHealth: 30 });
+      const texSize = opts.size || 32;
+      if (!Zombie.textureCache || Zombie.textureCacheSize !== texSize) {
+        Zombie.textureCache = createZombieTexture(texSize);
+        Zombie.textureCacheSize = texSize;
+      }
+      super({ ...opts, texture: Zombie.textureCache, speed: 120, maxHealth: 30 });
       this.path = null;
       this.pathIndex = 0;
       this.repathTimer = 0;
@@ -177,7 +181,12 @@
 
   class Cow extends Mob {
     constructor(opts = {}) {
-      super({ ...opts, color: 0x9c7a5c, speed: 70, maxHealth: 20 });
+      const texSize = opts.size || 32;
+      if (!Cow.textureCache || Cow.textureCacheSize !== texSize) {
+        Cow.textureCache = createCowTexture(texSize);
+        Cow.textureCacheSize = texSize;
+      }
+      super({ ...opts, texture: Cow.textureCache, speed: 70, maxHealth: 20 });
       this.wanderTimer = 0;
       this.dir = 0;
     }
@@ -194,14 +203,106 @@
     }
   }
 
+  class Pig extends Mob {
+    constructor(opts = {}) {
+      const texSize = opts.size || 32;
+      if (!Pig.textureCache || Pig.textureCacheSize !== texSize) {
+        Pig.textureCache = createPigTexture(texSize);
+        Pig.textureCacheSize = texSize;
+      }
+      super({ ...opts, texture: Pig.textureCache, speed: 75, maxHealth: 18 });
+      this.wanderTimer = 0;
+      this.dir = 0;
+    }
+
+    updateAI(dt, world, tileSize) {
+      this.wanderTimer -= dt;
+      if (this.wanderTimer <= 0) {
+        const dirs = [-1, 0, 1];
+        this.dir = dirs[Math.floor(Math.random() * dirs.length)];
+        this.wanderTimer = 1.5 + Math.random() * 2.5;
+      }
+      this.vx = this.dir * this.speed;
+      super.update(dt, world, tileSize);
+    }
+  }
+
+  class Sheep extends Mob {
+    constructor(opts = {}) {
+      const texSize = opts.size || 32;
+      if (!Sheep.textureCache || Sheep.textureCacheSize !== texSize) {
+        Sheep.textureCache = createSheepTexture(texSize);
+        Sheep.textureCacheSize = texSize;
+      }
+      super({ ...opts, texture: Sheep.textureCache, speed: 65, maxHealth: 16 });
+      this.wanderTimer = 0;
+      this.dir = 0;
+    }
+
+    updateAI(dt, world, tileSize) {
+      this.wanderTimer -= dt;
+      if (this.wanderTimer <= 0) {
+        const dirs = [-1, 0, 1];
+        this.dir = dirs[Math.floor(Math.random() * dirs.length)];
+        this.wanderTimer = 1.5 + Math.random() * 2.5;
+      }
+      this.vx = this.dir * this.speed;
+      super.update(dt, world, tileSize);
+    }
+  }
+
+  class Chicken extends Mob {
+    constructor(opts = {}) {
+      const texSize = opts.size || 32;
+      if (!Chicken.textureCache || Chicken.textureCacheSize !== texSize) {
+        Chicken.textureCache = createChickenTexture(texSize);
+        Chicken.textureCacheSize = texSize;
+      }
+      super({ ...opts, texture: Chicken.textureCache, speed: 60, maxHealth: 12 });
+      this.wanderTimer = 0;
+      this.dir = 0;
+    }
+
+    updateAI(dt, world, tileSize) {
+      this.wanderTimer -= dt;
+      if (this.wanderTimer <= 0) {
+        const dirs = [-1, 0, 1];
+        this.dir = dirs[Math.floor(Math.random() * dirs.length)];
+        this.wanderTimer = 1 + Math.random() * 2;
+      }
+      this.vx = this.dir * this.speed;
+      super.update(dt, world, tileSize);
+    }
+  }
+
   function isBlocked(world, x, y) {
     if (x < 0 || y < 0 || y >= world.length || x >= world[0].length) return true;
     return isSolidTileLocal(world[y][x]);
   }
 
   function isSolidTileLocal(tile) {
-    // Non-solid: AIR(0) and TORCH(10)
-    return tile !== 0 && tile !== 10 && tile !== undefined;
+    // Non-solid: AIR(0), TORCH(10), WATER(12)
+    return tile !== 0 && tile !== 10 && tile !== 12 && tile !== undefined;
+  }
+
+  function createZombieTexture() {
+    return PIXI.Texture.from("textures/entity/zombie/husk.png");
+  }
+
+  function createCowTexture() {
+    return PIXI.Texture.from("textures/entity/cow/temperate_cow.png");
+  }
+
+  function createPigTexture() {
+    return PIXI.Texture.from("textures/entity/pig/warm_pig.png");
+  }
+
+  function createSheepTexture() {
+    return PIXI.Texture.from("textures/entity/sheep/sheep.png");
+  }
+
+  function createChickenTexture() {
+    return PIXI.Texture.from("textures/entity/chicken/warm_chicken.png");
   }
 
   function aabbIntersect(a, b) {
@@ -217,4 +318,7 @@
 
   window.Zombie = Zombie;
   window.Cow = Cow;
+  window.Pig = Pig;
+  window.Sheep = Sheep;
+  window.Chicken = Chicken;
 })();

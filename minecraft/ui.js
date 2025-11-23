@@ -4,23 +4,18 @@
   const PADDING = 18;
   const BIOME_MARGIN = 12;
 
-  const SLOT_DEFS = [
-    { id: 1, key: "grass", label: "Herbe" },
-    { id: 2, key: "dirt", label: "Terre" },
-    { id: 3, key: "stone", label: "Pierre" },
-    { id: 4, key: "torch", label: "Torche" },
-  ];
-
   class HotbarUI {
-    constructor(app, tileTextures, inventory, getSelectedTile) {
+    constructor(app, inventoryManager, tileTextures, itemToTile) {
       this.app = app;
+      this.inventoryManager = inventoryManager;
       this.tileTextures = tileTextures;
-      this.inventory = inventory;
-      this.getSelectedTile = getSelectedTile;
+      this.itemToTile = itemToTile;
       this.container = new PIXI.Container();
       this.overlay = new PIXI.Container();
       this.slots = [];
-
+      this.selectedIndex = 0;
+      this.slotDefs = Array.from({ length: inventoryManager.size }, (_, i) => ({ id: i }));
+      this.iconCache = new Map();
       this.buildSlots();
       this.buildOverlay();
       this.onResize();
@@ -30,7 +25,7 @@
 
     buildSlots() {
       let x = 0;
-      SLOT_DEFS.forEach((def, index) => {
+      this.slotDefs.forEach((def, index) => {
         const slot = this.createSlot(def);
         slot.container.x = x;
         this.container.addChild(slot.container);
@@ -49,8 +44,8 @@
       bg.drawRoundedRect(0, 0, SLOT_SIZE, SLOT_SIZE, 6);
       bg.endFill();
 
-      const icon = new PIXI.Sprite(this.tileTextures[def.id]);
-      icon.scale.set(1.2);
+      const icon = new PIXI.Sprite();
+      icon.scale.set(1.1);
       icon.anchor.set(0.5);
       icon.position.set(SLOT_SIZE / 2, SLOT_SIZE / 2 - 6);
 
@@ -72,25 +67,52 @@
 
       container.addChild(bg, icon, count, outline);
 
-      return { def, container, outline, count };
+      return { def, container, outline, count, icon };
     }
 
-    updateInventory(source) {
-      this.inventory = source;
-      this.slots.forEach((slot) => {
-        let value = 0;
-        if (typeof source === "function") value = source(slot.def.key) ?? 0;
-        else value = source?.[slot.def.key] ?? 0;
-        slot.count.text = value.toString();
-      });
-    }
-
-    setSelection(tileId) {
-      this.slots.forEach((slot) => {
-        const active = slot.def.id === tileId;
+    updateInventory() {
+      this.slots.forEach((slot, idx) => {
+        const data = this.inventoryManager.slots[idx];
+        if (data.itemId) {
+          const tex = this.getIcon(data.itemId);
+          slot.icon.texture = tex;
+          slot.icon.visible = true;
+          slot.count.text = data.count > 1 ? data.count : "";
+        } else {
+          slot.icon.visible = false;
+          slot.count.text = "";
+        }
+        const active = idx === this.selectedIndex;
         slot.outline.visible = active;
         slot.container.scale.set(active ? 1.1 : 1);
       });
+    }
+
+    setSelectionIndex(idx) {
+      this.selectedIndex = idx;
+      this.updateInventory();
+    }
+
+    getIcon(itemId) {
+      if (this.iconCache.has(itemId)) return this.iconCache.get(itemId);
+      const def = window.ITEM_DEFS[itemId];
+      const custom = window.getItemIconTexture ? window.getItemIconTexture(this.app, itemId) : null;
+      if (custom) {
+        this.iconCache.set(itemId, custom);
+        return custom;
+      }
+      const tileId = this.itemToTile ? this.itemToTile(itemId) : null;
+      if (tileId != null && this.tileTextures?.[tileId]) {
+        this.iconCache.set(itemId, this.tileTextures[tileId]);
+        return this.tileTextures[tileId];
+      }
+      const g = new PIXI.Graphics();
+      g.beginFill(def?.color ?? 0xffffff);
+      g.drawRoundedRect(0, 0, 40, 40, 6);
+      g.endFill();
+      const tex = this.app.renderer.generateTexture(g);
+      this.iconCache.set(itemId, tex);
+      return tex;
     }
 
     tick() {
@@ -138,7 +160,33 @@
       this.healthBar.drawRoundedRect(32, 32, 112, 14, 4);
       this.healthBar.endFill();
 
-      this.overlay.addChild(bg, this.biomeText, this.healthBarBg, this.healthBar, this.healthLabel);
+      this.hungerLabel = new PIXI.Text("Food", {
+        fontFamily: "Consolas, monospace",
+        fontSize: 12,
+        fill: "#ffffff",
+      });
+      this.hungerLabel.position.set(10, 54);
+
+      this.hungerBarBg = new PIXI.Graphics();
+      this.hungerBarBg.beginFill(0x2d3145);
+      this.hungerBarBg.drawRoundedRect(52, 52, 92, 12, 4);
+      this.hungerBarBg.endFill();
+
+      this.hungerBar = new PIXI.Graphics();
+      this.hungerBar.beginFill(0xf1c40f);
+      this.hungerBar.drawRoundedRect(52, 52, 92, 12, 4);
+      this.hungerBar.endFill();
+
+      this.overlay.addChild(
+        bg,
+        this.biomeText,
+        this.healthBarBg,
+        this.healthBar,
+        this.healthLabel,
+        this.hungerBarBg,
+        this.hungerBar,
+        this.hungerLabel
+      );
     }
 
     setBiome(name) {
@@ -150,9 +198,14 @@
       const ratio = Math.max(0, Math.min(1, current / max));
       this.healthBar.width = 112 * ratio;
     }
+
+    setHunger(current, max) {
+      const ratio = Math.max(0, Math.min(1, current / max));
+      this.hungerBar.width = 92 * ratio;
+    }
   }
 
-  window.createHotbarUI = function createHotbarUI(app, tileTextures, inventory, getSelectedTile) {
-    return new HotbarUI(app, tileTextures, inventory, getSelectedTile);
+  window.createHotbarUI = function createHotbarUI(app, tileTextures, inventoryManager, itemToTile) {
+    return new HotbarUI(app, inventoryManager, tileTextures, itemToTile);
   };
 })();
