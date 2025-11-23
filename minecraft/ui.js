@@ -2,11 +2,13 @@
   const SLOT_SIZE = 56;
   const SLOT_GAP = 10;
   const PADDING = 18;
+  const BIOME_MARGIN = 12;
 
   const SLOT_DEFS = [
     { id: 1, key: "grass", label: "Herbe" },
     { id: 2, key: "dirt", label: "Terre" },
     { id: 3, key: "stone", label: "Pierre" },
+    { id: 4, key: "torch", label: "Torche" },
   ];
 
   class HotbarUI {
@@ -16,11 +18,14 @@
       this.inventory = inventory;
       this.getSelectedTile = getSelectedTile;
       this.container = new PIXI.Container();
+      this.overlay = new PIXI.Container();
       this.slots = [];
 
       this.buildSlots();
+      this.buildOverlay();
       this.onResize();
       app.stage.addChild(this.container);
+      app.stage.addChild(this.overlay);
     }
 
     buildSlots() {
@@ -70,10 +75,12 @@
       return { def, container, outline, count };
     }
 
-    updateInventory(inventory) {
-      this.inventory = inventory;
+    updateInventory(source) {
+      this.inventory = source;
       this.slots.forEach((slot) => {
-        const value = inventory[slot.def.key] ?? 0;
+        let value = 0;
+        if (typeof source === "function") value = source(slot.def.key) ?? 0;
+        else value = source?.[slot.def.key] ?? 0;
         slot.count.text = value.toString();
       });
     }
@@ -95,6 +102,53 @@
       const height = this.app.renderer.height;
       this.container.x = width / 2;
       this.container.y = height - SLOT_SIZE - PADDING;
+      this.overlay.x = BIOME_MARGIN;
+      this.overlay.y = BIOME_MARGIN;
+    }
+
+    buildOverlay() {
+      const bg = new PIXI.Graphics();
+      bg.beginFill(0x0c0e16, 0.65);
+      bg.drawRoundedRect(0, 0, 160, 62, 6);
+      bg.endFill();
+      bg.lineStyle(1, 0xffffff, 0.25);
+      bg.drawRoundedRect(0, 0, 160, 62, 6);
+
+      this.biomeText = new PIXI.Text("Biome: ?", {
+        fontFamily: "Consolas, monospace",
+        fontSize: 14,
+        fill: "#ffffff",
+      });
+      this.biomeText.position.set(10, 8);
+
+      this.healthLabel = new PIXI.Text("HP", {
+        fontFamily: "Consolas, monospace",
+        fontSize: 12,
+        fill: "#ffffff",
+      });
+      this.healthLabel.position.set(10, 34);
+
+      this.healthBarBg = new PIXI.Graphics();
+      this.healthBarBg.beginFill(0x2d3145);
+      this.healthBarBg.drawRoundedRect(32, 32, 112, 14, 4);
+      this.healthBarBg.endFill();
+
+      this.healthBar = new PIXI.Graphics();
+      this.healthBar.beginFill(0xe74c3c);
+      this.healthBar.drawRoundedRect(32, 32, 112, 14, 4);
+      this.healthBar.endFill();
+
+      this.overlay.addChild(bg, this.biomeText, this.healthBarBg, this.healthBar, this.healthLabel);
+    }
+
+    setBiome(name) {
+      const label = name ? name.charAt(0).toUpperCase() + name.slice(1) : "?";
+      this.biomeText.text = `Biome: ${label}`;
+    }
+
+    setHealth(current, max) {
+      const ratio = Math.max(0, Math.min(1, current / max));
+      this.healthBar.width = 112 * ratio;
     }
   }
 
