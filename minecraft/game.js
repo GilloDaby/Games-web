@@ -87,20 +87,21 @@
 
   async function loadTileTextures() {
     const url = createTileset();
-    const base = await PIXI.Assets.load(url);
+    const baseTexture = await PIXI.Assets.load(url);
+    const src = baseTexture.baseTexture ?? baseTexture;
     return {
-      [TILE.GRASS]: new PIXI.Texture({
-        source: base.source,
-        frame: new PIXI.Rectangle(0, 0, TILE_SIZE, TILE_SIZE),
-      }),
-      [TILE.DIRT]: new PIXI.Texture({
-        source: base.source,
-        frame: new PIXI.Rectangle(TILE_SIZE, 0, TILE_SIZE, TILE_SIZE),
-      }),
-      [TILE.STONE]: new PIXI.Texture({
-        source: base.source,
-        frame: new PIXI.Rectangle(TILE_SIZE * 2, 0, TILE_SIZE, TILE_SIZE),
-      }),
+      [TILE.GRASS]: new PIXI.Texture(
+        src,
+        new PIXI.Rectangle(0, 0, TILE_SIZE, TILE_SIZE)
+      ),
+      [TILE.DIRT]: new PIXI.Texture(
+        src,
+        new PIXI.Rectangle(TILE_SIZE, 0, TILE_SIZE, TILE_SIZE)
+      ),
+      [TILE.STONE]: new PIXI.Texture(
+        src,
+        new PIXI.Rectangle(TILE_SIZE * 2, 0, TILE_SIZE, TILE_SIZE)
+      ),
     };
   }
 
