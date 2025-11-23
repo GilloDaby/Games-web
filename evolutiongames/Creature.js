@@ -1669,6 +1669,9 @@ getTerrainSpeedModifier(type) {
     animals = [],
     bosses = [],
   ) {
+    if (this.traits.some(t => t.name === 'pacifiste')) {
+        return;
+    }
     const ready =
       currentTime - this.lastAttackTime >= this.attackCooldown / this.buffMultipliers.cooldown;
     const attackRange = this.attackRange * this.buffMultipliers.range;
