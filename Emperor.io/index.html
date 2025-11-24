@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emperor.io</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0d1117;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      background: #0d1117;
+    }
+
+    /* HUD overlay */
+    #hud {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      color: #e5e7eb;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .hud-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hud-card {
+      min-width: 260px;
+      background: rgba(17, 24, 39, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+      pointer-events: auto; /* autorise clics (bouton autofarm) */
+    }
+
+    .hud-title {
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      color: #f3f4f6;
+      margin-bottom: 4px;
+    }
+
+    .hud-line {
+      font-size: 13px;
+      margin: 2px 0;
+      color: #d1d5db;
+    }
+
+    #hud-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-width: 520px;
+    }
+
+    .hud-toast {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #ecfdf3;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(4px);
+    }
+
+    #minimap-container {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      padding: 8px;
+      background: rgba(17, 24, 39, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+      z-index: 9;
+    }
+
+    #minimap {
+      display: block;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      background: #0b1622;
+    }
+
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.55);
+      z-index: 20;
+    }
+    .panel {
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      color: #e5e7eb;
+      min-width: 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .panel h1, .panel h2 {
+      margin: 0;
+      color: #f8fafc;
+      text-align: center;
+    }
+    .panel form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .panel label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+    .panel select, .panel input[type="range"] {
+      flex: 1;
+      background: #1f2937;
+      color: #e5e7eb;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      padding: 6px;
+    }
+    .panel .buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .panel button {
+      background: #2563eb;
+      border: none;
+      color: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.1s ease, opacity 0.2s;
+    }
+    .panel button:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div id="hud">
+    <div class="hud-row">
+      <div class="hud-card">
+        <div class="hud-title">Ressources</div>
+        <div id="hud-resources" class="hud-line">-</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-title">Population</div>
+        <div id="hud-population" class="hud-line">-</div>
+        <div id="hud-units" class="hud-line">-</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-title">Commandes</div>
+        <div id="hud-build" class="hud-line">-</div>
+        <div class="hud-line">Drag gauche: selection | F: formation ligne/bloc | ZQSD/Fleches: camera | Molette: zoom | Mini-map: clic pour centrer</div>
+        <div class="hud-line">AutoFarm:
+          <button id="btn-autofarm" style="margin-left:8px; padding:4px 8px; border:none; border-radius:6px; background:#22c55e; color:#0f172a; cursor:pointer; pointer-events:auto;">Off</button>
+        </div>
+      </div>
+    </div>
+    <div class="hud-row">
+      <div class="hud-card">
+        <div class="hud-title">Objectif</div>
+        <div id="hud-objective" class="hud-line">-</div>
+      </div>
+    </div>
+    <div id="hud-messages"></div>
+  </div>
+  <div id="minimap-container">
+    <canvas id="minimap" width="180" height="180"></canvas>
+  </div>
+  <!-- UI Etats de jeu -->
+  <div id="menu-screen" class="screen">
+    <div class="panel">
+      <h1>Emperor.io</h1>
+      <button id="btn-play">Jouer</button>
+      <button id="btn-options">Options</button>
+    </div>
+  </div>
+  <div id="lobby-screen" class="screen">
+    <div class="panel">
+      <h2>Solo</h2>
+      <form id="lobby-form">
+        <label> Difficulté :
+          <select name="difficulty">
+            <option value="easy">Facile</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hard">Difficile</option>
+          </select>
+        </label>
+        <label> Taille carte :
+          <select name="map-size">
+            <option value="small">Petite</option>
+            <option value="medium" selected>Standard</option>
+            <option value="large">Grande</option>
+          </select>
+        </label>
+        <div class="buttons">
+          <button type="submit">Lancer</button>
+          <button type="button" id="btn-back-lobby">Retour</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="options-screen" class="screen">
+    <div class="panel">
+      <h2>Options</h2>
+      <form id="options-form">
+        <label> Volume : <input type="range" name="volume" min="0" max="1" step="0.05" value="0.8" /></label>
+        <label> Qualité : 
+          <select name="quality">
+            <option value="low">Basse</option>
+            <option value="medium" selected>Moyenne</option>
+            <option value="high">Haute</option>
+          </select>
+        </label>
+        <label> Vitesse de jeu :
+          <select name="game-speed">
+            <option value="1">1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+        </label>
+        <label> Debug logs :
+          <select name="debug">
+            <option value="false" selected>Off</option>
+            <option value="true">On</option>
+          </select>
+        </label>
+        <div class="buttons">
+          <button type="submit">Valider</button>
+          <button type="button" id="btn-back-menu-options">Retour</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="end-screen" class="screen">
+    <div class="panel">
+      <h2 id="end-title">Fin de partie</h2>
+      <div id="end-stats">-</div>
+      <div class="buttons">
+        <button id="btn-replay">Rejouer</button>
+        <button id="btn-back-menu-end">Menu</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
