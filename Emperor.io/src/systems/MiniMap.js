@@ -1,4 +1,6 @@
-// Mini-carte simple : dessine un aperçu de la carte et permet de cliquer pour recentrer la caméra.
+import { TILE_COLORS } from "../utils/constants.js";
+
+// Mini-carte simple : dessine un apercu de la carte et permet de cliquer pour recentrer la camera.
 export default class MiniMap {
   constructor(game) {
     this.game = game;
@@ -32,20 +34,12 @@ export default class MiniMap {
     const map = this.game.tileMap;
     ctx.clearRect(0, 0, this.width, this.height);
 
-    // Fond
-    ctx.fillStyle = "#0b1622";
-    ctx.fillRect(0, 0, this.width, this.height);
-
-    // Ressources simplifiées
-    for (let y = 0; y < map.height; y += 2) {
-      for (let x = 0; x < map.width; x += 2) {
-        const type = map.get(x, y);
-        ctx.fillStyle = this.colorFor(type);
-        const sx = (x / map.width) * this.width;
-        const sy = (y / map.height) * this.height;
-        ctx.fillRect(sx, sy, 2, 2);
-      }
-    }
+    // Fond organique : on reprend la texture de la carte en la reduisant.
+    const tileSize = Math.max(4, this.game.computeTileSize());
+    const texture = map.ensureTexture(tileSize, TILE_COLORS);
+    const texW = map.width * tileSize;
+    const texH = map.height * tileSize;
+    ctx.drawImage(texture, 0, 0, texW, texH, 0, 0, this.width, this.height);
 
     // Batiments
     for (const b of this.game.buildings) {
@@ -98,12 +92,5 @@ export default class MiniMap {
     ctx.strokeStyle = "#22d3ee";
     ctx.lineWidth = 1;
     ctx.strokeRect(vx, vy, vw, vh);
-  }
-
-  colorFor(type) {
-    if (type === "wood") return "rgba(46,139,87,0.8)";
-    if (type === "stone") return "rgba(108,122,137,0.8)";
-    if (type === "food") return "rgba(201,162,39,0.8)";
-    return "rgba(15,27,43,0.8)";
   }
 }

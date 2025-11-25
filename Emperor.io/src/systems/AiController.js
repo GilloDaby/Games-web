@@ -1,4 +1,4 @@
-// Contrôleur IA simple : gère ressources, constructions, et attaques périodiques.
+// Controleur IA simple : gere ressources, constructions, et attaques periodiques.
 export default class AiController {
   constructor(game, options = {}) {
     this.game = game;
@@ -103,7 +103,7 @@ export default class AiController {
   }
 
   findBuildSpot() {
-    // Simple : cherche à proximité du centre IA.
+    // Simple : cherche a proximite du centre IA.
     const baseX = Math.round(this.cityCenter.x);
     const baseY = Math.round(this.cityCenter.y);
     const radius = 6;

@@ -103,8 +103,9 @@ export default class Citizen {
 
     const dist = Math.sqrt(distSq);
     const maxStep = this.speed * dt;
+    const arriveEps = Math.max(0.08, maxStep * 0.6);
 
-    if (dist <= maxStep) {
+    if (dist <= arriveEps) {
       this.x = this.target.x;
       this.y = this.target.y;
       return true;
@@ -158,8 +159,9 @@ export default class Citizen {
     const dy = next.y - this.y;
     const distSq = dx * dx + dy * dy;
     const maxStep = this.speed * dt;
+    const arriveEps = Math.max(0.08, maxStep * 0.6);
 
-    if (distSq === 0 || Math.sqrt(distSq) <= maxStep) {
+    if (distSq === 0 || Math.sqrt(distSq) <= arriveEps) {
       this.x = next.x;
       this.y = next.y;
       this.path.shift();

@@ -20,6 +20,8 @@ export default class Soldier {
     this.state = SoldierState.IDLE;
     this.target = null; // { x, y, hp, maxHp, radius }
     this.path = [];
+    this.intent = "idle"; // "idle" | "move" | "attack"
+    this.moveTarget = null;
   }
 
   // Ordre d'attaque : on suit la cible jusqu'a la portee.
@@ -27,6 +29,16 @@ export default class Soldier {
     this.target = target;
     this.path = path;
     this.state = SoldierState.MOVING;
+    this.intent = "attack";
+    this.moveTarget = null;
+  }
+
+  issueMove(target, path = []) {
+    this.moveTarget = { x: target.x, y: target.y };
+    this.target = null;
+    this.path = path || [];
+    this.state = SoldierState.MOVING;
+    this.intent = "move";
   }
 
   // Mise a jour : deplacement + tir si a portee. computePathFn/emitProjectile pour recalcul/FX.
@@ -34,10 +46,26 @@ export default class Soldier {
     const { computePath, emitProjectile } = helpers;
     this.cooldown = Math.max(0, this.cooldown - dt);
 
+    if (this.intent === "move") {
+      if (!this.moveTarget) {
+        this.reset();
+        return;
+      }
+      const eps = 0.15;
+      const dist = Math.hypot(this.moveTarget.x - this.x, this.moveTarget.y - this.y);
+      if (dist <= eps) {
+        this.reset();
+        return;
+      }
+      if ((!this.path || this.path.length === 0) && computePath) {
+        this.path = computePath({ x: this.x, y: this.y }, this.moveTarget);
+      }
+      this.followPath(dt);
+      return;
+    }
+
     if (!this.target || this.target.hp <= 0) {
-      this.target = null;
-      this.state = SoldierState.IDLE;
-      this.path = [];
+      this.reset();
       return;
     }
 
@@ -64,6 +92,14 @@ export default class Soldier {
     }
   }
 
+  reset() {
+    this.target = null;
+    this.moveTarget = null;
+    this.intent = "idle";
+    this.state = SoldierState.IDLE;
+    this.path = [];
+  }
+
   followPath(dt) {
     if (!this.path || this.path.length === 0) return;
     const next = this.path[0];
@@ -71,8 +107,9 @@ export default class Soldier {
     const dy = next.y - this.y;
     const distSq = dx * dx + dy * dy;
     const maxStep = this.speed * dt;
+    const arriveEps = Math.max(0.08, maxStep * 0.6);
 
-    if (distSq === 0 || Math.sqrt(distSq) <= maxStep) {
+    if (distSq === 0 || Math.sqrt(distSq) <= arriveEps) {
       this.x = next.x;
       this.y = next.y;
       this.path.shift();

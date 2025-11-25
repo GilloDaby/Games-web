@@ -1,98 +1,160 @@
-// Pathfinder A* sur grille 4 directions.
+// Lightweight path planner on continuous space using a visibility graph around circular obstacles.
 export default class Pathfinder {
-  constructor(width, height) {
-    this.width = width;
-    this.height = height;
+  constructor() {
+    this.sampleAngles = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4, Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4];
   }
 
-  // isWalkable(x, y) -> boolean ; allowGoalBlock permet d'autoriser la case cible meme si bloquee.
-  findPath(start, goal, isWalkable, allowGoalBlock = true) {
-    const sx = Math.round(start.x);
-    const sy = Math.round(start.y);
-    const gx = Math.round(goal.x);
-    const gy = Math.round(goal.y);
+  /**
+   * @param {{x:number,y:number}} start
+   * @param {{x:number,y:number}} goal
+   * @param {Array<{x:number,y:number,r:number,id?:string}>} obstacles
+   * @param {{clearance?:number, allowGoalInside?:boolean}} options
+   * @returns {Array<{x:number,y:number}>} waypoints (goal inclusive, start omitted)
+   */
+  findPath(start, goal, obstacles = [], options = {}) {
+    if (!goal) return [];
+    const clearance = options.clearance ?? 0.35;
+    const allowGoalInside = options.allowGoalInside ?? true;
+    const usableObstacles = allowGoalInside ? obstacles.filter((o) => !this.pointInside(goal, o, clearance)) : obstacles;
 
-    if (!this.inBounds(sx, sy) || !this.inBounds(gx, gy)) return [];
+    if (this.lineClear(start, goal, usableObstacles, clearance)) {
+      return [goal];
+    }
 
-    const open = [];
-    const cameFrom = new Map();
-    const gScore = new Map();
-    const fScore = new Map();
+    const nodes = [];
+    const addNode = (p, kind = "p") => {
+      nodes.push({ ...p, kind });
+    };
 
-    const startKey = this.key(sx, sy);
-    open.push({ x: sx, y: sy, f: this.heuristic(sx, sy, gx, gy) });
-    gScore.set(startKey, 0);
-    fScore.set(startKey, this.heuristic(sx, sy, gx, gy));
+    addNode(start, "start");
+    addNode(goal, "goal");
 
-    while (open.length > 0) {
-      // Extraire le noeud avec le plus petit f
-      open.sort((a, b) => a.f - b.f);
-      const current = open.shift();
-      const cKey = this.key(current.x, current.y);
+    for (const obs of usableObstacles) {
+      this.sampleAroundObstacle(obs, clearance).forEach((p) => addNode(p, "obs"));
+    }
 
-      if (current.x === gx && current.y === gy) {
-        return this.reconstructPath(cameFrom, current);
+    const edges = this.buildEdges(nodes, usableObstacles, clearance);
+    const path = this.runDijkstra(nodes, edges);
+    if (!path || path.length === 0) {
+      return this.lineClear(start, goal, usableObstacles, clearance) ? [goal] : [];
+    }
+    const waypoints = path.slice(1); // drop the start node
+    return this.compress(waypoints, usableObstacles, clearance);
+  }
+
+  sampleAroundObstacle(obs, clearance) {
+    const pts = [];
+    const r = obs.r + clearance * 1.3;
+    for (const ang of this.sampleAngles) {
+      pts.push({
+        x: obs.x + Math.cos(ang) * r,
+        y: obs.y + Math.sin(ang) * r,
+      });
+    }
+    return pts;
+  }
+
+  buildEdges(nodes, obstacles, clearance) {
+    const edges = new Map(); // key -> array of {to, cost}
+    const addEdge = (i, j, cost) => {
+      if (!edges.has(i)) edges.set(i, []);
+      edges.get(i).push({ to: j, cost });
+    };
+
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i];
+        const b = nodes[j];
+        if (this.lineClear(a, b, obstacles, clearance)) {
+          const d = Math.hypot(b.x - a.x, b.y - a.y);
+          addEdge(i, j, d);
+          addEdge(j, i, d);
+        }
       }
+    }
+    return edges;
+  }
 
-      for (const [nx, ny] of this.neighbors(current.x, current.y)) {
-        if (!this.inBounds(nx, ny)) continue;
-        if (!isWalkable(nx, ny) && !(allowGoalBlock && nx === gx && ny === gy)) continue;
+  runDijkstra(nodes, edges) {
+    const dist = new Array(nodes.length).fill(Infinity);
+    const prev = new Array(nodes.length).fill(-1);
+    const visited = new Array(nodes.length).fill(false);
+    dist[0] = 0; // start is index 0
 
-        const nKey = this.key(nx, ny);
-        const tentativeG = (gScore.get(cKey) ?? Infinity) + 1; // cout uniforme
-        if (tentativeG < (gScore.get(nKey) ?? Infinity)) {
-          cameFrom.set(nKey, cKey);
-          gScore.set(nKey, tentativeG);
-          const f = tentativeG + this.heuristic(nx, ny, gx, gy);
-          fScore.set(nKey, f);
-          const existing = open.find((n) => n.x === nx && n.y === ny);
-          if (existing) {
-            existing.f = f;
-          } else {
-            open.push({ x: nx, y: ny, f });
-          }
+    for (let _ = 0; _ < nodes.length; _++) {
+      let u = -1;
+      let best = Infinity;
+      for (let i = 0; i < nodes.length; i++) {
+        if (!visited[i] && dist[i] < best) {
+          best = dist[i];
+          u = i;
+        }
+      }
+      if (u === -1) break;
+      visited[u] = true;
+      if (nodes[u].kind === "goal") break;
+      const adj = edges.get(u) || [];
+      for (const { to, cost } of adj) {
+        if (visited[to]) continue;
+        const nd = dist[u] + cost;
+        if (nd < dist[to]) {
+          dist[to] = nd;
+          prev[to] = u;
         }
       }
     }
 
-    return []; // pas de chemin
-  }
+    let goalIndex = nodes.findIndex((n) => n.kind === "goal");
+    if (goalIndex === -1 || dist[goalIndex] === Infinity) return [];
 
-  reconstructPath(cameFrom, current) {
     const path = [];
-    let curKey = this.key(current.x, current.y);
-    while (cameFrom.has(curKey)) {
-      const [x, y] = this.fromKey(curKey);
-      path.push({ x, y });
-      curKey = cameFrom.get(curKey);
+    let cur = goalIndex;
+    while (cur !== -1) {
+      path.push({ x: nodes[cur].x, y: nodes[cur].y });
+      cur = prev[cur];
     }
     path.reverse();
     return path;
   }
 
-  neighbors(x, y) {
-    return [
-      [x + 1, y],
-      [x - 1, y],
-      [x, y + 1],
-      [x, y - 1],
-    ];
+  compress(path, obstacles, clearance) {
+    if (path.length <= 2) return path;
+    const out = [path[0]];
+    let anchor = path[0];
+    for (let i = 1; i < path.length - 1; i++) {
+      const next = path[i + 1];
+      if (!this.lineClear(anchor, next, obstacles, clearance)) {
+        out.push(path[i]);
+        anchor = path[i];
+      }
+    }
+    out.push(path[path.length - 1]);
+    return out;
   }
 
-  heuristic(x, y, gx, gy) {
-    return Math.abs(x - gx) + Math.abs(y - gy); // Manhattan
+  lineClear(a, b, obstacles, clearance) {
+    for (const obs of obstacles) {
+      if (this.segmentIntersectsCircle(a, b, obs, obs.r + clearance)) return false;
+    }
+    return true;
   }
 
-  inBounds(x, y) {
-    return x >= 0 && x < this.width && y >= 0 && y < this.height;
+  segmentIntersectsCircle(a, b, circle, radius) {
+    const abx = b.x - a.x;
+    const aby = b.y - a.y;
+    const acx = circle.x - a.x;
+    const acy = circle.y - a.y;
+    const abLenSq = abx * abx + aby * aby;
+    const proj = abLenSq === 0 ? 0 : (acx * abx + acy * aby) / abLenSq;
+    const t = Math.max(0, Math.min(1, proj));
+    const closestX = a.x + abx * t;
+    const closestY = a.y + aby * t;
+    const dx = closestX - circle.x;
+    const dy = closestY - circle.y;
+    return dx * dx + dy * dy <= radius * radius;
   }
 
-  key(x, y) {
-    return `${x},${y}`;
-  }
-
-  fromKey(key) {
-    const [x, y] = key.split(",").map((v) => parseInt(v, 10));
-    return [x, y];
+  pointInside(p, obs, clearance) {
+    return Math.hypot(p.x - obs.x, p.y - obs.y) <= obs.r + clearance * 0.5;
   }
 }

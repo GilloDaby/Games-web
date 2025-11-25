@@ -42,7 +42,7 @@ export default class Game {
     // Carte logique (grille 2D)
     this.tileMap = new TileMap(this.mapWidth, this.mapHeight);
     this.tileMap.generate(TILE_PROBABILITIES, RESOURCE_CAPACITY, BIOMES);
-    this.pathfinder = new Pathfinder(this.mapWidth, this.mapHeight);
+    this.pathfinder = new Pathfinder();
     this.camera = new Camera(this.mapWidth, this.mapHeight);
 
     // Joueur humain.
@@ -53,6 +53,8 @@ export default class Game {
     this.player = new Player(1, "#e63946", spawn);
     const baseHp = this.config?.rules?.baseHp ?? 220;
     this.playerCity = { x: spawn.x, y: spawn.y, hp: baseHp, maxHp: baseHp, radius: 1.2 };
+    // Zone claire autour du centre joueur pour eviter les gros paquets de ressources.
+    this.tileMap.clearArea(spawn.x, spawn.y, 8);
 
     // IA simple (un joueur IA)
     const aiSpawn = {
@@ -60,6 +62,8 @@ export default class Game {
       y: Math.floor(this.mapHeight * 0.7),
     };
     this.aiPlayer = new Player(2, "#5cb85c", aiSpawn, 8);
+    // Zone claire autour du centre IA.
+    this.tileMap.clearArea(aiSpawn.x, aiSpawn.y, 8);
     this.aiController = new AiController(this, {
       player: this.aiPlayer,
       cityCenter: aiSpawn,
@@ -99,6 +103,7 @@ export default class Game {
       population: 14,
       conquered: false,
     };
+    this.tileMap.clearArea(this.enemyCity.x, this.enemyCity.y, 9);
 
     // Messages (HUD)
     this.messages = [];
@@ -189,13 +194,13 @@ export default class Game {
     });
   }
 
-  // Convertit les coordonnees pixel du clic vers la grille (cases).
-  screenToGrid(px, py) {
+  // Convertit les coordonnees pixel du clic vers le monde (coords continues).
+  screenToWorld(px, py) {
     const tileSize = this.computeTileSize();
     const view = this.getViewBounds(tileSize);
-    const gx = Math.floor(view.x + px / tileSize);
-    const gy = Math.floor(view.y + py / tileSize);
-    return { gx, gy };
+    const gx = view.x + px / tileSize;
+    const gy = view.y + py / tileSize;
+    return { gx, gy, tileSize, view };
   }
 
   // Gestion du clavier pour choisir le type de batiment ou creer des soldats.
@@ -205,7 +210,7 @@ export default class Game {
       this.currentBuildType = BUILD_TYPES.HOUSE;
     } else if (key === "b") {
       this.currentBuildType = BUILD_TYPES.BARRACKS;
-    } else if (key === "s") {
+    } else if (key === "r") {
       this.spawnSoldier();
     } else if (key === "f") {
       this.formationMode = this.formationMode === "block" ? "line" : "block";
@@ -233,12 +238,25 @@ export default class Game {
 
   // Gere le clic utilisateur : construction, attaque, ou ordre normal.
   handleClick(px, py) {
-    const { gx, gy } = this.screenToGrid(px, py);
+    const { gx, gy } = this.screenToWorld(px, py);
     if (gx < 0 || gx >= MAP_WIDTH || gy < 0 || gy >= MAP_HEIGHT) return;
+
+    // Selection directe si clic sur une unite amie (pas de mode construction).
+    const friendly = this.pickFriendlyAt(gx, gy);
+    if (!this.currentBuildType && friendly) {
+      if (friendly.type === "soldier") {
+        this.selectedSoldiers = [friendly.ref];
+        this.selectedCitizens = [];
+      } else if (friendly.type === "citizen") {
+        this.selectedCitizens = [friendly.ref];
+        this.selectedSoldiers = [];
+      }
+      return;
+    }
 
     // Si un type de batiment est selectionne, on place un chantier.
     if (this.currentBuildType) {
-      this.placeBuilding(this.currentBuildType, gx, gy);
+      this.placeBuilding(this.currentBuildType, Math.round(gx), Math.round(gy));
       this.currentBuildType = null;
       return;
     }
@@ -283,7 +301,13 @@ export default class Game {
     const intent = isResource ? "gather" : "move";
     const resourceType = isResource ? tileType : null;
 
-    const citizens = this.selectedCitizens.length ? this.selectedCitizens : this.player.citizens;
+    const hasSoldierSelection = this.selectedSoldiers.length > 0;
+    const citizens = this.selectedCitizens.length
+      ? this.selectedCitizens
+      : hasSoldierSelection
+      ? []
+      : this.player.citizens;
+    const soldiers = this.selectedSoldiers.length ? this.selectedSoldiers : [];
     if (isResource) {
       // Recolte : on evite que tout le monde se pile exactement dessus -> petits offsets autour.
       const gatherTargets = this.computeGatherTargets({ x: gx, y: gy }, citizens.length);
@@ -296,6 +320,9 @@ export default class Game {
         );
         citizen.issueOrder(tgt, intent, resourceType, null, path);
       });
+      if (soldiers.length > 0) {
+        // Les soldats ne recoltent pas : pas d'ordre si selectionnes.
+      }
     } else {
       const targetPositions = this.computeFormationTargets({ x: gx, y: gy }, citizens.length, this.formationMode);
       citizens.forEach((citizen, idx) => {
@@ -307,6 +334,19 @@ export default class Game {
         );
         citizen.issueOrder(tgt, intent, resourceType, null, path);
       });
+
+      if (soldiers.length > 0) {
+        const soldierTargets = this.computeFormationTargets({ x: gx, y: gy }, soldiers.length, this.formationMode);
+        soldiers.forEach((soldier, idx) => {
+          const tgt = soldierTargets[idx] || { x: gx, y: gy };
+          const path = this.computePath(
+            { x: soldier.x, y: soldier.y },
+            { x: tgt.x, y: tgt.y },
+            true
+          );
+          soldier.issueMove(tgt, path);
+        });
+      }
     }
   }
 
@@ -411,18 +451,15 @@ export default class Game {
     return { ...player.cityCenter };
   }
 
-  // Pathfinding : calcule un chemin A* en evitant les obstacles fixes. allowGoalBlock autorise la cible meme si occupee.
+  // Pathfinding : calcule un chemin sur graphe de visibilite (positions continues). allowGoalBlock autorise la cible meme si occupee.
   computePath(from, to, allowGoalBlock = true) {
-    return this.pathfinder.findPath(
-      from,
-      to,
-      (x, y) => this.isWalkable(x, y, to),
-      allowGoalBlock
-    );
+    const obstacles = this.buildObstacles(allowGoalBlock ? to : null);
+    return this.pathfinder.findPath(from, to, obstacles, { allowGoalInside: allowGoalBlock });
   }
 
   isWalkable(x, y, goal) {
     if (x < 0 || x >= this.mapWidth || y < 0 || y >= this.mapHeight) return false;
+    if (!this.tileMap.isLand(x, y)) return false;
 
     // City center du joueur est toujours traversable (depot).
     if (x === this.player.cityCenter.x && y === this.player.cityCenter.y) {
@@ -458,6 +495,32 @@ export default class Game {
     }
 
     return true;
+  }
+
+  buildObstacles(goal) {
+    const obs = [];
+    const clearance = 0.55;
+
+    // Batiments
+    this.buildings.forEach((b, idx) => {
+      obs.push({ x: b.x + 0.5, y: b.y + 0.5, r: 0.65, id: `b-${idx}` });
+    });
+
+    // Ville ennemie
+    if (this.enemyCity && !this.enemyCity.conquered && this.enemyCity.hp > 0) {
+      obs.push({ x: this.enemyCity.x, y: this.enemyCity.y, r: this.enemyCity.radius + 0.2, id: "enemy-city" });
+    }
+
+    // Camps ennemis
+    this.enemies.forEach((e, idx) => {
+      obs.push({ x: e.x, y: e.y, r: e.radius + 0.2, id: `camp-${idx}` });
+    });
+
+    // On ignore l'obstacle si c'est justement la cible.
+    if (goal) {
+      return obs.filter((o) => Math.hypot(o.x - goal.x, o.y - goal.y) > o.r + clearance * 0.25);
+    }
+    return obs;
   }
 
   // Drag selection handlers
@@ -515,7 +578,7 @@ export default class Game {
       return res;
     }
 
-    // block (carré compact)
+    // block (carre compact)
     const side = Math.ceil(Math.sqrt(count));
     const startX = target.x - ((side - 1) * spacing) / 2;
     const startY = target.y - ((side - 1) * spacing) / 2;
@@ -607,7 +670,7 @@ export default class Game {
       .map((m) => ({ ...m, ttl: m.ttl - dt }))
       .filter((m) => m.ttl > 0);
 
-    // Mise à jour partition spatiale (uniquement pour joueurs)
+  // Mise a jour partition spatiale (uniquement pour joueurs)
     this.rebuildSpatial();
 
     // Projectiles
@@ -863,6 +926,18 @@ export default class Game {
       const dx = e.x - wx;
       const dy = e.y - wy;
       if (Math.sqrt(dx * dx + dy * dy) <= e.radius + 0.3) return { type: "enemy", ref: e, x: e.x, y: e.y, radius: e.radius };
+    }
+    return null;
+  }
+
+  // Selection rapide sur clic (uniquement unites jouables).
+  pickFriendlyAt(wx, wy) {
+    const thresh = 0.6;
+    for (const s of this.soldiers) {
+      if (Math.hypot(s.x - wx, s.y - wy) <= thresh) return { type: "soldier", ref: s };
+    }
+    for (const c of this.player.citizens) {
+      if (Math.hypot(c.x - wx, c.y - wy) <= thresh) return { type: "citizen", ref: c };
     }
     return null;
   }
