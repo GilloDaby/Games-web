@@ -13,7 +13,7 @@ import Citizen from "./entities/Citizen.js";
 import Soldier from "./entities/Soldier.js";
 import InputSystem from "./systems/inputSystem.js";
 import Building from "./entities/Building.js";
-import { BUILD_TYPES } from "./utils/buildingConfig.js";
+import { BUILD_TYPES, BUILD_CONFIG } from "./utils/buildingConfig.js";
 import Pathfinder from "./systems/Pathfinder.js";
 import Camera from "./systems/Camera.js";
 import Projectile from "./entities/Projectile.js";
@@ -57,10 +57,7 @@ export default class Game {
     this.tileMap.clearArea(spawn.x, spawn.y, 8);
 
     // IA simple (un joueur IA)
-    const aiSpawn = {
-      x: Math.floor(this.mapWidth * 0.2),
-      y: Math.floor(this.mapHeight * 0.7),
-    };
+    const aiSpawn = this.pickFarSpawn(spawn);
     this.aiPlayer = new Player(2, "#5cb85c", aiSpawn, 8);
     // Zone claire autour du centre IA.
     this.tileMap.clearArea(aiSpawn.x, aiSpawn.y, 8);
@@ -90,13 +87,15 @@ export default class Game {
 
     // Ennemis simples (camps) pour tester le combat.
     this.enemies = [];
-    this.spawnEnemyCamps();
+    const campCount = this.config?.enemyCamps ?? 2;
+    this.spawnEnemyCamps(campCount, spawn);
 
     // Ville ennemie principale pour le systeme de conquete.
     const enemyHp = this.config?.rules?.enemyCityHp ?? 250;
+    const enemyCityPos = this.pickFarSpawn(spawn);
     this.enemyCity = {
-      x: Math.floor(this.mapWidth * 0.75),
-      y: Math.floor(this.mapHeight * 0.3),
+      x: enemyCityPos.x,
+      y: enemyCityPos.y,
       maxHp: enemyHp,
       hp: enemyHp,
       radius: 1.4,
@@ -167,23 +166,20 @@ export default class Game {
   }
 
   // Cree quelques camps ennemis statiques a detruire.
-  spawnEnemyCamps() {
-    this.enemies.push({
-      x: Math.floor(MAP_WIDTH * 0.2),
-      y: Math.floor(MAP_HEIGHT * 0.2),
-      maxHp: 120,
-      hp: 120,
-      radius: 0.8,
-      type: "camp",
-    });
-    this.enemies.push({
-      x: Math.floor(MAP_WIDTH * 0.8),
-      y: Math.floor(MAP_HEIGHT * 0.8),
-      maxHp: 120,
-      hp: 120,
-      radius: 0.8,
-      type: "camp",
-    });
+  spawnEnemyCamps(count = 2, playerSpawn = { x: MAP_WIDTH / 2, y: MAP_HEIGHT / 2 }) {
+    this.enemies = [];
+    const margin = 8;
+    for (let i = 0; i < count; i++) {
+      const pos = this.pickFarSpawn(playerSpawn, margin, i);
+      this.enemies.push({
+        x: pos.x,
+        y: pos.y,
+        maxHp: 120,
+        hp: 120,
+        radius: 0.8,
+        type: "camp",
+      });
+    }
   }
 
   addMessage(text, duration = 4) {
@@ -207,9 +203,13 @@ export default class Game {
   handleKey(event) {
     const key = event.key.toLowerCase();
     if (key === "h") {
-      this.currentBuildType = BUILD_TYPES.HOUSE;
+      this.currentBuildType = this.currentBuildType === BUILD_TYPES.HOUSE ? null : BUILD_TYPES.HOUSE;
     } else if (key === "b") {
-      this.currentBuildType = BUILD_TYPES.BARRACKS;
+      this.currentBuildType = this.currentBuildType === BUILD_TYPES.BARRACKS ? null : BUILD_TYPES.BARRACKS;
+    } else if (key === "g") {
+      this.currentBuildType = this.currentBuildType === BUILD_TYPES.FARM ? null : BUILD_TYPES.FARM;
+    } else if (key === "t") {
+      this.currentBuildType = this.currentBuildType === BUILD_TYPES.STOREHOUSE ? null : BUILD_TYPES.STOREHOUSE;
     } else if (key === "r") {
       this.spawnSoldier();
     } else if (key === "f") {
@@ -220,6 +220,18 @@ export default class Game {
 
   onPanInput(dir) {
     this.panState = { ...this.panState, ...dir };
+  }
+
+  canAfford(cost = {}, owner) {
+    if (!owner || !cost) return true;
+    return Object.entries(cost).every(([k, v]) => (owner.resources[k] ?? 0) >= v);
+  }
+
+  payCost(cost = {}, owner) {
+    if (!owner || !cost) return;
+    Object.entries(cost).forEach(([k, v]) => {
+      owner.resources[k] = Math.max(0, (owner.resources[k] ?? 0) - v);
+    });
   }
 
   onWheel(deltaY) {
@@ -241,23 +253,28 @@ export default class Game {
     const { gx, gy } = this.screenToWorld(px, py);
     if (gx < 0 || gx >= MAP_WIDTH || gy < 0 || gy >= MAP_HEIGHT) return;
 
-    // Selection directe si clic sur une unite amie (pas de mode construction).
-    const friendly = this.pickFriendlyAt(gx, gy);
-    if (!this.currentBuildType && friendly) {
-      if (friendly.type === "soldier") {
-        this.selectedSoldiers = [friendly.ref];
-        this.selectedCitizens = [];
-      } else if (friendly.type === "citizen") {
-        this.selectedCitizens = [friendly.ref];
-        this.selectedSoldiers = [];
+    const hasSelection = this.selectedCitizens.length > 0 || this.selectedSoldiers.length > 0;
+
+    // Selection directe si clic sur une unite amie (pas de mode construction et pas de selection existante).
+    if (!this.currentBuildType && !hasSelection) {
+      const friendly = this.pickFriendlyAt(gx, gy);
+      if (friendly) {
+        if (friendly.type === "soldier") {
+          this.selectedSoldiers = [friendly.ref];
+          this.selectedCitizens = [];
+        } else if (friendly.type === "citizen") {
+          this.selectedCitizens = [friendly.ref];
+          this.selectedSoldiers = [];
+        }
+        return;
       }
-      return;
     }
 
-    // Si un type de batiment est selectionne, on place un chantier.
+  // Si un type de batiment est selectionne, on place un chantier.
     if (this.currentBuildType) {
-      this.placeBuilding(this.currentBuildType, Math.round(gx), Math.round(gy));
-      this.currentBuildType = null;
+      const placed = this.placeBuilding(this.currentBuildType, Math.round(gx), Math.round(gy));
+      if (!placed) this.currentBuildType = null;
+      else this.currentBuildType = null;
       return;
     }
 
@@ -351,6 +368,12 @@ export default class Game {
   }
 
   placeBuilding(type, gx, gy) {
+    const cfg = BUILD_CONFIG[type];
+    if (!this.canAfford(cfg?.cost, this.player)) {
+      this.addMessage("Ressources insuffisantes pour construire.");
+      return false;
+    }
+    this.payCost(cfg?.cost, this.player);
     const building = new Building(type, gx, gy);
     building.owner = this.player;
     this.buildings.push(building);
@@ -367,10 +390,15 @@ export default class Game {
       );
       citizen.issueOrder(tgt, "build", null, building, path);
     });
+
+    return true;
   }
 
   // Placement de batiment pour un joueur specifique (utilise par l'IA)
   placeBuildingForPlayer(type, gx, gy, owner) {
+    const cfg = BUILD_CONFIG[type];
+    if (!this.canAfford(cfg?.cost, owner)) return;
+    this.payCost(cfg?.cost, owner);
     const building = new Building(type, gx, gy);
     building.owner = owner;
     this.buildings.push(building);
@@ -430,6 +458,24 @@ export default class Game {
     this.player.soldiers.push(soldier);
     this.player.population += 1;
     this.selectedSoldiers = [soldier]; // auto-selection du dernier recrute pour des ordres rapides
+  }
+
+  // Choisit un spawn eloigne du centre joueur.
+  pickFarSpawn(center, margin = 6, salt = 0) {
+    const choices = [
+      { x: this.mapWidth * 0.15, y: this.mapHeight * 0.15 },
+      { x: this.mapWidth * 0.85, y: this.mapHeight * 0.15 },
+      { x: this.mapWidth * 0.15, y: this.mapHeight * 0.85 },
+      { x: this.mapWidth * 0.85, y: this.mapHeight * 0.85 },
+    ];
+    const filtered = choices.filter((p) => Math.hypot(p.x - center.x, p.y - center.y) > Math.min(this.mapWidth, this.mapHeight) * 0.35);
+    const list = filtered.length ? filtered : choices;
+    const idx = Math.floor(((center.x + center.y + salt * 13 + Math.random()) * 9973) % list.length);
+    const pick = list[idx];
+    return {
+      x: Math.max(margin, Math.min(this.mapWidth - margin, Math.floor(pick.x))),
+      y: Math.max(margin, Math.min(this.mapHeight - margin, Math.floor(pick.y))),
+    };
   }
 
   spawnSoldierForPlayer(player) {
@@ -614,8 +660,16 @@ export default class Game {
     this.elapsed += dt;
     const onDeposit = (type, amount) => {
       if (!type || !amount) return;
-      this.player.resources[type] = (this.player.resources[type] || 0) + amount;
+      const mult = this.player.gatherMultiplier ?? 1;
+      this.player.resources[type] = (this.player.resources[type] || 0) + amount * mult;
     };
+    // Passive incomes (farms) pour joueur et IA.
+    if (this.player.passiveFoodPerSec) {
+      this.player.resources.food += this.player.passiveFoodPerSec * dt;
+    }
+    if (this.aiPlayer.passiveFoodPerSec) {
+      this.aiPlayer.resources.food += this.aiPlayer.passiveFoodPerSec * dt;
+    }
 
     const onBuildingComplete = (building) => this.onBuildingComplete(building);
 
@@ -640,7 +694,8 @@ export default class Game {
         cityCenter: this.aiPlayer.cityCenter,
         onDeposit: (type, amount) => {
           if (!type || !amount) return;
-          this.aiPlayer.resources[type] = (this.aiPlayer.resources[type] || 0) + amount;
+          const mult = this.aiPlayer.gatherMultiplier ?? 1;
+          this.aiPlayer.resources[type] = (this.aiPlayer.resources[type] || 0) + amount * mult;
         },
         onBuildingComplete,
         onHarvest: (type, x, y) => this.onHarvest(type, x, y),
@@ -717,7 +772,18 @@ export default class Game {
       if (owner === this.player) this.addMessage("Maison terminee : +5 population max.");
     }
     if (building.type === BUILD_TYPES.BARRACKS && owner === this.player) {
-      this.addMessage("Caserne operationnelle : touche S pour recruter.");
+      this.addMessage("Caserne operationnelle : touche R pour recruter.");
+    }
+    if (building.type === BUILD_TYPES.FARM) {
+      const cfg = BUILD_CONFIG[BUILD_TYPES.FARM];
+      owner.passiveFoodPerSec = (owner.passiveFoodPerSec || 0) + (cfg?.passiveFood ?? 0);
+      if (owner === this.player) this.addMessage("Ferme terminee : production de nourriture passive.");
+    }
+    if (building.type === BUILD_TYPES.STOREHOUSE) {
+      const cfg = BUILD_CONFIG[BUILD_TYPES.STOREHOUSE];
+      owner.populationCap += cfg?.populationBonus ?? 0;
+      owner.gatherMultiplier = (owner.gatherMultiplier || 1) * (1 + (cfg?.gatherBonus ?? 0));
+      if (owner === this.player) this.addMessage("Entrepot termine : cap population + bonus de recolte.");
     }
   }
 

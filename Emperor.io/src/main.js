@@ -25,6 +25,7 @@ const btnBackLobby = document.getElementById("btn-back-lobby");
 const btnBackMenuFromOptions = document.getElementById("btn-back-menu-options");
 const btnBackMenuFromEnd = document.getElementById("btn-back-menu-end");
 const btnReplay = document.getElementById("btn-replay");
+const buildButtons = Array.from(document.querySelectorAll("#build-bar .build-btn"));
 
 let currentGame = null;
 let hud = null;
@@ -64,11 +65,12 @@ function startGame(config) {
     },
     (err) => {
       error("Game crashed", err);
-      alert("Erreur inattendue. Voir la console pour plus de détails.");
+      alert("Erreur inattendue. Voir la console pour plus de details.");
     }
   );
   hud = new Hud(currentGame);
   minimap = new MiniMap(currentGame);
+  wireBuildBar();
   if (btnAutoFarm) {
     btnAutoFarm.textContent = currentGame.autoFarm ? "On" : "Off";
     btnAutoFarm.onclick = () => {
@@ -89,8 +91,8 @@ function disposeGame() {
 
 function showEndScreen(result) {
   if (!result) return;
-  endTitle.textContent = result.state === "win" ? "Victoire !" : "Défaite";
-  endStats.textContent = `Temps: ${result.time.toFixed(1)}s | Citoyens: ${result.citizens} | Soldats: ${result.soldiers} | Bâtiments: ${result.buildings}`;
+  endTitle.textContent = result.state === "win" ? "Victoire !" : "Defaite";
+  endStats.textContent = `Temps: ${result.time.toFixed(1)}s | Citoyens: ${result.citizens} | Soldats: ${result.soldiers} | Batiments: ${result.buildings}`;
   showScreen(endScreen);
 }
 
@@ -123,7 +125,9 @@ lobbyForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const difficulty = lobbyForm.elements["difficulty"].value;
   const mapSize = lobbyForm.elements["map-size"].value;
+  const enemyCount = parseInt(lobbyForm.elements["enemy-count"]?.value ?? "2", 10);
   const config = buildConfigFromLobby(difficulty, mapSize);
+  config.enemyCamps = enemyCount;
   startGame(config);
 });
 
@@ -138,9 +142,9 @@ optionsForm.addEventListener("submit", (e) => {
 
 function buildConfigFromLobby(difficulty, mapSize) {
   const sizeMap = {
-    small: { width: 80, height: 80 },
-    medium: { width: 100, height: 100 },
-    large: { width: 130, height: 130 },
+    small: { width: 160, height: 160 },
+    medium: { width: 200, height: 200 },
+    large: { width: 260, height: 260 },
   };
   const diffMap = {
     easy: { attackInterval: 26, soldiersPerWave: 2 },
@@ -179,3 +183,31 @@ function gameLoop(timestamp) {
 
 requestAnimationFrame(gameLoop);
 showScreen(menuScreen);
+
+function wireBuildBar() {
+  if (!buildButtons || buildButtons.length === 0) return;
+  const setActive = (type) => {
+    buildButtons.forEach((btn) => {
+      if (btn.dataset.action === "build") {
+        btn.classList.toggle("active", btn.dataset.type === type);
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+  };
+  buildButtons.forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      if (!currentGame) return;
+      const action = btn.dataset.action;
+      if (action === "build") {
+        const same = currentGame.currentBuildType === btn.dataset.type;
+        currentGame.currentBuildType = same ? null : btn.dataset.type;
+        setActive(currentGame.currentBuildType);
+      } else if (action === "spawn-soldier") {
+        currentGame.spawnSoldier();
+        setActive(null);
+      }
+    };
+  });
+}

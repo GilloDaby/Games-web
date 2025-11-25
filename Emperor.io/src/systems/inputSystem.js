@@ -15,6 +15,7 @@ export default class InputSystem {
     this.dragStart = null;
     this.dragCurrent = null;
     this.dragThreshold = 5; // pixels
+    this.pointerDown = false;
 
     this.boundMouseDown = this.handleMouseDown.bind(this);
     this.boundMouseMove = this.handleMouseMove.bind(this);
@@ -22,6 +23,7 @@ export default class InputSystem {
     this.boundKeyDown = this.handleKeyDown.bind(this);
     this.boundKeyUp = this.handleKeyUp.bind(this);
     this.boundWheel = this.handleWheel.bind(this);
+    this.boundBlur = this.handleBlur.bind(this);
 
     this.canvas.addEventListener("mousedown", this.boundMouseDown);
     this.canvas.addEventListener("mousemove", this.boundMouseMove);
@@ -29,6 +31,7 @@ export default class InputSystem {
     window.addEventListener("mouseup", this.boundMouseUp);
     window.addEventListener("keydown", this.boundKeyDown);
     window.addEventListener("keyup", this.boundKeyUp);
+    window.addEventListener("blur", this.boundBlur);
   }
 
   dispose() {
@@ -38,11 +41,13 @@ export default class InputSystem {
     window.removeEventListener("mouseup", this.boundMouseUp);
     window.removeEventListener("keydown", this.boundKeyDown);
     window.removeEventListener("keyup", this.boundKeyUp);
+    window.removeEventListener("blur", this.boundBlur);
   }
 
   handleMouseDown(event) {
     if (event.button !== 0) return; // uniquement clic gauche pour selection/ordre
     const pos = this.toCanvasPos(event);
+    this.pointerDown = true;
     this.dragStart = pos;
     this.dragCurrent = pos;
   }
@@ -51,7 +56,7 @@ export default class InputSystem {
     const pos = this.toCanvasPos(event);
     if (this.onMove) this.onMove(pos);
 
-    if (!this.dragStart) return;
+    if (!this.pointerDown || !this.dragStart) return;
     this.dragCurrent = pos;
     const dist = Math.hypot(pos.x - this.dragStart.x, pos.y - this.dragStart.y);
     if (!this.dragging && dist > this.dragThreshold) {
@@ -65,6 +70,8 @@ export default class InputSystem {
 
   handleMouseUp(event) {
     if (event.button !== 0) return;
+    if (!this.pointerDown) return;
+    this.pointerDown = false;
     const pos = this.toCanvasPos(event);
     const wasDragging = this.dragging;
     const start = this.dragStart;
@@ -83,9 +90,12 @@ export default class InputSystem {
   }
 
   handleKeyDown(event) {
+    const key = event.key.toLowerCase();
+    if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) {
+      event.preventDefault();
+    }
     if (this.onKey) this.onKey(event);
     if (!this.onPanInput) return;
-    const key = event.key.toLowerCase();
     if (key === "w" || key === "arrowup") this.onPanInput({ up: true });
     if (key === "s" || key === "arrowdown") this.onPanInput({ down: true });
     if (key === "a" || key === "arrowleft") this.onPanInput({ left: true });
@@ -93,8 +103,11 @@ export default class InputSystem {
   }
 
   handleKeyUp(event) {
-    if (!this.onPanInput) return;
     const key = event.key.toLowerCase();
+    if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) {
+      event.preventDefault();
+    }
+    if (!this.onPanInput) return;
     if (key === "w" || key === "arrowup") this.onPanInput({ up: false });
     if (key === "s" || key === "arrowdown") this.onPanInput({ down: false });
     if (key === "a" || key === "arrowleft") this.onPanInput({ left: false });
@@ -103,6 +116,16 @@ export default class InputSystem {
 
   handleWheel(event) {
     if (this.onWheel) this.onWheel(event.deltaY);
+  }
+
+  handleBlur() {
+    this.pointerDown = false;
+    this.dragging = false;
+    this.dragStart = null;
+    this.dragCurrent = null;
+    if (this.onPanInput) {
+      this.onPanInput({ up: false, down: false, left: false, right: false });
+    }
   }
 
   toCanvasPos(event) {

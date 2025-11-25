@@ -166,6 +166,55 @@
       transform: translateY(-1px);
       opacity: 0.95;
     }
+
+    /* Barre de construction (type AoE) */
+    #build-bar {
+      position: fixed;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      background: linear-gradient(180deg, rgba(17,24,39,0.85), rgba(12,18,30,0.92));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.35);
+      z-index: 11;
+      pointer-events: auto;
+      backdrop-filter: blur(6px);
+    }
+    .build-btn {
+      min-width: 110px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      background: rgba(31,41,55,0.9);
+      color: #e5e7eb;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: transform 0.1s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .build-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .build-btn.active {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.25), 0 8px 16px rgba(0,0,0,0.35);
+    }
+    .build-btn .title {
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .build-btn .costs {
+      font-size: 12px;
+      color: #cbd5e1;
+    }
   </style>
 </head>
 <body>
@@ -198,6 +247,28 @@
     </div>
     <div id="hud-messages"></div>
   </div>
+  <div id="build-bar">
+    <button class="build-btn" data-action="build" data-type="house">
+      <span class="title">Maison</span>
+      <span class="costs">Bois 60 | Pierre 20</span>
+    </button>
+    <button class="build-btn" data-action="build" data-type="barracks">
+      <span class="title">Caserne</span>
+      <span class="costs">Bois 80 | Pierre 60 | Nourr. 30</span>
+    </button>
+    <button class="build-btn" data-action="build" data-type="farm">
+      <span class="title">Ferme</span>
+      <span class="costs">Bois 50 | Pierre 10 | Nourr. 30</span>
+    </button>
+    <button class="build-btn" data-action="build" data-type="storehouse">
+      <span class="title">Entrepot</span>
+      <span class="costs">Bois 90 | Pierre 70 | Nourr. 20</span>
+    </button>
+    <button class="build-btn" data-action="spawn-soldier">
+      <span class="title">Recruter</span>
+      <span class="costs">Soldat (cout HUD)</span>
+    </button>
+  </div>
   <div id="minimap-container">
     <canvas id="minimap" width="180" height="180"></canvas>
   </div>
@@ -213,7 +284,7 @@
     <div class="panel">
       <h2>Solo</h2>
       <form id="lobby-form">
-        <label> Difficulté :
+        <label> Difficulte :
           <select name="difficulty">
             <option value="easy">Facile</option>
             <option value="normal" selected>Normal</option>
@@ -225,6 +296,15 @@
             <option value="small">Petite</option>
             <option value="medium" selected>Standard</option>
             <option value="large">Grande</option>
+          </select>
+        </label>
+        <label> Ennemis (camps) :
+          <select name="enemy-count" id="enemy-count">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
           </select>
         </label>
         <div class="buttons">
@@ -239,7 +319,7 @@
       <h2>Options</h2>
       <form id="options-form">
         <label> Volume : <input type="range" name="volume" min="0" max="1" step="0.05" value="0.8" /></label>
-        <label> Qualité : 
+        <label> Qualite : 
           <select name="quality">
             <option value="low">Basse</option>
             <option value="medium" selected>Moyenne</option>

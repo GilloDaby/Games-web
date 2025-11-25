@@ -57,9 +57,9 @@ export const TILE_COLORS = {
 
 // Probabilites de generation pour chaque ressource (somme <= 1, le reste est vide).
 export const TILE_PROBABILITIES = [
-  { type: TILE_TYPES.WOOD, chance: 0.18 },
-  { type: TILE_TYPES.STONE, chance: 0.10 },
-  { type: TILE_TYPES.FOOD, chance: 0.14 },
+  { type: TILE_TYPES.WOOD, chance: 0.28 },
+  { type: TILE_TYPES.STONE, chance: 0.18 },
+  { type: TILE_TYPES.FOOD, chance: 0.22 },
 ];
 
 // Temps de recolte (secondes) par ressource.
@@ -78,7 +78,7 @@ export const GATHER_YIELD = {
 
 // Quantite totale par spot (deplete -> vide).
 export const RESOURCE_CAPACITY = {
-  [TILE_TYPES.WOOD]: 120,
-  [TILE_TYPES.STONE]: 120,
-  [TILE_TYPES.FOOD]: 120,
+  [TILE_TYPES.WOOD]: 180,
+  [TILE_TYPES.STONE]: 180,
+  [TILE_TYPES.FOOD]: 180,
 };

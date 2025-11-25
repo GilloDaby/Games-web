@@ -42,7 +42,7 @@ export default class Hud {
     if (this.game.currentBuildType) {
       this.buildEl.textContent = `Construction: ${this.game.currentBuildType.toUpperCase()} (clic pour placer)`;
     } else {
-      this.buildEl.textContent = `Raccourcis: H=Maison | B=Caserne | R=Soldat | Formation: ${this.game.formationMode} | Camera: ZQSD/Fleches, molette zoom`;
+      this.buildEl.textContent = `Barre en bas pour placer/recruter | Raccourcis: H/B/G/T pour batiments, R pour soldat | Formation: ${this.game.formationMode} | Camera: ZQSD/Fleches, molette zoom`;
     }
   }
 

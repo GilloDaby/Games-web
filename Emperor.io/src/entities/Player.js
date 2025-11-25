@@ -23,5 +23,9 @@ export default class Player {
 
     this.population = initialPopulation;
     this.populationCap = 20; // valeur de base, evolutive avec des maisons plus tard
+
+    // Bonus dynamiques (batiments)
+    this.passiveFoodPerSec = 0;
+    this.gatherMultiplier = 1;
   }
 }
