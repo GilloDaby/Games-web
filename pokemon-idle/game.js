@@ -29,80 +29,207 @@ document.addEventListener('DOMContentLoaded', () => {
     const achievementsItemsContainer = document.getElementById('achievements-items');
     const favoritePokemonSlot = document.getElementById('favorite-pokemon-slot');
     const floatingNumbersContainer = document.getElementById('floating-numbers-container');
+    const achievementsModal = document.getElementById('achievements-modal');
+    const achievementsButton = document.getElementById('achievements-button');
+    const closeAchievementsButton = document.getElementById('close-achievements');
     const saveButton = document.getElementById('save-button');
     const loadButton = document.getElementById('load-button');
     const prestigeButton = document.getElementById('prestige-button');
     const pokeballContainer = document.getElementById('pokeball-container');
     const battleButton = document.getElementById('battle-button');
     const battleLog = document.getElementById('battle-log');
+    const battleOpponentSprite = document.getElementById('battle-opponent-sprite');
+    const battleOpponentName = document.getElementById('battle-opponent-name');
+    const battleOpponentPower = document.getElementById('battle-opponent-power');
+    const battlePlayerPower = document.getElementById('battle-player-power');
+    const battleRisk = document.getElementById('battle-risk');
     const trainerLevelDisplay = document.getElementById('trainer-level');
     const xpBar = document.getElementById('xp-bar');
     const xpText = document.getElementById('xp-text');
+    const clickPowerDisplay = document.getElementById('click-power');
+    const dropChanceDisplay = document.getElementById('drop-chance');
+    const idleBoostDisplay = document.getElementById('idle-boost');
 
-    // --- Pokémon Data ---
-    // We'll use placeholder images for now. A good source for Pokémon sprites is a fan-made resource like PokeAPI.
-    const pokemonData = [
-        { id: 'rattata', name: 'Rattata', cost: 15, mps: 1, imageUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/19.png' },
-        { id: 'pidgey', name: 'Pidgey', cost: 100, mps: 5, imageUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/16.png' },
-        { id: 'zubat', name: 'Zubat', cost: 500, mps: 20, imageUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/41.png' },
-        { id: 'pikachu', name: 'Pikachu', cost: 2500, mps: 100, imageUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png' },
-        { id: 'meowth', name: 'Meowth', cost: 10000, mps: 400, imageUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/52.png' },
-        { id: 'abra', name: 'Abra', cost: 50000, mps: 2000, imageUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/63.png' }
+    // --- Pokémon Data (Kanto 1-151) ---
+    const kantoPokemonNames = [
+        'Bulbasaur','Ivysaur','Venusaur','Charmander','Charmeleon','Charizard','Squirtle','Wartortle','Blastoise','Caterpie','Metapod','Butterfree','Weedle','Kakuna','Beedrill','Pidgey','Pidgeotto','Pidgeot','Rattata','Raticate','Spearow','Fearow','Ekans','Arbok','Pikachu','Raichu','Sandshrew','Sandslash','Nidoran-F','Nidorina','Nidoqueen','Nidoran-M','Nidorino','Nidoking','Clefairy','Clefable','Vulpix','Ninetales','Jigglypuff','Wigglytuff','Zubat','Golbat','Oddish','Gloom','Vileplume','Paras','Parasect','Venonat','Venomoth','Diglett','Dugtrio','Meowth','Persian','Psyduck','Golduck','Mankey','Primeape','Growlithe','Arcanine','Poliwag','Poliwhirl','Poliwrath','Abra','Kadabra','Alakazam','Machop','Machoke','Machamp','Bellsprout','Weepinbell','Victreebel','Tentacool','Tentacruel','Geodude','Graveler','Golem','Ponyta','Rapidash','Slowpoke','Slowbro','Magnemite','Magneton','Farfetchd','Doduo','Dodrio','Seel','Dewgong','Grimer','Muk','Shellder','Cloyster','Gastly','Haunter','Gengar','Onix','Drowzee','Hypno','Krabby','Kingler','Voltorb','Electrode','Exeggcute','Exeggutor','Cubone','Marowak','Hitmonlee','Hitmonchan','Lickitung','Koffing','Weezing','Rhyhorn','Rhydon','Chansey','Tangela','Kangaskhan','Horsea','Seadra','Goldeen','Seaking','Staryu','Starmie','Mr. Mime','Scyther','Jynx','Electabuzz','Magmar','Pinsir','Tauros','Magikarp','Gyarados','Lapras','Ditto','Eevee','Vaporeon','Jolteon','Flareon','Porygon','Omanyte','Omastar','Kabuto','Kabutops','Aerodactyl','Snorlax','Articuno','Zapdos','Moltres','Dratini','Dragonair','Dragonite','Mewtwo','Mew'
     ];
 
-    const upgradesData = [
-        { id: 'rattata-upg1', name: 'Super Rattata', cost: 500, target: 'rattata', multiplier: 2, required: 10 },
-        { id: 'pidgey-upg1', name: 'Pidgey Express', cost: 2500, target: 'pidgey', multiplier: 2, required: 10 },
-        { id: 'zubat-upg1', name: 'Sonar Pulse', cost: 10000, target: 'zubat', multiplier: 2, required: 10 },
-        { id: 'all-upg1', name: 'Poké Flute', cost: 100000, target: 'all', multiplier: 1.5, required: 0 }
+    const pokemonData = kantoPokemonNames.map((name, index) => {
+        const dex = index + 1;
+        const safeId = `dex-${dex}`;
+        const cost = Math.floor(25 * Math.pow(1.18, index)); // steeper curve for longer runs
+        const mps = parseFloat((1.2 * Math.pow(1.14, index)).toFixed(2));
+        return {
+            id: safeId,
+            dex,
+            name,
+            cost,
+            mps,
+            imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dex}.png`
+        };
+    });
+
+    const baseUpgradeConfig = [
+        { id: 'click-1', name: 'Gants de Dresseur', target: 'click', clickBonus: 1 },
+        { id: 'click-2', name: 'Scope Pro', target: 'click', clickBonus: 3 },
+        { id: 'click-3', name: 'Turbo Tap', target: 'click', clickBonus: 8 },
+        { id: 'all-1', name: 'Multi Exp', target: 'all', multiplier: 1.15 },
+        { id: 'all-2', name: 'Encens Max', target: 'all', multiplier: 1.18 },
+        { id: 'all-3', name: 'Hyper Potion', target: 'all', multiplier: 1.22 },
+        { id: 'legend-144', name: 'Plume Articuno', target: 'all', multiplier: 1.25 },
+        { id: 'legend-145', name: 'Éclair Zapdos', target: 'all', multiplier: 1.28 },
+        { id: 'legend-146', name: 'Brasier Moltres', target: 'all', multiplier: 1.32 },
+        { id: 'legend-150', name: 'Clone Mewtwo', target: 'all', multiplier: 1.4, clickBonus: 5 },
+        { id: 'legend-151', name: 'Aura Mew', target: 'all', multiplier: 1.6, clickBonus: 10 }
     ];
 
-    const PRESTIGE_REQUIREMENT = 1000000;
+    const upgradesData = baseUpgradeConfig.map((upg, idx) => {
+        const cost = Math.floor(250 * Math.pow(2.4, idx)); // exponential scaling for longer game
+        return { ...upg, cost };
+    });
+
+    const PRESTIGE_REQUIREMENT = 50000000; // plus long pour prestige
     const SHINY_CHANCE = 0.01; // 1% chance
+    const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
 
-    const achievementsData = [
-        { id: 'money1', name: 'Getting Started', description: 'Earn 1,000 Pokédollars', condition: () => money >= 1000 },
-        { id: 'money2', name: 'Millionaire', description: 'Earn 1,000,000 Pokédollars', condition: () => money >= 1000000 },
-        { id: 'rattata1', name: 'Rattata Collector', description: 'Own 25 Rattata', condition: () => ownedPokemon['rattata'] >= 25 },
-        { id: 'prestige1', name: 'First Prestige', description: 'Prestige for the first time', condition: () => prestigePoints > 0 },
-    ];
+    const achievementsData = (() => {
+        const list = [];
+
+        // Argent progressif
+        for (let i = 1; i <= 40; i++) {
+            const target = Math.floor(10000 * Math.pow(1.35, i));
+            list.push({
+                id: `money-${i}`,
+                name: `Fortune ${i}`,
+                description: `Gagner ${formatNumber(target)} Pokédollars`,
+                condition: () => money >= target
+            });
+        }
+
+        // Nombre total de Pokémon
+        for (let i = 1; i <= 30; i++) {
+            const target = i * 10;
+            list.push({
+                id: `dex-${i}`,
+                name: `Collection ${i}`,
+                description: `Posséder ${target} Pokémon au total`,
+                condition: () => totalOwnedPokemon() >= target
+            });
+        }
+
+        // MPS milestones
+        for (let i = 1; i <= 20; i++) {
+            const target = Math.pow(1.32, i) * 50;
+            list.push({
+                id: `mps-${i}`,
+                name: `Idle Master ${i}`,
+                description: `Atteindre ${formatNumber(target)} MPS`,
+                condition: () => moneyPerSecond >= target
+            });
+        }
+
+        // Spéciaux / légendaires
+        list.push(
+            { id: 'prestige1', name: 'Premier Prestige', description: 'Prestiger au moins une fois', condition: () => prestigePoints > 0 },
+            { id: 'legend-144', name: 'Articuno Obtenu', description: 'Acheter le légendaire 144', condition: () => (ownedPokemon['dex-144'] || 0) > 0 },
+            { id: 'legend-145', name: 'Zapdos Obtenu', description: 'Acheter le légendaire 145', condition: () => (ownedPokemon['dex-145'] || 0) > 0 },
+            { id: 'legend-146', name: 'Moltres Obtenu', description: 'Acheter le légendaire 146', condition: () => (ownedPokemon['dex-146'] || 0) > 0 },
+            { id: 'legend-150', name: 'Mewtwo Capturé', description: 'Acheter Mewtwo', condition: () => (ownedPokemon['dex-150'] || 0) > 0 },
+            { id: 'legend-151', name: 'Mew Capturé', description: 'Acheter Mew', condition: () => (ownedPokemon['dex-151'] || 0) > 0 },
+            { id: 'click-5', name: 'Doigts d’acier', description: 'Atteindre 10 Pokédollars par clic', condition: () => clickValue >= 10 },
+            { id: 'click-6', name: 'Main de maître', description: 'Atteindre 25 Pokédollars par clic', condition: () => clickValue >= 25 },
+            { id: 'trainer-10', name: 'Coach', description: 'Atteindre le niveau de dresseur 10', condition: () => trainerLevel >= 10 },
+            { id: 'trainer-20', name: 'Maître Coach', description: 'Atteindre le niveau de dresseur 20', condition: () => trainerLevel >= 20 }
+        );
+
+        return list.slice(0, 100);
+    })();
 
     const randomEvents = [
         {
-            name: "Pokédollar Rush",
-            message: "You found a bag of 1,000 Pokédollars!",
+            name: "Rush Pokédollars",
+            message: "Un sac de 1 000 Pokédollars apparaît !",
             action: () => {
                 money += 1000;
-                alert("Pokédollar Rush! You found a bag of 1,000 Pokédollars!");
+                alert("Rush Pokédollars ! +1 000 cash.");
             }
         },
         {
-            name: "Training Boost",
-            message: "Your Pokémon are feeling extra motivated! Double MPS for 30 seconds.",
+            name: "Boost d'entraînement",
+            message: "Tes Pokémon sont ultra motivés ! MPS x2 pendant 30s.",
             action: () => {
                 temporaryMultiplier = 2;
                 calculateMoneyPerSecond();
-                alert("Training Boost! Your Pokémon are feeling extra motivated! Double MPS for 30 seconds.");
+                alert("Boost d'entraînement ! MPS doublé pendant 30s.");
                 setTimeout(() => {
                     temporaryMultiplier = 1;
                     calculateMoneyPerSecond();
-                    alert("Training Boost has worn off.");
+                    alert("Le boost s'est dissipé.");
                 }, 30000);
             }
         },
         {
-            name: "Team Rocket's Stealing Spree",
-            message: "Team Rocket is trying to steal your money! You lost 10% of your Pokédollars.",
+            name: "Team Rocket en maraude",
+            message: "Team Rocket vole 10% de tes Pokédollars !",
             action: () => {
                 money *= 0.9;
-                alert("Team Rocket's Stealing Spree! You lost 10% of your Pokédollars.");
+                alert("Team Rocket a volé 10% de ta banque.");
             }
         }
     ];
 
     let clickValue = 1;
+    let currentOpponent = null;
 
     // --- Game Logic ---
+
+    function formatNumber(value) {
+        const suffixes = ['', 'K', 'M', 'B', 'T'];
+        let idx = 0;
+        let val = value;
+        while (val >= 1000 && idx < suffixes.length - 1) {
+            val /= 1000;
+            idx++;
+        }
+        return `${val % 1 === 0 ? val : val.toFixed(1)}${suffixes[idx]}`;
+    }
+
+    function totalOwnedPokemon() {
+        return Object.values(ownedPokemon).reduce((a, b) => a + b, 0);
+    }
+
+    function recalculateClickValue() {
+        clickValue = 1;
+        purchasedUpgrades.forEach(upgId => {
+            const upgrade = upgradesData.find(u => u.id === upgId);
+            if (upgrade && upgrade.clickBonus) {
+                clickValue += upgrade.clickBonus;
+            }
+        });
+    }
+
+    function highestOwnedDexIndex() {
+        let maxIndex = 0;
+        Object.keys(ownedPokemon).forEach(id => {
+            const idx = pokemonData.findIndex(p => p.id === id);
+            if (idx > maxIndex && ownedPokemon[id] > 0) {
+                maxIndex = idx;
+            }
+        });
+        return maxIndex;
+    }
+
+    function generateOpponent() {
+        const ownedMax = Math.max(5, highestOwnedDexIndex());
+        const minIdx = Math.max(0, ownedMax - 5);
+        const maxIdx = Math.min(pokemonData.length - 1, ownedMax + 5);
+        const chosen = pokemonData[Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx];
+        const basePower = moneyPerSecond || 10;
+        const variance = (Math.random() * 0.8 + 0.6); // 60% to 140%
+        const power = Math.max(10, basePower * variance);
+        return { ...chosen, power };
+    }
 
     function calculateMoneyPerSecond() {
         moneyPerSecond = 0;
@@ -135,7 +262,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buyPokemon(pokemonId) {
-        const pokemon = pokemonData.find(p => p.id === pokemonId);
+        const pokemonIndex = pokemonData.findIndex(p => p.id === pokemonId);
+        const pokemon = pokemonData[pokemonIndex];
+        if (!pokemon) return;
+
+        if (pokemonIndex > 0) {
+            const previousId = pokemonData[pokemonIndex - 1].id;
+            if (!(ownedPokemon[previousId] > 0)) {
+                alert('Achète le Pokémon précédent pour débloquer celui-ci.');
+                return;
+            }
+        }
+
         if (money >= pokemon.cost) {
             money -= pokemon.cost;
             ownedPokemon[pokemonId] = (ownedPokemon[pokemonId] || 0) + 1;
@@ -144,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Math.random() < SHINY_CHANCE) {
                 if (!shinyPokemon.includes(pokemonId)) {
                     shinyPokemon.push(pokemonId);
-                    alert(`You found a shiny ${pokemon.name}!`);
+                    alert(`Incroyable ! Tu as trouvé un ${pokemon.name} shiny !`);
                     gainXp(100);
                 }
             }
@@ -152,26 +290,31 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateMoneyPerSecond();
             updateUI();
         } else {
-            alert('Not enough money!');
+            alert('Pas assez de Pokédollars !');
         }
     }
 
     function buyUpgrade(upgradeId) {
-        const upgrade = upgradesData.find(u => u.id === upgradeId);
-        const targetPokemon = pokemonData.find(p => p.id === upgrade.target);
+        const upgradeIndex = upgradesData.findIndex(u => u.id === upgradeId);
+        const upgrade = upgradesData[upgradeIndex];
+        if (!upgrade) return;
 
-        if (upgrade.target !== 'all' && !targetPokemon) {
-            alert('Cannot purchase upgrade for a non-existent Pokémon!');
-            return;
+        if (upgradeIndex > 0) {
+            const prevId = upgradesData[upgradeIndex - 1].id;
+            if (!purchasedUpgrades.includes(prevId)) {
+                alert('Achète l\'upgrade précédente pour débloquer celle-ci.');
+                return;
+            }
         }
 
         if (money >= upgrade.cost && !purchasedUpgrades.includes(upgradeId)) {
             money -= upgrade.cost;
             purchasedUpgrades.push(upgradeId);
+            recalculateClickValue();
             calculateMoneyPerSecond();
             updateUI();
         } else {
-            alert('Cannot purchase upgrade!');
+            alert('Amélioration impossible !');
         }
     }
 
@@ -185,10 +328,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateStats() {
-        moneyDisplay.textContent = Math.floor(money);
-        moneyPerSecondDisplay.textContent = moneyPerSecond.toFixed(1);
-        prestigePointsDisplay.textContent = prestigePoints;
+        moneyDisplay.textContent = formatNumber(Math.floor(money));
+        moneyPerSecondDisplay.textContent = formatNumber(moneyPerSecond);
+        prestigePointsDisplay.textContent = formatNumber(prestigePoints);
         prestigeMultiplierDisplay.textContent = `${prestigeMultiplier.toFixed(2)}x`;
+        updateHeroStats();
+        refreshBattlePreview();
+    }
+
+    function updateHeroStats() {
+        if (clickPowerDisplay) {
+            clickPowerDisplay.textContent = `+${clickValue}`;
+        }
+        if (dropChanceDisplay) {
+            dropChanceDisplay.textContent = `${(POKEBALL_DROP_CHANCE * 100).toFixed(0)}%`;
+        }
+        if (idleBoostDisplay) {
+            idleBoostDisplay.textContent = `${(temporaryMultiplier * prestigeMultiplier).toFixed(2)}x`;
+        }
+    }
+
+    function refreshBattlePreview() {
+        if (!battleOpponentName || !battleOpponentSprite || !battleOpponentPower || !battleRisk) return;
+        if (!currentOpponent) currentOpponent = generateOpponent();
+        battleOpponentName.textContent = `#${currentOpponent.dex} ${currentOpponent.name}`;
+        battleOpponentSprite.src = currentOpponent.imageUrl;
+        battleOpponentPower.textContent = `Puissance: ${formatNumber(currentOpponent.power)}`;
+        if (battlePlayerPower) {
+            battlePlayerPower.textContent = `Ta puissance: ${formatNumber(moneyPerSecond || 1)}`;
+        }
+        battleRisk.textContent = `Risque: perte 10% cash & -10 XP en cas de défaite`;
     }
 
     function updateTrainerUI() {
@@ -215,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     pokemonElement.innerHTML = `
                         <img src="${pokemon.imageUrl}" alt="${pokemon.name}">
-                        <span>${pokemon.name} (x${count})</span>
+                        <span>${pokemon.name} (x${formatNumber(count)})</span>
                     `;
                     pokemonElement.addEventListener('click', () => setFavoritePokemon(id));
                     pokemonContainer.appendChild(pokemonElement);
@@ -249,51 +418,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 favoritePokemonSlot.appendChild(pokemonElement);
             }
         } else {
-            favoritePokemonSlot.innerHTML = '<span>Select a Pokémon from your collection to be your favorite!</span>';
+            favoritePokemonSlot.innerHTML = '<span>Choisis un Pokémon possédé pour le mettre en favori.</span>';
         }
     }
     
     function renderStore() {
         storeItemsContainer.innerHTML = '';
-        pokemonData.forEach(pokemon => {
+        pokemonData.forEach((pokemon, index) => {
+            const unlocked = index === 0 || (ownedPokemon[pokemonData[index - 1].id] || 0) > 0;
+            const isLocked = !unlocked;
+            const canAfford = money >= pokemon.cost;
             const storeItemElement = document.createElement('div');
-            storeItemElement.className = 'store-item';
+            storeItemElement.className = `store-item ${isLocked ? 'locked' : ''} ${!canAfford && !isLocked ? 'unaffordable' : ''}`;
+            const prevDex = Math.max(1, pokemon.dex - 1);
             storeItemElement.innerHTML = `
                 <img src="${pokemon.imageUrl}" alt="${pokemon.name}">
-                <p>${pokemon.name}</p>
-                <p>Cost: ${pokemon.cost}</p>
-                <p>MPS: ${pokemon.mps}</p>
+                <p>#${pokemon.dex} ${pokemon.name}</p>
+                <p>${isLocked ? `Débloque après #${prevDex}` : `Prix: ${formatNumber(pokemon.cost)}`}</p>
+                <p>${isLocked ? 'Locked' : `MPS: ${formatNumber(pokemon.mps)}`}</p>
             `;
-            storeItemElement.onclick = () => buyPokemon(pokemon.id);
+            if (!isLocked) {
+                storeItemElement.onclick = () => buyPokemon(pokemon.id);
+            }
             storeItemsContainer.appendChild(storeItemElement);
         });
     }
 
     function renderUpgrades() {
         upgradesItemsContainer.innerHTML = '';
-        upgradesData.forEach(upgrade => {
+        upgradesData.forEach((upgrade, index) => {
             const isPurchased = purchasedUpgrades.includes(upgrade.id);
+            const previousId = upgradesData[index - 1]?.id;
+            const unlocked = index === 0 || purchasedUpgrades.includes(previousId);
             const canAfford = money >= upgrade.cost;
-            const targetPokemon = pokemonData.find(p => p.id === upgrade.target);
+            const upgradeItemElement = document.createElement('div');
+            const description = upgrade.clickBonus
+                ? `Clique +${upgrade.clickBonus}`
+                : upgrade.target === 'all'
+                    ? `Tous MPS x${upgrade.multiplier}`
+                    : 'Boost MPS';
 
-            // Ensure the target pokemon for the upgrade exists, or if it's a global upgrade
-            if (upgrade.target === 'all' || targetPokemon) {
-                const hasRequired = upgrade.required === 0 || (ownedPokemon[upgrade.target] && ownedPokemon[upgrade.target] >= upgrade.required);
-
-                if (hasRequired) {
-                    const upgradeItemElement = document.createElement('div');
-                    upgradeItemElement.className = `upgrade-item ${isPurchased ? 'purchased' : ''} ${!canAfford && !isPurchased ? 'unaffordable' : ''}`;
-                    upgradeItemElement.innerHTML = `
-                        <p>${upgrade.name}</p>
-                        <p>Cost: ${upgrade.cost}</p>
-                        <p>${upgrade.target === 'all' ? 'All Pokémon' : targetPokemon.name} MPS x${upgrade.multiplier}</p>
-                    `;
-                    if (!isPurchased) {
-                        upgradeItemElement.onclick = () => buyUpgrade(upgrade.id);
-                    }
-                    upgradesItemsContainer.appendChild(upgradeItemElement);
-                }
+            upgradeItemElement.className = `upgrade-item ${isPurchased ? 'purchased' : ''} ${!unlocked ? 'locked' : ''} ${!canAfford && !isPurchased && unlocked ? 'unaffordable' : ''}`;
+            upgradeItemElement.innerHTML = `
+                <p>${upgrade.name}</p>
+                <p>Prix: ${formatNumber(upgrade.cost)}</p>
+                <p>${description}</p>
+                ${!unlocked && !isPurchased ? '<p style="color:#ccc;">Acheter l\'upgrade précédente</p>' : ''}
+            `;
+            if (!isPurchased && unlocked) {
+                upgradeItemElement.onclick = () => buyUpgrade(upgrade.id);
             }
+            upgradesItemsContainer.appendChild(upgradeItemElement);
         });
     }
 
@@ -304,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerLevel++;
             trainerXp -= xpToNextLevel;
             xpToNextLevel = Math.floor(xpToNextLevel * 1.5);
-            alert(`Congratulations! You've reached level ${trainerLevel}!`);
+            alert(`Niveau ${trainerLevel} atteint ! GG !`);
             // Apply level up bonus
             moneyPerSecond *= 1.1;
         }
@@ -355,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
         achievementsData.forEach(achievement => {
             if (!unlockedAchievements.includes(achievement.id) && achievement.condition()) {
                 unlockedAchievements.push(achievement.id);
-                alert(`Achievement Unlocked: ${achievement.name}`);
+                alert(`Succès débloqué : ${achievement.name}`);
             }
         });
     }
@@ -388,11 +563,12 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerLevel = 1;
             trainerXp = 0;
             xpToNextLevel = 100;
+            clickValue = 1;
             prestigeButton.style.display = 'none';
 
             calculateMoneyPerSecond();
             updateUI();
-            alert(`You have prestiged for ${newPrestigePoints} points! Your new multiplier is ${prestigeMultiplier.toFixed(2)}x`);
+            alert(`Prestige +${newPrestigePoints} ! Nouveau multiplicateur : ${prestigeMultiplier.toFixed(2)}x`);
         }
     }
 
@@ -413,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lastSave: Date.now() // Store the timestamp
         };
         localStorage.setItem('pokemonIdleSave', JSON.stringify(gameState));
-        alert('Game Saved!');
+        alert('Sauvegarde réussie !');
     }
 
     function loadGame() {
@@ -453,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerLevel = 1;
             trainerXp = 0;
             xpToNextLevel = 100;
-            alert('Failed to load saved game. Starting a new game.');
+            alert('Echec de chargement. Nouvelle partie lancée.');
             return null;
         }
     }
@@ -461,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initialization ---
     function init() {
         const lastSaveTime = loadGame(); // Load saved data first
+        recalculateClickValue();
         calculateMoneyPerSecond();
 
         if (lastSaveTime) {
@@ -468,9 +645,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const offlineEarnings = offlineTime * moneyPerSecond;
             if (offlineEarnings > 0) {
                 money += offlineEarnings;
-                alert(`Welcome back! You earned ${Math.floor(offlineEarnings)} Pokédollars while you were away.`);
+                alert(`De retour ! +${Math.floor(offlineEarnings)} Pokédollars gagnés en offline.`);
             } else {
-                alert('Game Loaded!');
+                alert('Partie chargée !');
             }
         }
 
@@ -481,11 +658,40 @@ document.addEventListener('DOMContentLoaded', () => {
         saveButton.addEventListener('click', saveGame);
         loadButton.addEventListener('click', () => {
             loadGame();
+            recalculateClickValue();
             calculateMoneyPerSecond();
             updateUI();
-            alert('Game Loaded!');
+            alert('Partie chargée !');
         });
         prestigeButton.addEventListener('click', prestige);
+        if (achievementsButton && achievementsModal && closeAchievementsButton) {
+            achievementsButton.addEventListener('click', () => {
+                achievementsModal.style.display = 'flex';
+                renderAchievements();
+            });
+            closeAchievementsButton.addEventListener('click', () => {
+                achievementsModal.style.display = 'none';
+            });
+            achievementsModal.addEventListener('click', (e) => {
+                if (e.target === achievementsModal) {
+                    achievementsModal.style.display = 'none';
+                }
+            });
+        }
+
+        currentOpponent = generateOpponent();
+        refreshBattlePreview();
+
+        document.querySelectorAll('.scroll-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target');
+                const dir = parseInt(btn.getAttribute('data-dir'), 10) || 1;
+                const el = document.getElementById(targetId);
+                if (el) {
+                    el.scrollBy({ left: dir * 240, behavior: 'smooth' });
+                }
+            });
+        });
 
         pokemonContainer.addEventListener('click', (e) => {
             // Check if the click was on an empty area of the container
@@ -499,21 +705,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         pokeballContainer.addEventListener('click', (e) => {
-            const clickMoney = 1;
+            const clickMoney = clickValue;
             money += clickMoney;
             gainXp(1);
-            // Get the position of the pokeball to spawn the number there
             const rect = pokeballContainer.getBoundingClientRect();
             createFloatingNumber(rect.left + rect.width / 2, rect.top, clickMoney);
             updateStats();
 
-            if (Math.random() < 0.1) { // 10% chance to drop a random pokemon
-                const randomPokemon = pokemonData[Math.floor(Math.random() * pokemonData.length)];
+            const ownedMaxIndex = highestOwnedDexIndex();
+            const allowedMaxIndex = Math.min(pokemonData.length - 1, ownedMaxIndex + 2);
+            const droppablePokemon = pokemonData.slice(0, allowedMaxIndex + 1);
+            if (Math.random() < POKEBALL_DROP_CHANCE && droppablePokemon.length > 0) {
+                const randomPokemon = droppablePokemon[Math.floor(Math.random() * droppablePokemon.length)];
                 ownedPokemon[randomPokemon.id] = (ownedPokemon[randomPokemon.id] || 0) + 1;
                 gainXp(10);
                 calculateMoneyPerSecond();
                 updateUI();
-                alert(`The Poké Ball dropped a ${randomPokemon.name}!`);
+                alert(`Chance ! La Poké Ball a lâché un ${randomPokemon.name}.`);
             }
         });
 
@@ -521,22 +729,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startBattle() {
-        const playerPower = moneyPerSecond;
-        const opponentPower = Math.random() * playerPower * 2;
+        if (!currentOpponent) currentOpponent = generateOpponent();
+        const playerPower = moneyPerSecond || 1;
+        const opponentPower = currentOpponent.power;
 
-        let logMessage = `You challenged an opponent with ${opponentPower.toFixed(0)} power. Your power is ${playerPower.toFixed(0)}.`;
+        let logMessage = `Rival: ${currentOpponent.name} (Puissance ${formatNumber(opponentPower)}) vs toi (${formatNumber(playerPower)}).`;
 
         if (playerPower > opponentPower) {
-            const reward = Math.floor(opponentPower * 10);
+            const reward = Math.floor(opponentPower * 12);
+            const rewardText = formatNumber(reward);
             money += reward;
-            gainXp(50);
-            logMessage += `\nYou won and received ${reward} Pokédollars and 50 XP!`;
+            gainXp(80);
+            logMessage += `\nVictoire ! +${rewardText} Pokédollars et +80 XP.`;
             battleLog.innerHTML += `<p style="color: green;">${logMessage}</p>`;
         } else {
-            logMessage += `\nYou lost!`;
+            const lossMoney = Math.floor(money * 0.1);
+            money = Math.max(0, money - lossMoney);
+            trainerXp = Math.max(0, trainerXp - 10);
+            logMessage += `\nDéfaite ! -${formatNumber(lossMoney)} Pokédollars et -10 XP.`;
             battleLog.innerHTML += `<p style="color: red;">${logMessage}</p>`;
         }
         battleLog.scrollTop = battleLog.scrollHeight;
+        currentOpponent = generateOpponent();
+        refreshBattlePreview();
     }
 
     function createFloatingNumber(x, y, value) {
@@ -554,4 +769,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
-s

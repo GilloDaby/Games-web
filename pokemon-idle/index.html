@@ -7,62 +7,125 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-    <div id="game-container">
-        <div id="main-column">
-            <div id="stats-container" class="card">
-                <h1><i class="fas fa-coins"></i> Pokédollars: <span id="money">0</span></h1>
-                <h2><i class="fas fa-hand-holding-dollar"></i> $/sec: <span id="money-per-second">0</span></h2>
-                <h3><i class="fas fa-star"></i> Prestige Points: <span id="prestige-points">0</span></h3>
-                <h3><i class="fas fa-arrow-up-right-dots"></i> Prestige Multiplier: <span id="prestige-multiplier">1</span>x</h3>
-                <button id="save-button" class="btn"><i class="fas fa-save"></i> Save</button>
-                <button id="load-button" class="btn"><i class="fas fa-folder-open"></i> Load</button>
+    <div id="app-shell">
+        <header id="topbar" class="card">
+            <div class="brand">
+                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Logo Poké Ball">
+                <div>
+                    <p class="eyebrow">Idle Clicker Edition</p>
+                    <h1>Pokémon Idle Trainer</h1>
+                </div>
+            </div>
+            <div class="stat-chips">
+                <button id="achievements-button" class="btn ghost small"><i class="fas fa-medal"></i> (achievement) Pokédollars</button>
+                <div class="chip"><i class="fas fa-coins"></i><span id="money">0</span> Pokédollars</div>
+                <div class="chip"><i class="fas fa-hand-holding-dollar"></i><span id="money-per-second">0</span> $/sec</div>
+                <div class="chip"><i class="fas fa-star"></i><span id="prestige-points">0</span> Prestige</div>
+                <div class="chip"><i class="fas fa-arrow-up-right-dots"></i><span id="prestige-multiplier">1</span>x Multi</div>
+            </div>
+            <div class="top-actions">
+                <button id="save-button" class="btn ghost"><i class="fas fa-save"></i> Save</button>
+                <button id="load-button" class="btn ghost"><i class="fas fa-folder-open"></i> Load</button>
                 <button id="prestige-button" class="btn prestige-btn" style="display: none;"><i class="fas fa-trophy"></i> Prestige</button>
             </div>
-            <div id="trainer-container" class="card">
-                <h2><i class="fas fa-user"></i> Trainer Level: <span id="trainer-level">1</span></h2>
-                <progress id="xp-bar" value="0" max="100"></progress>
-                <span id="xp-text">0 / 100 XP</span>
-            </div>
-            <div id="pokemon-container" class="card">
-                <!-- Pokémon will be dynamically added here -->
-            </div>
-        </div>
-        <div id="side-column">
-            <div id="favorite-pokemon-container" class="card">
-                <h2><i class="fas fa-heart"></i> Favorite Pokémon</h2>
-                <div id="favorite-pokemon-slot">
-                    <!-- Favorite Pokémon will be displayed here -->
+        </header>
+
+        <main id="game-container">
+            <div id="main-column">
+                <section id="hero-card" class="card hero">
+                    <div class="hero-text">
+                        <p class="eyebrow">Hoenn Plains - Live Event</p>
+                        <h2>Tap the Poké Ball to earn & catch.</h2>
+                        <p class="subtitle">Chaque clic te donne des Pokédollars, avec une faible chance de lâcher un Pokémon sauvage.</p>
+                        <div class="mini-grid">
+                            <div class="mini-card"><i class="fas fa-fire"></i> Click Power <span id="click-power">+1</span></div>
+                            <div class="mini-card"><i class="fas fa-bolt"></i> Drop Chance <span id="drop-chance">2%</span></div>
+                            <div class="mini-card"><i class="fas fa-hourglass-half"></i> Idle Boost <span id="idle-boost">x1</span></div>
+                        </div>
+                    </div>
+                    <div class="hero-ball">
+                        <div class="ball-glow"></div>
+                        <div id="pokeball-container">
+                            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Poké Ball">
+                        </div>
+                        <p class="click-hint"><i class="fas fa-hand-pointer"></i> Clique au centre pour farmer.</p>
+                    </div>
+                </section>
+
+                <div id="trainer-container" class="card">
+                    <h2><i class="fas fa-user"></i> Trainer Level: <span id="trainer-level">1</span></h2>
+                    <progress id="xp-bar" value="0" max="100"></progress>
+                    <span id="xp-text">0 / 100 XP</span>
+                </div>
+
+                <div id="pokemon-container" class="card">
+                    <!-- Pokémon will be dynamically added here -->
                 </div>
             </div>
-            <div id="store-container" class="card">
-                <h2><i class="fas fa-store"></i> Store</h2>
-                <div id="store-items">
-                    <!-- Store items will be dynamically added here -->
+
+            <div id="side-column">
+                <div id="favorite-pokemon-container" class="card">
+                    <h2><i class="fas fa-heart"></i> Favorite Pokémon</h2>
+                    <div id="favorite-pokemon-slot">
+                        <!-- Favorite Pokémon will be displayed here -->
+                    </div>
+                </div>
+                <div id="battle-container" class="card">
+                    <h2><i class="fas fa-gamepad"></i> Battle</h2>
+                    <div id="battle-preview">
+                        <div class="opponent-info">
+                            <img id="battle-opponent-sprite" src="" alt="opponent">
+                            <div>
+                                <p class="eyebrow">Rival</p>
+                                <div id="battle-opponent-name"></div>
+                                <div id="battle-opponent-power" class="muted"></div>
+                            </div>
+                        </div>
+                        <p id="battle-player-power" class="muted"></p>
+                        <p id="battle-risk" class="muted"></p>
+                    </div>
+                    <button id="battle-button" class="btn"><i class="fas fa-fist-raised"></i> Start Battle</button>
+                    <div id="battle-log"></div>
                 </div>
             </div>
-            <div id="upgrades-container" class="card">
-                <h2><i class="fas fa-level-up-alt"></i> Upgrades</h2>
-                <div id="upgrades-items">
-                    <!-- Upgrades will be dynamically added here -->
-                </div>
+        </main>
+    </div>
+
+    <div id="achievements-modal" class="modal" style="display:none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h3><i class="fas fa-medal"></i> Achievements (100)</h3>
+                <button id="close-achievements" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
             </div>
-            <div id="achievements-container" class="card">
-                <h2><i class="fas fa-medal"></i> Achievements</h2>
-                <div id="achievements-items">
-                    <!-- Achievements will be dynamically added here -->
-                </div>
-            </div>
-            <div id="battle-container" class="card">
-                <h2><i class="fas fa-gamepad"></i> Battle</h2>
-                <button id="battle-button" class="btn"><i class="fas fa-fist-raised"></i> Start Battle</button>
-                <div id="battle-log"></div>
+            <div id="achievements-items" class="achievements-grid">
+                <!-- Achievements will be dynamically added here -->
             </div>
         </div>
     </div>
+
+    <footer id="footer-bar" class="card">
+        <div class="footer-section">
+            <div class="footer-header"><i class="fas fa-store"></i> Store</div>
+            <div id="store-items" class="horizontal-scroller">
+                <!-- Store items will be dynamically added here -->
+            </div>
+        </div>
+        <div class="footer-section">
+            <div class="footer-header"><i class="fas fa-level-up-alt"></i> Upgrades</div>
+            <div class="scroller-wrapper">
+                <button class="scroll-btn" data-target="upgrades-items" data-dir="-1"><i class="fas fa-chevron-left"></i></button>
+                <div id="upgrades-items" class="horizontal-scroller">
+                    <!-- Upgrades will be dynamically added here -->
+                </div>
+                <button class="scroll-btn" data-target="upgrades-items" data-dir="1"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </footer>
+
     <div id="settings-button">⚙️</div>
     <div id="settings-container" style="display: none;">
         <h2>Settings</h2>
@@ -74,9 +137,6 @@
             <input type="checkbox" id="toggle-dynamic-background" checked>
             Dynamic Background
         </label>
-    </div>
-    <div id="pokeball-container">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Poké Ball">
     </div>
     <div id="floating-numbers-container"></div>
     <script src="game.js"></script>
