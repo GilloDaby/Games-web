@@ -32,6 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const achievementsModal = document.getElementById('achievements-modal');
     const achievementsButton = document.getElementById('achievements-button');
     const closeAchievementsButton = document.getElementById('close-achievements');
+    const automationModal = document.getElementById('automation-modal');
+    const talentsModal = document.getElementById('talents-modal');
+    const openAutomationButton = document.getElementById('open-automation');
+    const openTalentsButton = document.getElementById('open-talents');
+    const closeAutomationButton = document.getElementById('close-automation');
+    const closeTalentsButton = document.getElementById('close-talents');
     const saveButton = document.getElementById('save-button');
     const loadButton = document.getElementById('load-button');
     const prestigeButton = document.getElementById('prestige-button');
@@ -88,6 +94,40 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     let upgradesData = [];
+    const automationUpgradesData = [
+        { id: 'auto-click-1', name: 'PokéBot v1', cost: 5000, autoClick: 1 },
+        { id: 'auto-click-2', name: 'PokéBot v2', cost: 55000, autoClick: 4 },
+        { id: 'auto-click-3', name: 'PokéBot v3', cost: 220000, autoClick: 12 },
+        { id: 'auto-click-4', name: 'PokéBot v4', cost: 900000, autoClick: 30 },
+        { id: 'auto-click-5', name: 'PokéBot v5', cost: 2600000, autoClick: 70 },
+        { id: 'auto-buy-store', name: 'Auto Buy Store', cost: 1200000, autoBuyPokemon: true },
+        { id: 'auto-buy-upgrades', name: 'Auto Buy Upgrades', cost: 2200000, autoBuyUpgrade: true }
+    ];
+
+    const talentsData = [
+        { id: 'talent-mps-1', name: 'Boost MPS I', desc: '+5% MPS', cost: 1, mpsMult: 1.05 },
+        { id: 'talent-click-1', name: 'Cliqueur I', desc: '+1 clic', cost: 1, clickBonus: 1, requires: ['talent-mps-1'] },
+        { id: 'talent-shiny', name: 'Chasseur Shiny', desc: '+0.5% shiny', cost: 2, shinyBonus: 0.005, requires: ['talent-mps-1'] },
+        { id: 'talent-mps-2', name: 'Boost MPS II', desc: '+10% MPS', cost: 2, mpsMult: 1.1, requires: ['talent-mps-1'] },
+        { id: 'talent-click-2', name: 'Cliqueur II', desc: '+2 clic', cost: 2, clickBonus: 2, requires: ['talent-click-1'] },
+        { id: 'talent-discount-store', name: 'Marchandage', desc: '-5% coûts store', cost: 2, storeDiscount: 0.05, requires: ['talent-mps-1'] },
+        { id: 'talent-discount-upg', name: 'Ingé malin', desc: '-5% coûts upgrades', cost: 2, upgradeDiscount: 0.05, requires: ['talent-mps-2'] },
+        { id: 'talent-mps-3', name: 'Boost MPS III', desc: '+15% MPS', cost: 3, mpsMult: 1.15, requires: ['talent-mps-2'] },
+        { id: 'talent-click-3', name: 'Cliqueur III', desc: '+3 clic', cost: 3, clickBonus: 3, requires: ['talent-click-2'] }
+    ];
+
+    const dailyQuestsData = [
+        { id: 'q-money', name: 'Gagner 100K', goal: 'money', target: 100000, reward: 1 },
+        { id: 'q-clicks', name: 'Cliquer 250x', goal: 'clicks', target: 250, reward: 1 },
+        { id: 'q-battles', name: 'Vaincre 5 rivaux', goal: 'battles', target: 5, reward: 1 },
+        { id: 'q-catches', name: 'Capturer 20 Pokémon', goal: 'catches', target: 20, reward: 1 }
+    ];
+
+    const dynamicEventsPool = [
+        { id: 'ev-mps', name: 'Pluie de Pokédollars', duration: 60000, mpsMult: 1.5, description: 'MPS x1.5 pendant 60s' },
+        { id: 'ev-click', name: 'Turbo Click', duration: 45000, clickMult: 2, description: 'Clics x2 pendant 45s' },
+        { id: 'ev-shiny', name: 'Lueur Shiny', duration: 30000, shinyBonus: 0.02, description: 'Chance shiny +2% pendant 30s' }
+    ];
 
     const PRESTIGE_REQUIREMENT = 50000000; // base requirement
     const SHINY_CHANCE = 0.01; // 1% chance
@@ -183,6 +223,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let clickValue = 1;
     let currentOpponent = null;
     let battlesFought = 0;
+    let automationState = {
+        autoClickPower: 0,
+        autoClickRate: 0, // clicks per second equivalent
+        autoBuyPokemon: false,
+        autoBuyUpgrade: false
+    };
+    let purchasedAutomation = [];
+    let talentPoints = 0;
+    let unlockedTalents = [];
+    let talentBonuses = { mpsMult: 1, clickBonus: 0, shinyBonus: 0, storeDiscount: 0, upgradeDiscount: 0 };
+    let questProgress = { money: 0, clicks: 0, battles: 0, catches: 0 };
+    let completedQuests = [];
+    let activeEvent = null;
+    let activeEventEndsAt = 0;
 
     // --- Game Logic ---
 
@@ -214,6 +268,14 @@ document.addEventListener('DOMContentLoaded', () => {
         kantoPokemonNames.forEach((name, idx) => {
             nameCache[idx + 1] = name;
         });
+    }
+
+    function getShinyChance() {
+        let chance = SHINY_CHANCE + talentBonuses.shinyBonus;
+        if (activeEvent && activeEvent.shinyBonus) {
+            chance += activeEvent.shinyBonus;
+        }
+        return chance;
     }
 
     function ensureName(dex) {
@@ -277,12 +339,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 clickValue += upgrade.clickBonus;
             }
         });
+        clickValue += talentBonuses.clickBonus;
     }
 
     function refreshGenerationData() {
         primeKantoNames();
         pokemonData = buildPokemonData(currentGeneration);
         upgradesData = buildUpgrades(currentGeneration);
+    }
+
+    function recalcAutomation() {
+        automationState.autoClickRate = 0;
+        automationState.autoBuyPokemon = false;
+        automationState.autoBuyUpgrade = false;
+        purchasedAutomation.forEach(id => {
+            const a = automationUpgradesData.find(item => item.id === id);
+            if (a && a.autoClick) {
+                automationState.autoClickRate += a.autoClick;
+            }
+            if (a && a.autoBuyPokemon) automationState.autoBuyPokemon = true;
+            if (a && a.autoBuyUpgrade) automationState.autoBuyUpgrade = true;
+        });
+    }
+
+    function recalcTalents() {
+        talentBonuses = { mpsMult: 1, clickBonus: 0, shinyBonus: 0, storeDiscount: 0, upgradeDiscount: 0 };
+        unlockedTalents.forEach(id => {
+            const t = talentsData.find(tal => tal.id === id);
+            if (!t) return;
+            if (t.mpsMult) talentBonuses.mpsMult *= t.mpsMult;
+            if (t.clickBonus) talentBonuses.clickBonus += t.clickBonus;
+            if (t.shinyBonus) talentBonuses.shinyBonus += t.shinyBonus;
+            if (t.storeDiscount) talentBonuses.storeDiscount += t.storeDiscount;
+            if (t.upgradeDiscount) talentBonuses.upgradeDiscount += t.upgradeDiscount;
+        });
+        recalculateClickValue();
+        calculateMoneyPerSecond();
+    }
+
+    function effectiveClickValue() {
+        let val = clickValue;
+        if (activeEvent && activeEvent.clickMult) {
+            val *= activeEvent.clickMult;
+        }
+        return val;
+    }
+
+    function discountedCost(baseCost, type) {
+        if (type === 'store') {
+            return Math.floor(baseCost * (1 - talentBonuses.storeDiscount));
+        }
+        if (type === 'upgrade') {
+            return Math.floor(baseCost * (1 - talentBonuses.upgradeDiscount));
+        }
+        return baseCost;
     }
 
     function highestOwnedDexIndex() {
@@ -336,6 +446,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         moneyPerSecond *= prestigeMultiplier;
         moneyPerSecond *= temporaryMultiplier;
+        moneyPerSecond *= talentBonuses.mpsMult;
+        if (activeEvent && activeEvent.mpsMult) {
+            moneyPerSecond *= activeEvent.mpsMult;
+        }
     }
 
     function buyPokemon(pokemonId) {
@@ -351,12 +465,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (money >= pokemon.cost) {
-            money -= pokemon.cost;
+        const cost = discountedCost(pokemon.cost, 'store');
+        if (money >= cost) {
+            money -= cost;
             ownedPokemon[pokemonId] = (ownedPokemon[pokemonId] || 0) + 1;
             gainXp(10);
 
-            if (Math.random() < SHINY_CHANCE) {
+            if (Math.random() < getShinyChance()) {
                 if (!shinyPokemon.includes(pokemonId)) {
                     shinyPokemon.push(pokemonId);
                     showToast(`Shiny trouvé ! ${pokemon.name} rejoint l'équipe (bonus x${SHINY_MULTIPLIER}).`);
@@ -384,14 +499,76 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (money >= upgrade.cost && !purchasedUpgrades.includes(upgradeId)) {
-            money -= upgrade.cost;
+        const cost = discountedCost(upgrade.cost, 'upgrade');
+
+        if (money >= cost && !purchasedUpgrades.includes(upgradeId)) {
+            money -= cost;
             purchasedUpgrades.push(upgradeId);
             recalculateClickValue();
             calculateMoneyPerSecond();
             updateUI();
         } else {
             showToast('Amélioration impossible !');
+        }
+    }
+
+    function buyAutomation(autoId) {
+        const auto = automationUpgradesData.find(a => a.id === autoId);
+        if (!auto || purchasedAutomation.includes(autoId)) return;
+        if (money >= auto.cost) {
+            money -= auto.cost;
+            purchasedAutomation.push(autoId);
+            recalcAutomation();
+            updateUI();
+            showToast(`${auto.name} activé`);
+        } else {
+            showToast('Pas assez de Pokédollars pour cet auto-bot.');
+        }
+    }
+
+    function autoBuyNextPokemon() {
+        for (let i = 0; i < pokemonData.length; i++) {
+            const p = pokemonData[i];
+            const cost = discountedCost(p.cost, 'store');
+            if (money >= cost) {
+                buyPokemon(p.id);
+                break;
+            }
+            if ((ownedPokemon[p.id] || 0) === 0) break;
+        }
+    }
+
+    function autoBuyNextUpgrade() {
+        for (let i = 0; i < upgradesData.length; i++) {
+            const u = upgradesData[i];
+            if (purchasedUpgrades.includes(u.id)) continue;
+            const prevId = upgradesData[i - 1]?.id;
+            if (i > 0 && !purchasedUpgrades.includes(prevId)) break;
+            const cost = discountedCost(u.cost, 'upgrade');
+            if (money >= cost) {
+                buyUpgrade(u.id);
+            }
+            break;
+        }
+    }
+
+    function unlockTalent(talentId) {
+        const talent = talentsData.find(t => t.id === talentId);
+        if (!talent || unlockedTalents.includes(talentId)) return;
+        const depsMet = !talent.requires || talent.requires.every(r => unlockedTalents.includes(r));
+        if (!depsMet) {
+            showToast('Débloque les talents requis d\'abord.');
+            return;
+        }
+        if (talentPoints >= talent.cost) {
+            talentPoints -= talent.cost;
+            unlockedTalents.push(talentId);
+            recalcTalents();
+            renderTalents();
+            updateStats();
+            showToast(`Talent débloqué : ${talent.name}`);
+        } else {
+            showToast('Pas assez de points talent.');
         }
     }
 
@@ -402,6 +579,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderOwnedPokemon();
         renderFavoritePokemon();
         updateTrainerUI();
+        renderAutomation();
+        renderTalents();
+        renderQuests();
+        updateEventBanner();
     }
 
     function updateStats() {
@@ -525,6 +706,105 @@ document.addEventListener('DOMContentLoaded', () => {
             favoritePokemonSlot.innerHTML = '<span>Choisis un Pokémon possédé pour le mettre en favori.</span>';
         }
     }
+
+    function renderAutomation() {
+        const container = document.getElementById('automation-items');
+        if (!container) return;
+        container.innerHTML = '';
+        automationUpgradesData.forEach(upg => {
+            const purchased = purchasedAutomation.includes(upg.id);
+            const canAfford = money >= upg.cost;
+            const pill = document.createElement('div');
+            pill.className = `pill ${purchased ? 'purchased' : ''} ${!canAfford && !purchased ? 'locked' : ''}`;
+            pill.innerHTML = `
+                <strong>${upg.name}</strong>
+                <span>${upg.autoClick ? `Auto-clic: +${upg.autoClick}/s` : ''} ${upg.autoBuyPokemon ? 'Auto-buy Pokémon' : ''} ${upg.autoBuyUpgrade ? 'Auto-buy Upgrades' : ''}</span>
+                <small>Prix: ${formatNumber(upg.cost)}</small>
+            `;
+            if (!purchased) {
+                const btn = document.createElement('button');
+                btn.className = 'btn small';
+                btn.textContent = 'Acheter';
+                btn.disabled = !canAfford;
+                btn.onclick = () => buyAutomation(upg.id);
+                pill.appendChild(btn);
+            } else {
+                const badge = document.createElement('span');
+                badge.className = 'muted';
+                badge.textContent = 'Pris';
+                pill.appendChild(badge);
+            }
+            container.appendChild(pill);
+        });
+    }
+
+    function renderTalents() {
+        const container = document.getElementById('talents-grid');
+        const label = document.getElementById('talent-points-label');
+        if (!container) return;
+        container.innerHTML = '';
+        if (label) label.textContent = `${talentPoints} pts`;
+        talentsData.forEach(t => {
+            const unlocked = unlockedTalents.includes(t.id);
+            const canAfford = talentPoints >= t.cost;
+            const depsMet = !t.requires || t.requires.every(r => unlockedTalents.includes(r));
+            const pill = document.createElement('div');
+            pill.className = `pill ${unlocked ? 'purchased' : ''} ${!depsMet ? 'locked' : ''}`;
+            pill.innerHTML = `
+                <strong>${t.name}</strong>
+                <span>${t.desc}</span>
+                <small>Coût: ${t.cost} pt</small>
+            `;
+            if (!unlocked) {
+                const btn = document.createElement('button');
+                btn.className = 'btn small';
+                btn.textContent = 'Débloquer';
+                btn.disabled = !canAfford || !depsMet;
+                btn.onclick = () => unlockTalent(t.id);
+                pill.appendChild(btn);
+            } else {
+                const badge = document.createElement('span');
+                badge.className = 'muted';
+                badge.textContent = 'Actif';
+                pill.appendChild(badge);
+            }
+            container.appendChild(pill);
+        });
+    }
+
+    function renderQuests() {
+        const container = document.getElementById('quests-list');
+        if (!container) return;
+        container.innerHTML = '';
+        dailyQuestsData.forEach(q => {
+            const done = completedQuests.includes(q.id);
+            let value = 0;
+            if (q.goal === 'money') value = questProgress.money;
+            if (q.goal === 'clicks') value = questProgress.clicks;
+            if (q.goal === 'battles') value = questProgress.battles;
+            if (q.goal === 'catches') value = questProgress.catches;
+            const pill = document.createElement('div');
+            pill.className = `pill ${done ? 'purchased' : ''}`;
+            pill.innerHTML = `
+                <strong>${q.name}</strong>
+                <span>${Math.min(value, q.target)} / ${q.target}</span>
+                <small>Récompense: +${q.reward} pt talent</small>
+            `;
+            container.appendChild(pill);
+        });
+    }
+
+    function updateEventBanner() {
+        const banner = document.getElementById('event-banner');
+        if (!banner) return;
+        if (activeEvent) {
+            const remaining = Math.max(0, activeEventEndsAt - Date.now());
+            banner.style.display = 'block';
+            banner.textContent = `${activeEvent.name} — ${activeEvent.description} (restant ${Math.ceil(remaining / 1000)}s)`;
+        } else {
+            banner.style.display = 'none';
+        }
+    }
     
     function renderStore() {
         storeItemsContainer.innerHTML = '';
@@ -592,9 +872,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Game Loop ---
     function gameLoop() {
-        money += moneyPerSecond / 10; // Update money 10 times per second for smoother feeling
+        const passiveIncome = moneyPerSecond / 10;
+        const autoIncome = (automationState.autoClickRate * effectiveClickValue()) / 10;
+        money += passiveIncome + autoIncome; // smoother
+        questProgress.money += passiveIncome + autoIncome;
+        if (automationState.autoBuyPokemon) {
+            autoBuyNextPokemon();
+        }
+        if (automationState.autoBuyUpgrade) {
+            autoBuyNextUpgrade();
+        }
         updateStats();
         checkAchievements();
+        renderQuests();
 
         if (Math.random() < 0.0001) { // 0.01% chance every 100ms
             triggerRandomEvent();
@@ -615,6 +905,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderUpgrades();
         renderAchievements();
         updateBackground();
+        maybeStartDynamicEvent();
+        updateActiveEvent();
+        checkQuests();
+        renderQuests();
     }
 
     // --- Dynamic Background ---
@@ -629,12 +923,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function maybeStartDynamicEvent() {
+        if (activeEvent) return;
+        if (Math.random() < 0.01) { // ~1% chance per second
+            activeEvent = dynamicEventsPool[Math.floor(Math.random() * dynamicEventsPool.length)];
+            activeEventEndsAt = Date.now() + activeEvent.duration;
+            showToast(`Event: ${activeEvent.name} — ${activeEvent.description}`);
+            updateEventBanner();
+            calculateMoneyPerSecond();
+        }
+    }
+
+    function updateActiveEvent() {
+        if (activeEvent && Date.now() >= activeEventEndsAt) {
+            activeEvent = null;
+            activeEventEndsAt = 0;
+            showToast('Event terminé.');
+            calculateMoneyPerSecond();
+            updateEventBanner();
+        } else {
+            updateEventBanner();
+        }
+    }
+
     // --- Achievement Logic ---
     function checkAchievements() {
         achievementsData.forEach(achievement => {
             if (!unlockedAchievements.includes(achievement.id) && achievement.condition()) {
                 unlockedAchievements.push(achievement.id);
                 showToast(`Succès débloqué : ${achievement.name}`);
+            }
+        });
+    }
+
+    function checkQuests() {
+        dailyQuestsData.forEach(q => {
+            if (completedQuests.includes(q.id)) return;
+            let value = 0;
+            if (q.goal === 'money') value = questProgress.money;
+            if (q.goal === 'clicks') value = questProgress.clicks;
+            if (q.goal === 'battles') value = questProgress.battles;
+            if (q.goal === 'catches') value = questProgress.catches;
+            if (value >= q.target) {
+                completedQuests.push(q.id);
+                talentPoints += q.reward;
+                showToast(`Quête terminée : ${q.name} (+${q.reward} point talent)`);
+                recalcTalents();
+                renderTalents();
+                renderQuests();
             }
         });
     }
@@ -656,6 +992,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newPrestigePoints = Math.floor(Math.sqrt(money / PRESTIGE_REQUIREMENT));
             prestigePoints += newPrestigePoints;
             prestigeMultiplier = 1 + prestigePoints * 0.1;
+            talentPoints += newPrestigePoints; // talent points reward
 
             // Avance à la génération suivante si possible
             if (currentGeneration < genRanges.length) {
@@ -690,6 +1027,7 @@ document.addEventListener('DOMContentLoaded', () => {
             money: money,
             ownedPokemon: ownedPokemon,
             purchasedUpgrades: purchasedUpgrades,
+            purchasedAutomation: purchasedAutomation,
             prestigePoints: prestigePoints,
             prestigeMultiplier: prestigeMultiplier,
             unlockedAchievements: unlockedAchievements,
@@ -699,6 +1037,10 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerXp: trainerXp,
             xpToNextLevel: xpToNextLevel,
             currentGeneration: currentGeneration,
+            talentPoints: talentPoints,
+            unlockedTalents: unlockedTalents,
+            questProgress: questProgress,
+            completedQuests: completedQuests,
             lastSave: Date.now() // Store the timestamp
         };
         localStorage.setItem('pokemonIdleSave', JSON.stringify(gameState));
@@ -714,6 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 money = gameState.money || 0;
                 ownedPokemon = gameState.ownedPokemon || {};
                 purchasedUpgrades = gameState.purchasedUpgrades || [];
+                purchasedAutomation = gameState.purchasedAutomation || [];
                 prestigePoints = gameState.prestigePoints || 0;
                 prestigeMultiplier = gameState.prestigeMultiplier || 1;
                 unlockedAchievements = gameState.unlockedAchievements || [];
@@ -723,6 +1066,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 trainerXp = gameState.trainerXp || 0;
                 xpToNextLevel = gameState.xpToNextLevel || 100;
                 currentGeneration = gameState.currentGeneration || 1;
+                talentPoints = gameState.talentPoints || 0;
+                unlockedTalents = gameState.unlockedTalents || [];
+                questProgress = gameState.questProgress || { money: 0, clicks: 0, battles: 0, catches: 0 };
+                completedQuests = gameState.completedQuests || [];
 
                 return gameState.lastSave; // Return the last save time
             } else {
@@ -744,6 +1091,11 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerXp = 0;
             xpToNextLevel = 100;
             currentGeneration = 1;
+            questProgress = { money: 0, clicks: 0, battles: 0, catches: 0 };
+            completedQuests = [];
+            purchasedAutomation = [];
+            talentPoints = 0;
+            unlockedTalents = [];
             showToast('Echec de chargement. Nouvelle partie lancée.');
             return null;
         }
@@ -754,6 +1106,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const lastSaveTime = loadGame(); // Load saved data first
         refreshGenerationData();
         recalculateClickValue();
+        recalcAutomation();
+        recalcTalents();
         calculateMoneyPerSecond();
 
         if (lastSaveTime) {
@@ -795,6 +1149,32 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        if (openAutomationButton && automationModal && closeAutomationButton) {
+            openAutomationButton.addEventListener('click', () => {
+                automationModal.style.display = 'flex';
+                renderAutomation();
+            });
+            closeAutomationButton.addEventListener('click', () => {
+                automationModal.style.display = 'none';
+            });
+            automationModal.addEventListener('click', (e) => {
+                if (e.target === automationModal) automationModal.style.display = 'none';
+            });
+        }
+
+        if (openTalentsButton && talentsModal && closeTalentsButton) {
+            openTalentsButton.addEventListener('click', () => {
+                talentsModal.style.display = 'flex';
+                renderTalents();
+            });
+            closeTalentsButton.addEventListener('click', () => {
+                talentsModal.style.display = 'none';
+            });
+            talentsModal.addEventListener('click', (e) => {
+                if (e.target === talentsModal) talentsModal.style.display = 'none';
+            });
+        }
+
         currentOpponent = generateOpponent();
         refreshBattlePreview();
 
@@ -813,17 +1193,22 @@ document.addEventListener('DOMContentLoaded', () => {
         pokemonContainer.addEventListener('click', (e) => {
             // Check if the click was on an empty area of the container
             if (e.target === pokemonContainer) {
-                const clickMoney = clickValue;
+                const clickMoney = effectiveClickValue();
                 money += clickMoney;
+                questProgress.money += clickMoney;
+                questProgress.clicks += 1;
                 gainXp(1);
                 createFloatingNumber(e.clientX, e.clientY, clickMoney);
                 updateStats();
+                checkQuests();
             }
         });
 
         pokeballContainer.addEventListener('click', (e) => {
-            const clickMoney = clickValue;
+            const clickMoney = effectiveClickValue();
             money += clickMoney;
+            questProgress.money += clickMoney;
+            questProgress.clicks += 1;
             gainXp(1);
             const rect = pokeballContainer.getBoundingClientRect();
             createFloatingNumber(rect.left + rect.width / 2, rect.top, clickMoney);
@@ -835,14 +1220,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Math.random() < POKEBALL_DROP_CHANCE && droppablePokemon.length > 0) {
                 const randomPokemon = droppablePokemon[Math.floor(Math.random() * droppablePokemon.length)];
                 ownedPokemon[randomPokemon.id] = (ownedPokemon[randomPokemon.id] || 0) + 1;
-                if (Math.random() < SHINY_CHANCE && !shinyPokemon.includes(randomPokemon.id)) {
+                if (Math.random() < getShinyChance() && !shinyPokemon.includes(randomPokemon.id)) {
                     shinyPokemon.push(randomPokemon.id);
                     showToast(`Shiny trouvé ! ${randomPokemon.name} (bonus x${SHINY_MULTIPLIER}).`);
                 }
                 gainXp(10);
+                questProgress.catches += 1;
                 calculateMoneyPerSecond();
                 updateUI();
                 showToast(`Chance ! La Poké Ball a lâché un ${randomPokemon.name}.`);
+                checkQuests();
             }
         });
 
@@ -861,6 +1248,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const rewardText = formatNumber(reward);
             money += reward;
             gainXp(80);
+            questProgress.money += reward;
+            questProgress.battles += 1;
             logMessage += `\nVictoire ! +${rewardText} Pokédollars et +80 XP.`;
             battleLog.innerHTML += `<p style="color: green;">${logMessage}</p>`;
         } else {
@@ -874,6 +1263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         battlesFought += 1;
         currentOpponent = generateOpponent();
         refreshBattlePreview();
+        checkQuests();
     }
 
     function createFloatingNumber(x, y, value) {
