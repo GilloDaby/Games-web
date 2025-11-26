@@ -867,7 +867,7 @@ body::after {
 
 .auto-buy-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 10px;
     max-height: 70vh;
     overflow-y: auto;

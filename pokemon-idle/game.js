@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pokemonData = [];
     const nameCache = {};
 
-    const baseUpgradeConfig = [
+    const baseUpgradeConfigSeed = [
         { id: 'click-1', name: 'Gants de Dresseur', target: 'click', clickBonus: 1 },
         { id: 'click-2', name: 'Scope Pro', target: 'click', clickBonus: 3 },
         { id: 'click-3', name: 'Turbo Tap', target: 'click', clickBonus: 8 },
@@ -116,6 +116,30 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'legend-150', name: 'Clone Mewtwo', target: 'all', multiplier: 1.4, clickBonus: 5 },
         { id: 'legend-151', name: 'Aura Mew', target: 'all', multiplier: 1.6, clickBonus: 10 }
     ];
+    const generatedUpgrades = [];
+    for (let i = 1; i <= 90; i++) {
+        if (i % 3 === 0) {
+            generatedUpgrades.push({
+                id: `gen-click-${i}`,
+                name: `Clique Boost ${i}`,
+                target: 'click',
+                clickBonus: 2 + Math.floor(i / 3)
+            });
+        } else {
+            generatedUpgrades.push({
+                id: `gen-mps-${i}`,
+                name: `Synergie ${i}`,
+                target: 'all',
+                multiplier: 1.02 + (i % 5 === 0 ? 0.01 : 0)
+            });
+        }
+    }
+    generatedUpgrades.push(
+        { id: 'shiny-boost-1', name: 'Charme Shiny I', target: 'all', shinyBonus: 0.001 },
+        { id: 'shiny-boost-2', name: 'Charme Shiny II', target: 'all', shinyBonus: 0.0015 },
+        { id: 'shiny-boost-3', name: 'Charme Shiny III', target: 'all', shinyBonus: 0.002 }
+    );
+    const baseUpgradeConfig = [...baseUpgradeConfigSeed, ...generatedUpgrades];
 
     let upgradesData = [];
     const automationUpgradesData = [
@@ -314,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const PRESTIGE_REQUIREMENT = 5000000000; // base requirement
-    const SHINY_CHANCE = 0.01; // 1% chance
+    const SHINY_CHANCE = 1 / 4096; // align closer to main games
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
     const SHINY_MULTIPLIER = 2; // 2x bonus for shiny
 
@@ -473,6 +497,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         activeConsumables.forEach(c => {
             if (c.effect.shinyBonus) chance += c.effect.shinyBonus;
+        });
+        purchasedUpgrades.forEach(id => {
+            const upg = upgradesData.find(u => u.id === id);
+            if (upg && upg.shinyBonus) chance += upg.shinyBonus;
         });
         return chance;
     }
