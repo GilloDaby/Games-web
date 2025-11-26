@@ -5,54 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokémon Idle Trainer</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
     <div id="game-container">
-        <div id="stats-container">
-            <h1>Pokédollars: <span id="money">0</span></h1>
-            <h2>$/sec: <span id="money-per-second">0</span></h2>
-            <h3>Prestige Points: <span id="prestige-points">0</span></h3>
-            <h3>Prestige Multiplier: <span id="prestige-multiplier">1</span>x</h3>
-            <button id="save-button">Save</button>
-            <button id="load-button">Load</button>
-            <button id="prestige-button" style="display: none;">Prestige</button>
-        </div>
-        <div id="trainer-container">
-            <h2>Trainer Level: <span id="trainer-level">1</span></h2>
-            <progress id="xp-bar" value="0" max="100"></progress>
-            <span id="xp-text">0 / 100 XP</span>
-        </div>
-        <div id="pokemon-container">
-            <!-- Pokémon will be dynamically added here -->
-        </div>
-        <div id="favorite-pokemon-container">
-            <h2>Favorite Pokémon</h2>
-            <div id="favorite-pokemon-slot">
-                <!-- Favorite Pokémon will be displayed here -->
+        <div id="main-column">
+            <div id="stats-container" class="card">
+                <h1><i class="fas fa-coins"></i> Pokédollars: <span id="money">0</span></h1>
+                <h2><i class="fas fa-hand-holding-dollar"></i> $/sec: <span id="money-per-second">0</span></h2>
+                <h3><i class="fas fa-star"></i> Prestige Points: <span id="prestige-points">0</span></h3>
+                <h3><i class="fas fa-arrow-up-right-dots"></i> Prestige Multiplier: <span id="prestige-multiplier">1</span>x</h3>
+                <button id="save-button" class="btn"><i class="fas fa-save"></i> Save</button>
+                <button id="load-button" class="btn"><i class="fas fa-folder-open"></i> Load</button>
+                <button id="prestige-button" class="btn prestige-btn" style="display: none;"><i class="fas fa-trophy"></i> Prestige</button>
+            </div>
+            <div id="trainer-container" class="card">
+                <h2><i class="fas fa-user"></i> Trainer Level: <span id="trainer-level">1</span></h2>
+                <progress id="xp-bar" value="0" max="100"></progress>
+                <span id="xp-text">0 / 100 XP</span>
+            </div>
+            <div id="pokemon-container" class="card">
+                <!-- Pokémon will be dynamically added here -->
             </div>
         </div>
-        <div id="store-container">
-            <h2>Store</h2>
-            <div id="store-items">
-                <!-- Store items will be dynamically added here -->
+        <div id="side-column">
+            <div id="favorite-pokemon-container" class="card">
+                <h2><i class="fas fa-heart"></i> Favorite Pokémon</h2>
+                <div id="favorite-pokemon-slot">
+                    <!-- Favorite Pokémon will be displayed here -->
+                </div>
             </div>
-        </div>
-        <div id="upgrades-container">
-            <h2>Upgrades</h2>
-            <div id="upgrades-items">
-                <!-- Upgrades will be dynamically added here -->
+            <div id="store-container" class="card">
+                <h2><i class="fas fa-store"></i> Store</h2>
+                <div id="store-items">
+                    <!-- Store items will be dynamically added here -->
+                </div>
             </div>
-        </div>
-        <div id="achievements-container">
-            <h2>Achievements</h2>
-            <div id="achievements-items">
-                <!-- Achievements will be dynamically added here -->
+            <div id="upgrades-container" class="card">
+                <h2><i class="fas fa-level-up-alt"></i> Upgrades</h2>
+                <div id="upgrades-items">
+                    <!-- Upgrades will be dynamically added here -->
+                </div>
             </div>
-        </div>
-        <div id="battle-container">
-            <h2>Battle</h2>
-            <button id="battle-button">Start Battle</button>
-            <div id="battle-log"></div>
+            <div id="achievements-container" class="card">
+                <h2><i class="fas fa-medal"></i> Achievements</h2>
+                <div id="achievements-items">
+                    <!-- Achievements will be dynamically added here -->
+                </div>
+            </div>
+            <div id="battle-container" class="card">
+                <h2><i class="fas fa-gamepad"></i> Battle</h2>
+                <button id="battle-button" class="btn"><i class="fas fa-fist-raised"></i> Start Battle</button>
+                <div id="battle-log"></div>
+            </div>
         </div>
     </div>
     <div id="settings-button">⚙️</div>
