@@ -38,6 +38,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const openTalentsButton = document.getElementById('open-talents');
     const closeAutomationButton = document.getElementById('close-automation');
     const closeTalentsButton = document.getElementById('close-talents');
+    const openLeaguesButton = document.getElementById('open-leagues');
+    const closeLeaguesButton = document.getElementById('close-leagues');
+    const leaguesModal = document.getElementById('leagues-modal');
+    const leaguesList = document.getElementById('leagues-list');
+    const openChallengesButton = document.getElementById('open-challenges');
+    const closeChallengesButton = document.getElementById('close-challenges');
+    const challengesModal = document.getElementById('challenges-modal');
+    const challengesList = document.getElementById('challenges-list');
+    const openInventoryButton = document.getElementById('open-inventory');
+    const closeInventoryButton = document.getElementById('close-inventory');
+    const inventoryModal = document.getElementById('inventory-modal');
+    const inventoryList = document.getElementById('inventory-list');
     const saveButton = document.getElementById('save-button');
     const loadButton = document.getElementById('load-button');
     const prestigeButton = document.getElementById('prestige-button');
@@ -116,17 +128,48 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'talent-click-3', name: 'Cliqueur III', desc: '+3 clic', cost: 3, clickBonus: 3, requires: ['talent-click-2'] }
     ];
 
-    const dailyQuestsData = [
-        { id: 'q-money', name: 'Gagner 100K', goal: 'money', target: 100000, reward: 1 },
-        { id: 'q-clicks', name: 'Cliquer 250x', goal: 'clicks', target: 250, reward: 1 },
-        { id: 'q-battles', name: 'Vaincre 5 rivaux', goal: 'battles', target: 5, reward: 1 },
-        { id: 'q-catches', name: 'Capturer 20 Pokémon', goal: 'catches', target: 20, reward: 1 }
-    ];
+    const questPool = (() => {
+        const pool = [];
+        for (let i = 1; i <= 25; i++) {
+            pool.push({ id: `q-money-${i}`, name: `Gagner ${formatNumber(50000 * i)}`, goal: 'money', target: 50000 * i, reward: 1 });
+        }
+        for (let i = 1; i <= 25; i++) {
+            pool.push({ id: `q-clicks-${i}`, name: `Cliquer ${200 + i * 20}x`, goal: 'clicks', target: 200 + i * 20, reward: 1 });
+        }
+        for (let i = 1; i <= 25; i++) {
+            pool.push({ id: `q-battles-${i}`, name: `Vaincre ${i * 3} rivaux`, goal: 'battles', target: i * 3, reward: 1 });
+        }
+        for (let i = 1; i <= 25; i++) {
+            pool.push({ id: `q-catches-${i}`, name: `Capturer ${5 * i} Pokémon`, goal: 'catches', target: 5 * i, reward: 1 });
+        }
+        return pool;
+    })();
 
     const dynamicEventsPool = [
         { id: 'ev-mps', name: 'Pluie de Pokédollars', duration: 60000, mpsMult: 1.5, description: 'MPS x1.5 pendant 60s' },
         { id: 'ev-click', name: 'Turbo Click', duration: 45000, clickMult: 2, description: 'Clics x2 pendant 45s' },
         { id: 'ev-shiny', name: 'Lueur Shiny', duration: 30000, shinyBonus: 0.02, description: 'Chance shiny +2% pendant 30s' }
+    ];
+
+    const leaguesData = [
+        { id: 'league-1', name: 'Ligue PokéBall', entry: 1000, rewardMult: 1.2, difficulty: 1 },
+        { id: 'league-2', name: 'Ligue Super', entry: 7500, rewardMult: 1.6, difficulty: 1.5 },
+        { id: 'league-3', name: 'Ligue Hyper', entry: 40000, rewardMult: 2.2, difficulty: 2.2 },
+        { id: 'league-4', name: 'Ligue Master', entry: 150000, rewardMult: 3.2, difficulty: 3.2 }
+    ];
+
+    const bossData = { id: 'boss-week', name: 'Boss Hebdo', entry: 250000, rewardMult: 5, difficulty: 5 };
+
+    const challengesData = [
+        { id: 'ch-no-click', name: 'No-Click Run', desc: 'Clic manuel interdit', reward: 'Titre: Zen', effect: { noClick: true } },
+        { id: 'ch-shiny-only', name: 'Shiny Only', desc: 'Seuls les shiny produisent du MPS', reward: 'Titre: Brillant', effect: { shinyOnly: true } },
+        { id: 'ch-gen-lock', name: 'Gen Lock', desc: 'Bloqué à la génération actuelle', reward: 'Titre: Puriste', effect: { genLock: true } }
+    ];
+
+    const consumablesData = [
+        { id: 'berry-shiny', name: 'Baie Lumi', desc: '+2% shiny pendant 60s', effect: { shinyBonus: 0.02 }, duration: 60000 },
+        { id: 'incense-click', name: 'Encens Turbo', desc: 'Clics x2 pendant 45s', effect: { clickMult: 2 }, duration: 45000 },
+        { id: 'coupon-store', name: 'Coupon Shop', desc: '-20% coûts store pendant 60s', effect: { storeDiscount: 0.2 }, duration: 60000 }
     ];
 
     const PRESTIGE_REQUIREMENT = 50000000; // base requirement
@@ -235,8 +278,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let talentBonuses = { mpsMult: 1, clickBonus: 0, shinyBonus: 0, storeDiscount: 0, upgradeDiscount: 0 };
     let questProgress = { money: 0, clicks: 0, battles: 0, catches: 0 };
     let completedQuests = [];
+    let dailyQuests = [];
+    let dailyQuestDay = null;
     let activeEvent = null;
     let activeEventEndsAt = 0;
+    let activeChallenge = null;
+    let activeConsumables = [];
 
     // --- Game Logic ---
 
@@ -322,6 +369,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function todayKey() {
+        return new Date().toDateString();
+    }
+
+    function ensureDailyQuests() {
+        const today = todayKey();
+        if (dailyQuestDay !== today || !dailyQuests.length) {
+            dailyQuestDay = today;
+            questProgress = { money: 0, clicks: 0, battles: 0, catches: 0 };
+            completedQuests = [];
+            const poolCopy = [...questPool];
+            dailyQuests = [];
+            for (let i = 0; i < 4 && poolCopy.length > 0; i++) {
+                const idx = Math.floor(Math.random() * poolCopy.length);
+                dailyQuests.push(poolCopy.splice(idx, 1)[0]);
+            }
+        }
+    }
+
     function getSpriteUrl(pokemon) {
         if (!pokemon) return '';
         const baseDex = pokemon.dex;
@@ -346,6 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         primeKantoNames();
         pokemonData = buildPokemonData(currentGeneration);
         upgradesData = buildUpgrades(currentGeneration);
+        ensureDailyQuests();
     }
 
     function recalcAutomation() {
@@ -382,12 +449,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeEvent && activeEvent.clickMult) {
             val *= activeEvent.clickMult;
         }
+        activeConsumables.forEach(c => {
+            if (c.effect.clickMult) val *= c.effect.clickMult;
+        });
+        if (activeChallenge && activeChallenge.noClick) {
+            val = 0;
+        }
         return val;
     }
 
     function discountedCost(baseCost, type) {
         if (type === 'store') {
-            return Math.floor(baseCost * (1 - talentBonuses.storeDiscount));
+            let discount = talentBonuses.storeDiscount;
+            activeConsumables.forEach(c => {
+                if (c.effect.storeDiscount) discount += c.effect.storeDiscount;
+            });
+            return Math.floor(baseCost * (1 - discount));
         }
         if (type === 'upgrade') {
             return Math.floor(baseCost * (1 - talentBonuses.upgradeDiscount));
@@ -413,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const chosen = pokemonData[Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx];
         const basePower = moneyPerSecond || 10;
         const variance = (Math.random() * 0.5 + 0.75); // 75% to 125%
-        const difficulty = Math.pow(1.12, battlesFought) * (1 + (currentGeneration - 1) * 0.5); // exponential scaling with battles fought + gen
+        const difficulty = Math.pow(1.12, battlesFought) * (1 + (currentGeneration - 1) * 0.5);
         const power = Math.max(15, basePower * variance * difficulty);
         return { ...chosen, power };
     }
@@ -425,18 +502,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pokemon) { // Check if pokemon exists in the current data
                 let pokemonMps = pokemon.mps;
 
-                if (id === favoritePokemon) {
-                    pokemonMps *= 2; // Double MPS for favorite pokemon
-                }
+        if (id === favoritePokemon) {
+            pokemonMps *= 2; // Double MPS for favorite pokemon
+        }
 
-                if (shinyPokemon.includes(id)) {
-                    pokemonMps *= SHINY_MULTIPLIER; // shiny bonus
-                }
+        if (shinyPokemon.includes(id)) {
+            pokemonMps *= SHINY_MULTIPLIER; // shiny bonus
+        }
+        if (activeChallenge && activeChallenge.shinyOnly && !shinyPokemon.includes(id)) {
+            pokemonMps = 0;
+        }
 
-                // Apply specific and all upgrades
-                purchasedUpgrades.forEach(upgradeId => {
-                    const upgrade = upgradesData.find(u => u.id === upgradeId);
-                    if (upgrade && (upgrade.target === id || upgrade.target === 'all')) {
+        // Apply specific and all upgrades
+        purchasedUpgrades.forEach(upgradeId => {
+            const upgrade = upgradesData.find(u => u.id === upgradeId);
+            if (upgrade && (upgrade.target === id || upgrade.target === 'all')) {
                         pokemonMps *= upgrade.multiplier;
                     }
                 });
@@ -552,6 +632,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function startLeagueBattle(league, isBoss = false) {
+        const entry = league.entry;
+        if (money < entry) {
+            showToast('Pas assez pour le ticket de ligue.');
+            return;
+        }
+        money -= entry;
+        const originalOpponent = currentOpponent;
+        const boosted = generateOpponent();
+        boosted.power *= league.difficulty || 1;
+        currentOpponent = boosted;
+        startBattle();
+        // Apply reward multiplier on last battle result via streak concept
+        // Simple approach: after victory we add bonus
+        if (battleLog.innerHTML.includes('Victoire')) {
+            const bonus = Math.floor((currentOpponent.power || 0) * (league.rewardMult || 1));
+            money += bonus;
+            showToast(`${league.name}: bonus +${formatNumber(bonus)} Pokédollars`);
+        }
+        if (isBoss) {
+            battlesFought += 2;
+        }
+        currentOpponent = originalOpponent;
+    }
+
+    function activateChallenge(challenge) {
+        activeChallenge = challenge;
+        showToast(`Challenge actif: ${challenge.name}`);
+        calculateMoneyPerSecond();
+        renderChallenges();
+    }
+
+    function useConsumable(item) {
+        const expiresAt = Date.now() + item.duration;
+        activeConsumables.push({ ...item, expiresAt });
+        showToast(`${item.name} activé.`);
+        calculateMoneyPerSecond();
+        recalculateClickValue();
+        renderInventory();
+    }
+
+    function cleanupConsumables() {
+        const now = Date.now();
+        activeConsumables = activeConsumables.filter(c => c.expiresAt > now);
+    }
+
     function unlockTalent(talentId) {
         const talent = talentsData.find(t => t.id === talentId);
         if (!talent || unlockedTalents.includes(talentId)) return;
@@ -583,6 +709,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTalents();
         renderQuests();
         updateEventBanner();
+        renderLeagues();
+        renderChallenges();
+        renderInventory();
     }
 
     function updateStats() {
@@ -774,24 +903,163 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderQuests() {
         const container = document.getElementById('quests-list');
-        if (!container) return;
-        container.innerHTML = '';
-        dailyQuestsData.forEach(q => {
+        if (container) {
+            container.innerHTML = '';
+            dailyQuests.forEach(q => {
+                const done = completedQuests.includes(q.id);
+                let value = 0;
+                if (q.goal === 'money') value = questProgress.money;
+                if (q.goal === 'clicks') value = questProgress.clicks;
+                if (q.goal === 'battles') value = questProgress.battles;
+                if (q.goal === 'catches') value = questProgress.catches;
+                const pill = document.createElement('div');
+                pill.className = `pill ${done ? 'purchased' : ''}`;
+                pill.innerHTML = `
+                    <strong>${q.name}</strong>
+                    <span>${Math.min(value, q.target)} / ${q.target}</span>
+                    <small>Récompense: +${q.reward} pt talent</small>
+                `;
+                container.appendChild(pill);
+            });
+        }
+        updateTicker();
+    }
+
+    function renderLeagues() {
+        if (!leaguesList) return;
+        leaguesList.innerHTML = '';
+        leaguesData.forEach(league => {
+            const pill = document.createElement('div');
+            pill.className = 'pill';
+            pill.innerHTML = `
+                <strong>${league.name}</strong>
+                <span>Ticket: ${formatNumber(league.entry)}</span>
+                <span>Récompense x${league.rewardMult.toFixed(2)}</span>
+            `;
+            const btn = document.createElement('button');
+            btn.className = 'btn small';
+            btn.textContent = 'Combattre';
+            btn.onclick = () => startLeagueBattle(league);
+            pill.appendChild(btn);
+            leaguesList.appendChild(pill);
+        });
+        // Boss
+        const bossPill = document.createElement('div');
+        bossPill.className = 'pill';
+        bossPill.innerHTML = `
+            <strong>${bossData.name}</strong>
+            <span>Ticket: ${formatNumber(bossData.entry)}</span>
+            <span>Récompense x${bossData.rewardMult.toFixed(2)}</span>
+        `;
+        const bossBtn = document.createElement('button');
+        bossBtn.className = 'btn small';
+        bossBtn.textContent = 'Boss Fight';
+        bossBtn.onclick = () => startLeagueBattle(bossData, true);
+        bossPill.appendChild(bossBtn);
+        leaguesList.appendChild(bossPill);
+    }
+
+    function renderChallenges() {
+        if (!challengesList) return;
+        challengesList.innerHTML = '';
+        challengesData.forEach(ch => {
+            const active = activeChallenge && activeChallenge.id === ch.id;
+            const pill = document.createElement('div');
+            pill.className = `pill ${active ? 'purchased' : ''}`;
+            pill.innerHTML = `
+                <strong>${ch.name}</strong>
+                <span>${ch.desc}</span>
+                <small>${ch.reward}</small>
+            `;
+            const btn = document.createElement('button');
+            btn.className = 'btn small';
+            btn.textContent = active ? 'Actif' : 'Activer';
+            btn.disabled = active;
+            btn.onclick = () => activateChallenge(ch);
+            pill.appendChild(btn);
+            challengesList.appendChild(pill);
+        });
+        const resetPill = document.createElement('div');
+        resetPill.className = 'pill';
+        resetPill.innerHTML = `<strong>Quitter le challenge</strong>`;
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'btn small';
+        resetBtn.textContent = 'Reset';
+        resetBtn.onclick = () => {
+            activeChallenge = null;
+            calculateMoneyPerSecond();
+            updateStats();
+            renderChallenges();
+            showToast('Challenge désactivé.');
+        };
+        resetPill.appendChild(resetBtn);
+        challengesList.appendChild(resetPill);
+    }
+
+    function renderInventory() {
+        if (!inventoryList) return;
+        inventoryList.innerHTML = '';
+        consumablesData.forEach(item => {
+            const pill = document.createElement('div');
+            pill.className = 'pill';
+            pill.innerHTML = `
+                <strong>${item.name}</strong>
+                <span>${item.desc}</span>
+            `;
+            const btn = document.createElement('button');
+            btn.className = 'btn small';
+            btn.textContent = 'Utiliser';
+            btn.onclick = () => useConsumable(item);
+            pill.appendChild(btn);
+            inventoryList.appendChild(pill);
+        });
+    }
+
+    function renderCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        const monthLabel = document.getElementById('calendar-month');
+        if (!grid || !monthLabel) return;
+        grid.innerHTML = '';
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        monthLabel.textContent = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+        const firstDay = new Date(year, month, 1);
+        const startDay = firstDay.getDay(); // 0-6
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let i = 0; i < startDay; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-cell muted';
+            grid.appendChild(cell);
+        }
+        for (let d = 1; d <= daysInMonth; d++) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-cell';
+            if (d === now.getDate()) cell.classList.add('today');
+            cell.textContent = d;
+            grid.appendChild(cell);
+        }
+    }
+
+    function updateTicker() {
+        const ticker = document.getElementById('ticker-content');
+        if (!ticker) return;
+        const parts = dailyQuests.map(q => {
             const done = completedQuests.includes(q.id);
             let value = 0;
             if (q.goal === 'money') value = questProgress.money;
             if (q.goal === 'clicks') value = questProgress.clicks;
             if (q.goal === 'battles') value = questProgress.battles;
             if (q.goal === 'catches') value = questProgress.catches;
-            const pill = document.createElement('div');
-            pill.className = `pill ${done ? 'purchased' : ''}`;
-            pill.innerHTML = `
-                <strong>${q.name}</strong>
-                <span>${Math.min(value, q.target)} / ${q.target}</span>
-                <small>Récompense: +${q.reward} pt talent</small>
-            `;
-            container.appendChild(pill);
+            const current = Math.min(value, q.target);
+            const displayValue = Math.floor(current);
+            return `${q.name}: ${displayValue}/${q.target}${done ? ' ✔' : ''}`;
         });
+        if (activeEvent) {
+            parts.push(`Event: ${activeEvent.name} (${activeEvent.description})`);
+        }
+        const text = parts.join('   •   ');
+        ticker.innerHTML = `<span class="ticker-line">${text}</span><span class="ticker-line">${text}</span>`;
     }
 
     function updateEventBanner() {
@@ -901,12 +1169,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function uiLoop() {
+        ensureDailyQuests();
         renderStore();
         renderUpgrades();
         renderAchievements();
         updateBackground();
         maybeStartDynamicEvent();
         updateActiveEvent();
+        cleanupConsumables();
         checkQuests();
         renderQuests();
     }
@@ -957,7 +1227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function checkQuests() {
-        dailyQuestsData.forEach(q => {
+        dailyQuests.forEach(q => {
             if (completedQuests.includes(q.id)) return;
             let value = 0;
             if (q.goal === 'money') value = questProgress.money;
@@ -1041,6 +1311,8 @@ document.addEventListener('DOMContentLoaded', () => {
             unlockedTalents: unlockedTalents,
             questProgress: questProgress,
             completedQuests: completedQuests,
+            dailyQuests: dailyQuests,
+            dailyQuestDay: dailyQuestDay,
             lastSave: Date.now() // Store the timestamp
         };
         localStorage.setItem('pokemonIdleSave', JSON.stringify(gameState));
@@ -1070,6 +1342,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 unlockedTalents = gameState.unlockedTalents || [];
                 questProgress = gameState.questProgress || { money: 0, clicks: 0, battles: 0, catches: 0 };
                 completedQuests = gameState.completedQuests || [];
+                dailyQuests = gameState.dailyQuests || [];
+                dailyQuestDay = gameState.dailyQuestDay || null;
 
                 return gameState.lastSave; // Return the last save time
             } else {
@@ -1108,7 +1382,9 @@ document.addEventListener('DOMContentLoaded', () => {
         recalculateClickValue();
         recalcAutomation();
         recalcTalents();
+        ensureDailyQuests();
         calculateMoneyPerSecond();
+        updateTicker();
 
         if (lastSaveTime) {
             const offlineTime = (Date.now() - lastSaveTime) / 1000; // in seconds
@@ -1172,6 +1448,61 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             talentsModal.addEventListener('click', (e) => {
                 if (e.target === talentsModal) talentsModal.style.display = 'none';
+            });
+        }
+
+        if (openLeaguesButton && leaguesModal && closeLeaguesButton) {
+            openLeaguesButton.addEventListener('click', () => {
+                leaguesModal.style.display = 'flex';
+                renderLeagues();
+            });
+            closeLeaguesButton.addEventListener('click', () => {
+                leaguesModal.style.display = 'none';
+            });
+            leaguesModal.addEventListener('click', (e) => {
+                if (e.target === leaguesModal) leaguesModal.style.display = 'none';
+            });
+        }
+
+        if (openChallengesButton && challengesModal && closeChallengesButton) {
+            openChallengesButton.addEventListener('click', () => {
+                challengesModal.style.display = 'flex';
+                renderChallenges();
+            });
+            closeChallengesButton.addEventListener('click', () => {
+                challengesModal.style.display = 'none';
+            });
+            challengesModal.addEventListener('click', (e) => {
+                if (e.target === challengesModal) challengesModal.style.display = 'none';
+            });
+        }
+
+        if (openInventoryButton && inventoryModal && closeInventoryButton) {
+            openInventoryButton.addEventListener('click', () => {
+                inventoryModal.style.display = 'flex';
+                renderInventory();
+            });
+            closeInventoryButton.addEventListener('click', () => {
+                inventoryModal.style.display = 'none';
+            });
+            inventoryModal.addEventListener('click', (e) => {
+                if (e.target === inventoryModal) inventoryModal.style.display = 'none';
+            });
+        }
+
+        const openCalendarButton = document.getElementById('open-calendar');
+        const closeCalendarButton = document.getElementById('close-calendar');
+        const calendarModal = document.getElementById('calendar-modal');
+        if (openCalendarButton && closeCalendarButton && calendarModal) {
+            openCalendarButton.addEventListener('click', () => {
+                calendarModal.style.display = 'flex';
+                renderCalendar();
+            });
+            closeCalendarButton.addEventListener('click', () => {
+                calendarModal.style.display = 'none';
+            });
+            calendarModal.addEventListener('click', (e) => {
+                if (e.target === calendarModal) calendarModal.style.display = 'none';
             });
         }
 

@@ -604,6 +604,30 @@ body::after {
     color: var(--text-main);
 }
 
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.calendar-cell {
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.calendar-cell.today {
+    border-color: var(--secondary-color);
+    color: var(--text-main);
+    font-weight: 700;
+}
+
 .floating-number {
     position: absolute;
     font-family: 'Press Start 2P', cursive;
@@ -735,4 +759,44 @@ body::after {
     body {
         padding-bottom: 180px;
     }
+}
+.ticker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+#ticker-bar {
+    margin-bottom: 8px;
+    height: 26px;
+    overflow: hidden;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(5, 7, 22, 0.85);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+}
+
+#ticker-track {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+#ticker-content {
+    display: inline-flex;
+    gap: 40px;
+    white-space: nowrap;
+    animation: ticker-move 18s linear infinite;
+    color: var(--text-muted);
+}
+
+.ticker-line {
+    display: inline-block;
+}
+
+@keyframes ticker-move {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
 }

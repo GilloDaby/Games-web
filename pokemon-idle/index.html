@@ -12,6 +12,11 @@
 </head>
 <body>
     <div id="app-shell">
+        <div id="ticker-bar">
+            <div id="ticker-track">
+                <div id="ticker-content"></div>
+            </div>
+        </div>
         <header id="topbar" class="card">
             <div class="brand">
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Logo Poké Ball">
@@ -66,6 +71,9 @@
                     <div class="pill-list">
                         <button id="open-automation" class="btn small"><i class="fas fa-cogs"></i> Gérer les automations</button>
                         <button id="open-talents" class="btn small"><i class="fas fa-brain"></i> Gérer les talents</button>
+                        <button id="open-challenges" class="btn ghost small"><i class="fas fa-flag-checkered"></i> Challenges</button>
+                        <button id="open-inventory" class="btn ghost small"><i class="fas fa-boxes-stacked"></i> Inventaire</button>
+                        <button id="open-calendar" class="btn ghost small"><i class="fas fa-calendar"></i> Calendrier</button>
                     </div>
                 </div>
 
@@ -95,13 +103,11 @@
                         <p id="battle-player-power" class="muted"></p>
                         <p id="battle-risk" class="muted"></p>
                     </div>
-                    <button id="battle-button" class="btn"><i class="fas fa-fist-raised"></i> Start Battle</button>
+                    <div class="pill-list">
+                        <button id="battle-button" class="btn"><i class="fas fa-fist-raised"></i> Start Battle</button>
+                        <button id="open-leagues" class="btn ghost small"><i class="fas fa-trophy"></i> Leagues/Boss</button>
+                    </div>
                     <div id="battle-log"></div>
-                </div>
-                <div id="quests-events-container" class="card">
-                    <h2><i class="fas fa-list-check"></i> Quêtes & Events</h2>
-                    <div id="quests-list" class="pill-list"></div>
-                    <div id="event-banner" class="event-banner" style="display:none;"></div>
                 </div>
             </div>
         </main>
@@ -137,6 +143,47 @@
             </div>
             <p class="eyebrow">Points disponibles: <span id="talent-points-label"></span></p>
             <div id="talents-grid" class="pill-list"></div>
+        </div>
+    </div>
+
+    <div id="leagues-modal" class="modal" style="display:none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h3><i class="fas fa-trophy"></i> Leagues & Boss</h3>
+                <button id="close-leagues" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+            </div>
+            <div id="leagues-list" class="pill-list"></div>
+        </div>
+    </div>
+
+    <div id="challenges-modal" class="modal" style="display:none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h3><i class="fas fa-flag-checkered"></i> Challenges</h3>
+                <button id="close-challenges" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+            </div>
+            <div id="challenges-list" class="pill-list"></div>
+        </div>
+    </div>
+
+    <div id="inventory-modal" class="modal" style="display:none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h3><i class="fas fa-boxes-stacked"></i> Inventaire & Consommables</h3>
+                <button id="close-inventory" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+            </div>
+            <div id="inventory-list" class="pill-list"></div>
+        </div>
+    </div>
+
+    <div id="calendar-modal" class="modal" style="display:none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar"></i> Calendrier des quêtes</h3>
+                <button id="close-calendar" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+            </div>
+            <div id="calendar-month"></div>
+            <div id="calendar-grid" class="calendar-grid"></div>
         </div>
     </div>
 
