@@ -1,237 +1,263 @@
+:root {
+    --primary-color: #3B4CCA;
+    --secondary-color: #FFDE00;
+    --accent-color: #CC0000;
+    --light-gray: #f0f0f0;
+    --dark-gray: #333;
+    --background-day: #87CEEB;
+    --background-sunset: #FF7F50;
+    --background-night: #483D8B;
+    --text-color-day: #333;
+    --text-color-night: #f0f0f0;
+    --card-background-day: rgba(255, 255, 255, 0.8);
+    --card-background-night: rgba(44, 47, 51, 0.8);
+}
+
 body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f0f0f0;
-    color: #333;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    font-family: 'Nunito', sans-serif;
+    color: var(--text-color-day);
     margin: 0;
-    transition: background-color 1s ease;
+    transition: background-color 1s ease, color 1s ease;
+    padding: 20px;
 }
 
 body.day {
-    background-color: #87CEEB; /* Sky Blue */
+    background-color: var(--background-day);
+    color: var(--text-color-day);
 }
 
 body.sunset {
-    background-color: #FF7F50; /* Coral */
+    background-color: var(--background-sunset);
+    color: var(--text-color-day);
 }
 
 body.night {
-    background-color: #483D8B; /* Dark Slate Blue */
-    color: #f0f0f0;
+    background-color: var(--background-night);
+    color: var(--text-color-night);
 }
 
+h1, h2, h3 {
+    font-family: 'Press Start 2P', cursive;
+    text-align: center;
+}
 
 #game-container {
-    display: grid;
-    grid-template-areas:
-        "stats"
-        "trainer"
-        "pokemon"
-        "favorite"
-        "store"
-        "upgrades"
-        "achievements"
-        "battle";
+    display: flex;
     gap: 20px;
-    width: 800px;
-    background: #fff;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+#main-column {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+#side-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.card {
+    border-radius: 15px;
     padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    backdrop-filter: blur(10px);
+    transition: background-color 0.5s ease;
+}
+
+body.day .card {
+    background-color: var(--card-background-day);
+}
+
+body.night .card {
+    background-color: var(--card-background-night);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+#stats-container h1, #stats-container h2, #stats-container h3 {
+    font-size: 1rem;
+    margin: 10px 0;
 }
 
 #stats-container {
-    grid-area: stats;
     text-align: center;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 10px;
+}
+
+.btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.8rem;
+    transition: background-color 0.3s ease;
+    margin: 5px;
+}
+
+.btn:hover {
+    background-color: #2a3aa8;
+}
+
+.prestige-btn {
+    background-color: var(--accent-color);
+}
+
+.prestige-btn:hover {
+    background-color: #a60000;
+}
+
+#trainer-container {
+    text-align: center;
+}
+
+#xp-bar {
+    width: 100%;
+    height: 25px;
+    border-radius: 10px;
+    overflow: hidden;
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    background-color: #eee;
+}
+
+#xp-bar::-webkit-progress-bar {
+    background-color: #eee;
+}
+
+#xp-bar::-webkit-progress-value {
+    background-color: var(--secondary-color);
+    transition: width 0.5s ease;
 }
 
 #pokemon-container {
-    grid-area: pokemon;
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 15px;
     justify-content: center;
-    min-height: 150px;
-    border: 1px solid #ddd;
-    padding: 10px;
-    border-radius: 5px;
+    min-height: 200px;
+    align-content: flex-start;
 }
 
 .pokemon-instance {
-    width: 100px;
     text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.pokemon-instance:hover {
+    transform: scale(1.1);
 }
 
 .pokemon-instance img {
     width: 80px;
     height: 80px;
+    image-rendering: pixelated;
+    filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2));
 }
 
 .pokemon-instance.favorite img {
-    border: 2px solid gold;
+    border: 3px solid gold;
     border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
 }
 
 .pokemon-instance.shiny img {
-    filter: hue-rotate(90deg) brightness(1.5);
-}
-
-#trainer-container {
-    grid-area: trainer;
-    text-align: center;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 10px;
-}
-
-#xp-bar {
-    width: 80%;
-    height: 20px;
-    margin-top: 5px;
-}
-
-
-
-#favorite-pokemon-container {
-    grid-area: favorite;
-    border-top: 2px solid #eee;
-    padding-top: 10px;
-    text-align: center;
+    filter: hue-rotate(90deg) brightness(1.5) drop-shadow(2px 2px 5px #ffde00);
 }
 
 #favorite-pokemon-slot {
-    display: inline-block;
-    border: 2px dashed #ccc;
-    border-radius: 5px;
-    width: 120px;
-    height: 120px;
+    border: 2px dashed var(--primary-color);
+    border-radius: 10px;
+    min-height: 120px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 14px;
-    color: #888;
+    padding: 10px;
+    font-size: 0.9rem;
 }
 
-#favorite-pokemon-slot .pokemon-instance {
-    margin: 0;
-}
-
-
-#store-container {
-    grid-area: store;
-    border-top: 2px solid #eee;
-    padding-top: 10px;
-}
-
-#store-items {
-    display: flex;
-    flex-wrap: wrap;
+#store-items, #upgrades-items, #achievements-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 10px;
-    justify-content: center;
 }
 
-.store-item {
+.store-item, .upgrade-item, .achievement-item {
     border: 1px solid #ccc;
     padding: 10px;
-    border-radius: 5px;
+    border-radius: 10px;
     cursor: pointer;
     text-align: center;
-    width: 120px;
+    transition: background-color 0.3s, transform 0.2s;
+    background-color: rgba(255,255,255,0.5);
 }
 
-.store-item:hover {
-    background-color: #e9e9e9;
+.store-item:hover, .upgrade-item:hover {
+    background-color: rgba(255,255,255,0.8);
+    transform: translateY(-5px);
 }
 
-#upgrades-container {
-    grid-area: upgrades;
-    border-top: 2px solid #eee;
-    padding-top: 10px;
+body.night .store-item, body.night .upgrade-item, body.night .achievement-item {
+    background-color: rgba(64, 68, 75, 0.7);
+    border-color: #54575c;
 }
 
-#upgrades-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
+body.night .store-item:hover, body.night .upgrade-item:hover {
+    background-color: rgba(84, 88, 95, 0.9);
 }
 
-.upgrade-item {
-    border: 1px solid #ccc;
-    padding: 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    text-align: center;
-    width: 120px;
+
+.store-item img {
+    width: 60px;
+    height: 60px;
+    image-rendering: pixelated;
 }
 
-.upgrade-item:hover {
-    background-color: #e9e9e9;
+.store-item p {
+    margin: 5px 0;
+    font-size: 0.9rem;
 }
 
-.upgrade-item.purchased {
+.upgrade-item.purchased, .achievement-item.unlocked {
     background-color: #d4edda;
     cursor: default;
+    opacity: 0.7;
 }
 
-#achievements-container {
-    grid-area: achievements;
-    border-top: 2px solid #eee;
-    padding-top: 10px;
+body.night .upgrade-item.purchased, body.night .achievement-item.unlocked {
+    background-color: #3a5a40;
 }
 
-#achievements-items {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-}
-
-.achievement-item {
-    border: 1px solid #ccc;
-    padding: 10px;
-    border-radius: 5px;
-    text-align: center;
-    width: 120px;
-}
-
-.achievement-item.unlocked {
-    background-color: #d4edda;
-}
-
-#battle-container {
-    grid-area: battle;
-    border-top: 2px solid #eee;
-    padding-top: 10px;
-    text-align: center;
-}
 
 #battle-log {
     margin-top: 10px;
-    height: 100px;
-    overflow-y: scroll;
+    height: 150px;
+    overflow-y: auto;
     border: 1px solid #ddd;
     padding: 10px;
     border-radius: 5px;
-    background-color: #f9f9f9;
+    background-color: rgba(249,249,249,0.8);
     text-align: left;
+    font-size: 0.9rem;
 }
 
-
-body.night #game-container {
-    background: #2c2f33;
-    color: #f0f0f0;
-}
-
-body.night .store-item,
-body.night .upgrade-item,
-body.night .achievement-item {
-    background-color: #40444b;
-    border-color: #54575c;
+body.night #battle-log {
+    background-color: rgba(30,30,30,0.8);
+    border-color: #555;
 }
 
 #floating-numbers-container {
@@ -246,21 +272,16 @@ body.night .achievement-item {
 
 .floating-number {
     position: absolute;
+    font-family: 'Press Start 2P', cursive;
     font-size: 24px;
     color: gold;
-    animation: float-up 1s ease-out forwards;
-    text-shadow: 1px 1px 2px black;
+    animation: float-up 1.5s ease-out forwards;
+    text-shadow: 2px 2px 3px black;
 }
 
 @keyframes float-up {
-    from {
-        transform: translateY(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateY(-100px);
-        opacity: 0;
-    }
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(-150px); opacity: 0; }
 }
 
 #pokeball-container {
@@ -275,19 +296,28 @@ body.night .achievement-item {
     width: 80px;
     height: 80px;
     transition: transform 0.1s ease;
+    filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.3));
 }
 
 #pokeball-container img:active {
-    transform: scale(0.9);
+    transform: scale(0.9) rotate(-15deg);
 }
 
 #settings-button {
     position: fixed;
     top: 20px;
     right: 20px;
-    font-size: 30px;
+    font-size: 24px;
     cursor: pointer;
     z-index: 1001;
+    background: var(--card-background-day);
+    padding: 10px;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+body.night #settings-button {
+    background: var(--card-background-night);
 }
 
 #settings-container {
@@ -296,26 +326,42 @@ body.night .achievement-item {
     left: 50%;
     transform: translate(-50%, -50%);
     width: 300px;
-    background: #fff;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
     z-index: 1000;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+body.day #settings-container {
+    background: rgba(255, 255, 255, 0.8);
     color: #333;
+}
+body.night #settings-container {
+    background: rgba(44, 47, 51, 0.85);
+    color: #f0f0f0;
 }
 
 #settings-container h2 {
     text-align: center;
     margin-top: 0;
+    font-size: 1.2rem;
 }
 
 #settings-container label {
-    display: block;
+    display: flex;
+    align-items: center;
     margin-bottom: 10px;
+    font-size: 1rem;
 }
 
+#settings-container input {
+    margin-right: 10px;
+}
 
-
-
-
-
+/* Responsive Design */
+@media (max-width: 1024px) {
+    #game-container {
+        flex-direction: column;
+    }
+}

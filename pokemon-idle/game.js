@@ -488,21 +488,23 @@ document.addEventListener('DOMContentLoaded', () => {
         prestigeButton.addEventListener('click', prestige);
 
         pokemonContainer.addEventListener('click', (e) => {
-            // Check if the click was on a pokemon instance
-            if (e.target.closest('.pokemon-instance')) {
-                return;
+            // Check if the click was on an empty area of the container
+            if (e.target === pokemonContainer) {
+                const clickMoney = clickValue;
+                money += clickMoney;
+                gainXp(1);
+                createFloatingNumber(e.clientX, e.clientY, clickMoney);
+                updateStats();
             }
-
-            money += clickValue;
-            createFloatingNumber(e.clientX, e.clientY, clickValue);
-            updateStats();
         });
 
         pokeballContainer.addEventListener('click', (e) => {
             const clickMoney = 1;
             money += clickMoney;
             gainXp(1);
-            createFloatingNumber(e.clientX, e.clientY, clickMoney);
+            // Get the position of the pokeball to spawn the number there
+            const rect = pokeballContainer.getBoundingClientRect();
+            createFloatingNumber(rect.left + rect.width / 2, rect.top, clickMoney);
             updateStats();
 
             if (Math.random() < 0.1) { // 10% chance to drop a random pokemon
