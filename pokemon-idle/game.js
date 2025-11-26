@@ -125,7 +125,35 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'talent-discount-store', name: 'Marchandage', desc: '-5% coûts store', cost: 2, storeDiscount: 0.05, requires: ['talent-mps-1'] },
         { id: 'talent-discount-upg', name: 'Ingé malin', desc: '-5% coûts upgrades', cost: 2, upgradeDiscount: 0.05, requires: ['talent-mps-2'] },
         { id: 'talent-mps-3', name: 'Boost MPS III', desc: '+15% MPS', cost: 3, mpsMult: 1.15, requires: ['talent-mps-2'] },
-        { id: 'talent-click-3', name: 'Cliqueur III', desc: '+3 clic', cost: 3, clickBonus: 3, requires: ['talent-click-2'] }
+        { id: 'talent-click-3', name: 'Cliqueur III', desc: '+3 clic', cost: 3, clickBonus: 3, requires: ['talent-click-2'] },
+        // Extra talents
+        { id: 'talent-mps-4', name: 'Boost MPS IV', desc: '+20% MPS', cost: 4, mpsMult: 1.2, requires: ['talent-mps-3'] },
+        { id: 'talent-click-4', name: 'Cliqueur IV', desc: '+4 clic', cost: 4, clickBonus: 4, requires: ['talent-click-3'] },
+        { id: 'talent-shiny-2', name: 'Chasseur Shiny II', desc: '+1% shiny', cost: 3, shinyBonus: 0.01, requires: ['talent-shiny'] },
+        { id: 'talent-store-2', name: 'Marchandage II', desc: '-5% coûts store', cost: 3, storeDiscount: 0.05, requires: ['talent-discount-store'] },
+        { id: 'talent-upg-2', name: 'Ingé malin II', desc: '-5% coûts upgrades', cost: 3, upgradeDiscount: 0.05, requires: ['talent-discount-upg'] },
+        { id: 'talent-mps-5', name: 'Boost MPS V', desc: '+25% MPS', cost: 5, mpsMult: 1.25, requires: ['talent-mps-4'] },
+        { id: 'talent-click-5', name: 'Cliqueur V', desc: '+5 clic', cost: 5, clickBonus: 5, requires: ['talent-click-4'] },
+        { id: 'talent-critical', name: 'Critique', desc: '1% de chances de clic x10', cost: 4, critChance: 0.01, critMult: 10, requires: ['talent-click-3'] },
+        { id: 'talent-mps-6', name: 'Boost MPS VI', desc: '+30% MPS', cost: 6, mpsMult: 1.3, requires: ['talent-mps-5'] },
+        { id: 'talent-click-6', name: 'Cliqueur VI', desc: '+6 clic', cost: 6, clickBonus: 6, requires: ['talent-click-5'] },
+        { id: 'talent-shiny-3', name: 'Chasseur Shiny III', desc: '+1.5% shiny', cost: 5, shinyBonus: 0.015, requires: ['talent-shiny-2'] },
+        { id: 'talent-store-3', name: 'Marchandage III', desc: '-5% coûts store', cost: 4, storeDiscount: 0.05, requires: ['talent-store-2'] },
+        { id: 'talent-upg-3', name: 'Ingé malin III', desc: '-5% coûts upgrades', cost: 4, upgradeDiscount: 0.05, requires: ['talent-upg-2'] },
+        { id: 'talent-mps-7', name: 'Boost MPS VII', desc: '+35% MPS', cost: 7, mpsMult: 1.35, requires: ['talent-mps-6'] },
+        { id: 'talent-click-7', name: 'Cliqueur VII', desc: '+7 clic', cost: 7, clickBonus: 7, requires: ['talent-click-6'] },
+        { id: 'talent-regen', name: 'Auto-heal', desc: 'MPS +2% en combat', cost: 3, mpsMult: 1.02, requires: ['talent-mps-2'] },
+        { id: 'talent-event', name: 'Maître des events', desc: 'Events durent +20%', cost: 4, eventDurationBonus: 0.2, requires: ['talent-mps-3'] },
+        { id: 'talent-auto-battle', name: 'Auto Battle', desc: 'Auto-lance un combat toutes les 2 min', cost: 6, autoBattle: true, requires: ['talent-mps-4'] },
+        { id: 'talent-click-crit-2', name: 'Critique II', desc: '+1% crit', cost: 5, critChance: 0.01, critMult: 10, requires: ['talent-critical'] },
+        { id: 'talent-mps-8', name: 'Boost MPS VIII', desc: '+40% MPS', cost: 8, mpsMult: 1.4, requires: ['talent-mps-7'] },
+        { id: 'talent-click-8', name: 'Cliqueur VIII', desc: '+8 clic', cost: 8, clickBonus: 8, requires: ['talent-click-7'] },
+        { id: 'talent-shiny-4', name: 'Chasseur Shiny IV', desc: '+2% shiny', cost: 6, shinyBonus: 0.02, requires: ['talent-shiny-3'] },
+        { id: 'talent-store-4', name: 'Marchandage IV', desc: '-5% coûts store', cost: 5, storeDiscount: 0.05, requires: ['talent-store-3'] },
+        { id: 'talent-upg-4', name: 'Ingé malin IV', desc: '-5% coûts upgrades', cost: 5, upgradeDiscount: 0.05, requires: ['talent-upg-3'] },
+        { id: 'talent-mps-9', name: 'Boost MPS IX', desc: '+45% MPS', cost: 9, mpsMult: 1.45, requires: ['talent-mps-8'] },
+        { id: 'talent-click-9', name: 'Cliqueur IX', desc: '+9 clic', cost: 9, clickBonus: 9, requires: ['talent-click-8'] },
+        { id: 'talent-final', name: 'Symphonie', desc: '+50% MPS et +10 clic', cost: 10, mpsMult: 1.5, clickBonus: 10, requires: ['talent-mps-9','talent-click-9'] }
     ];
 
     const questPool = (() => {
@@ -170,6 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'berry-shiny', name: 'Baie Lumi', desc: '+2% shiny pendant 60s', effect: { shinyBonus: 0.02 }, duration: 60000 },
         { id: 'incense-click', name: 'Encens Turbo', desc: 'Clics x2 pendant 45s', effect: { clickMult: 2 }, duration: 45000 },
         { id: 'coupon-store', name: 'Coupon Shop', desc: '-20% coûts store pendant 60s', effect: { storeDiscount: 0.2 }, duration: 60000 }
+    ];
+    const itemDrops = [
+        { id: 'berry-shiny', name: 'Baie Lumi', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/lum-berry.png' },
+        { id: 'incense-click', name: 'Encens Turbo', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/odd-incense.png' },
+        { id: 'coupon-store', name: 'Coupon Shop', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/coupon-1.png' }
     ];
 
     const PRESTIGE_REQUIREMENT = 50000000; // base requirement
@@ -280,6 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let completedQuests = [];
     let dailyQuests = [];
     let dailyQuestDay = null;
+    let questsHistory = {};
+    let autoBuyTargetId = null;
+    let inventoryItems = {};
     let activeEvent = null;
     let activeEventEndsAt = 0;
     let activeChallenge = null;
@@ -298,11 +334,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${val % 1 === 0 ? val : val.toFixed(1)}${suffixes[idx]}`;
     }
 
-    function showToast(message) {
+    function showToast(message, isHtml = false) {
         if (!toastContainer) return;
         const el = document.createElement('div');
         el.className = 'toast';
-        el.textContent = message;
+        if (isHtml) {
+            el.innerHTML = message;
+        } else {
+            el.textContent = message;
+        }
         toastContainer.appendChild(el);
         setTimeout(() => el.remove(), 4000);
     }
@@ -322,6 +362,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeEvent && activeEvent.shinyBonus) {
             chance += activeEvent.shinyBonus;
         }
+        activeConsumables.forEach(c => {
+            if (c.effect.shinyBonus) chance += c.effect.shinyBonus;
+        });
         return chance;
     }
 
@@ -379,12 +422,9 @@ document.addEventListener('DOMContentLoaded', () => {
             dailyQuestDay = today;
             questProgress = { money: 0, clicks: 0, battles: 0, catches: 0 };
             completedQuests = [];
-            const poolCopy = [...questPool];
-            dailyQuests = [];
-            for (let i = 0; i < 4 && poolCopy.length > 0; i++) {
-                const idx = Math.floor(Math.random() * poolCopy.length);
-                dailyQuests.push(poolCopy.splice(idx, 1)[0]);
-            }
+            const quests = generateQuestsForDate(today);
+            dailyQuests = quests;
+            questsHistory[today] = { quests, completed: [] };
         }
     }
 
@@ -601,12 +641,24 @@ document.addEventListener('DOMContentLoaded', () => {
             recalcAutomation();
             updateUI();
             showToast(`${auto.name} activé`);
+            if (auto.autoBuyPokemon) {
+                autoBuyTargetId = autoBuyTargetId || pokemonData[0]?.id || null;
+                renderAutomation();
+            }
         } else {
             showToast('Pas assez de Pokédollars pour cet auto-bot.');
         }
     }
 
     function autoBuyNextPokemon() {
+        const target = autoBuyTargetId ? pokemonData.find(p => p.id === autoBuyTargetId) : null;
+        if (target) {
+            const cost = discountedCost(target.cost, 'store');
+            if (money >= cost) {
+                buyPokemon(target.id);
+                return;
+            }
+        }
         for (let i = 0; i < pokemonData.length; i++) {
             const p = pokemonData[i];
             const cost = discountedCost(p.cost, 'store');
@@ -665,6 +717,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function useConsumable(item) {
+        if (!inventoryItems[item.id] || inventoryItems[item.id] <= 0) {
+            showToast('Aucun exemplaire dans l\'inventaire.');
+            return;
+        }
+        inventoryItems[item.id] -= 1;
         const expiresAt = Date.now() + item.duration;
         activeConsumables.push({ ...item, expiresAt });
         showToast(`${item.name} activé.`);
@@ -838,8 +895,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderAutomation() {
         const container = document.getElementById('automation-items');
+        const select = document.getElementById('auto-buy-select');
         if (!container) return;
         container.innerHTML = '';
+        if (select) {
+            select.innerHTML = '';
+            pokemonData.slice(0, 50).forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `#${p.dex} ${p.name}`;
+                select.appendChild(opt);
+            });
+            if (autoBuyTargetId) {
+                select.value = autoBuyTargetId;
+            }
+            select.onchange = () => {
+                autoBuyTargetId = select.value;
+            };
+        }
         automationUpgradesData.forEach(upg => {
             const purchased = purchasedAutomation.includes(upg.id);
             const canAfford = money >= upg.cost;
@@ -1003,8 +1076,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const pill = document.createElement('div');
             pill.className = 'pill';
             pill.innerHTML = `
+                <img src="${itemDrops.find(d => d.id === item.id)?.sprite || ''}" alt="${item.name}" style="width:32px;height:32px;image-rendering:pixelated;">
                 <strong>${item.name}</strong>
                 <span>${item.desc}</span>
+                <small>Qty: ${inventoryItems[item.id] || 0}</small>
             `;
             const btn = document.createElement('button');
             btn.className = 'btn small';
@@ -1036,7 +1111,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const cell = document.createElement('div');
             cell.className = 'calendar-cell';
             if (d === now.getDate()) cell.classList.add('today');
+            const dateKey = new Date(year, month, d).toDateString();
+            const dayRecord = questsHistory[dateKey] || { quests: generateQuestsForDate(dateKey), completed: [] };
+            const done = dayRecord.completed && dayRecord.completed.length === (dayRecord.quests?.length || 0);
             cell.textContent = d;
+            if (done) cell.classList.add('purchased');
+            cell.title = dayRecord.quests.map(q => `${q.name}${dayRecord.completed?.includes(q.id) ? ' ✔' : ''}`).join('\n');
             grid.appendChild(cell);
         }
     }
@@ -1236,6 +1316,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (q.goal === 'catches') value = questProgress.catches;
             if (value >= q.target) {
                 completedQuests.push(q.id);
+                if (questsHistory[dailyQuestDay]) {
+                    questsHistory[dailyQuestDay].completed = [...completedQuests];
+                }
                 talentPoints += q.reward;
                 showToast(`Quête terminée : ${q.name} (+${q.reward} point talent)`);
                 recalcTalents();
@@ -1313,6 +1396,8 @@ document.addEventListener('DOMContentLoaded', () => {
             completedQuests: completedQuests,
             dailyQuests: dailyQuests,
             dailyQuestDay: dailyQuestDay,
+            inventoryItems: inventoryItems,
+            autoBuyTargetId: autoBuyTargetId,
             lastSave: Date.now() // Store the timestamp
         };
         localStorage.setItem('pokemonIdleSave', JSON.stringify(gameState));
@@ -1344,6 +1429,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 completedQuests = gameState.completedQuests || [];
                 dailyQuests = gameState.dailyQuests || [];
                 dailyQuestDay = gameState.dailyQuestDay || null;
+                inventoryItems = gameState.inventoryItems || {};
+                autoBuyTargetId = gameState.autoBuyTargetId || null;
 
                 return gameState.lastSave; // Return the last save time
             } else {
@@ -1466,8 +1553,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (openChallengesButton && challengesModal && closeChallengesButton) {
             openChallengesButton.addEventListener('click', () => {
-                challengesModal.style.display = 'flex';
-                renderChallenges();
+                showToast('Bientôt des challenges seront là.');
             });
             closeChallengesButton.addEventListener('click', () => {
                 challengesModal.style.display = 'none';
@@ -1562,6 +1648,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast(`Chance ! La Poké Ball a lâché un ${randomPokemon.name}.`);
                 checkQuests();
             }
+            // Item drop
+            if (Math.random() < 0.05) {
+                const item = itemDrops[Math.floor(Math.random() * itemDrops.length)];
+                inventoryItems[item.id] = (inventoryItems[item.id] || 0) + 1;
+                showToast(`<img src="${item.sprite}" style="width:24px;height:24px;vertical-align:middle;"> ${item.name} obtenu !`, true);
+                renderInventory();
+            }
         });
 
         battleButton.addEventListener('click', startBattle);
@@ -1612,3 +1705,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
+    function generateQuestsForDate(dateKey) {
+        // deterministic pick based on date string
+        let seed = dateKey.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        const rand = () => {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        };
+        const poolCopy = [...questPool];
+        const picked = [];
+        for (let i = 0; i < 4 && poolCopy.length > 0; i++) {
+            const idx = Math.floor(rand() * poolCopy.length);
+            picked.push(poolCopy.splice(idx, 1)[0]);
+        }
+        return picked;
+    }
