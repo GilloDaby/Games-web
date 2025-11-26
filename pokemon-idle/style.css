@@ -1,13 +1,13 @@
 :root {
-    --primary-color: #2666ff;
-    --secondary-color: #ffcb05;
-    --accent-color: #ff5f6d;
-    --surface: rgba(255, 255, 255, 0.06);
-    --surface-strong: rgba(255, 255, 255, 0.12);
-    --border: rgba(255, 255, 255, 0.12);
-    --text-main: #e8ecf5;
-    --text-muted: #b7c2d9;
-    --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    --primary-color: #e3350d; /* Pokeball red */
+    --secondary-color: #ffcb05; /* Pikachu yellow */
+    --accent-color: #3b4cca; /* Pokemon logo blue */
+    --surface: rgba(9, 15, 30, 0.94);
+    --surface-strong: rgba(12, 20, 42, 0.94);
+    --border: rgba(255, 255, 255, 0.18);
+    --text-main: #f6f8ff;
+    --text-muted: #c5d2ff;
+    --shadow: 0 24px 60px rgba(2, 4, 15, 0.65);
 }
 
 * {
@@ -15,50 +15,127 @@
 }
 
 body {
-    font-family: 'Space Grotesk', 'Nunito', sans-serif;
+    font-family: 'Nunito', 'Space Grotesk', sans-serif;
     margin: 0;
     min-height: 100vh;
     color: var(--text-main);
-    background: radial-gradient(120% 120% at 10% 20%, #1f2a44, #0b1021 55%, #05060c 80%);
+    background: radial-gradient(120% 120% at 18% 18%, #151d34 0%, #060914 55%, #02030a 90%);
     overflow-x: hidden;
     padding: 28px 22px 230px;
+    position: relative;
+    text-rendering: optimizeLegibility;
 }
 
 body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background-image: linear-gradient(120deg, rgba(38, 102, 255, 0.35), rgba(255, 203, 5, 0.2)), url('https://assets.pokemon.com/assets/cms2/img/misc/virtual-backgrounds/wallpapers/wallpaper-jungle.jpg');
-    background-size: cover;
-    background-position: center;
-    opacity: 0.35;
-    z-index: -2;
-    filter: saturate(1.05);
+    background-image:
+        linear-gradient(145deg, rgba(227, 53, 13, 0.2), rgba(59, 76, 202, 0.18)),
+        url('https://raw.githubusercontent.com/msikma/pokesprite/master/resources/images/banner_gen8_2x.png');
+    background-size: 180%, 1200px;
+    background-position: center, center 28%;
+    opacity: 0.22;
+    z-index: -3;
+    filter: saturate(1.08) contrast(1.02);
 }
 
 body::after {
     content: "";
     position: fixed;
     inset: 0;
-    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.07), transparent 40%),
-                radial-gradient(circle at 80% 10%, rgba(255, 95, 109, 0.08), transparent 35%),
-                linear-gradient(180deg, rgba(5, 7, 22, 0) 0%, rgba(5, 7, 22, 0.85) 100%);
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 203, 5, 0.03) 0 12px, transparent 12px 24px),
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.06), transparent 45%),
+        radial-gradient(circle at 78% 12%, rgba(59, 76, 202, 0.08), transparent 36%),
+        linear-gradient(180deg, rgba(5, 7, 22, 0.15) 0%, rgba(5, 7, 22, 0.92) 100%);
     z-index: -1;
+}
+
+h1, h2, h3 {
+    margin: 0;
+    color: var(--text-main);
+    text-shadow: 1px 1px 0 #0b102c;
+}
+
+h2, h3 {
+    font-family: 'Press Start 2P', monospace;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
 }
 
 #app-shell {
     max-width: 1400px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+#poke-menu-overlay {
+    position: fixed;
+    inset: -40px;
+    background-image: url('https://raw.githubusercontent.com/pret/pokeemerald/master/graphics/interface/menu_info.png');
+    background-size: 180px 180px;
+    background-repeat: repeat;
+    opacity: 0.12;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    filter: saturate(1.15);
+    z-index: -2;
+}
+
+#poke-menu-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(0deg, rgba(227, 53, 13, 0.08) 0 10px, rgba(59, 76, 202, 0.05) 10px 20px),
+        url('https://raw.githubusercontent.com/pret/pokeemerald/master/graphics/interface/ui_learn_move.png');
+    background-size: auto 18px, auto 12px;
+    background-repeat: repeat, repeat-x;
+    background-position: center, bottom;
+    opacity: 0.5;
+    mix-blend-mode: screen;
 }
 
 .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: linear-gradient(160deg, rgba(9, 15, 30, 0.96), rgba(6, 12, 24, 0.94)), url('https://raw.githubusercontent.com/pret/pokeemerald/master/graphics/interface/menu_info.png');
+    background-size: cover, 240px 240px;
+    background-repeat: no-repeat, repeat;
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
     border-radius: 18px;
-    box-shadow: var(--shadow);
-    padding: 18px 20px;
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    padding: 18px 20px 20px;
     backdrop-filter: blur(14px);
     position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(227, 53, 13, 0.08), rgba(59, 76, 202, 0.08));
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.card::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 9px;
+    background-image: url('https://raw.githubusercontent.com/pret/pokeemerald/master/graphics/interface/ui_learn_move.png');
+    background-repeat: repeat-x;
+    background-size: auto 9px;
+    opacity: 0.7;
+}
+
+.card > * {
+    position: relative;
+    z-index: 1;
 }
 
 #topbar {
@@ -73,27 +150,34 @@ body::after {
 .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
 }
 
 .brand img {
-    width: 56px;
-    height: 56px;
-    filter: drop-shadow(0 10px 18px rgba(0,0,0,0.35));
+    width: 64px;
+    height: 64px;
+    filter: drop-shadow(0 12px 20px rgba(0,0,0,0.45));
+    image-rendering: pixelated;
+    transform: translateY(-2px);
 }
 
 .brand h1 {
-    margin: 2px 0 0 0;
-    font-size: 24px;
-    letter-spacing: 0.5px;
+    margin: 4px 0 0 0;
+    font-size: 18px;
+    letter-spacing: 1px;
+    font-family: 'Press Start 2P', monospace;
+    color: var(--secondary-color);
+    text-shadow: 2px 2px 0 #0b102c, 0 0 18px rgba(59, 76, 202, 0.4);
 }
 
 .eyebrow {
     margin: 0;
-    font-size: 12px;
-    letter-spacing: 1px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: #8fa4ff;
+    font-family: 'Press Start 2P', monospace;
+    text-shadow: 1px 1px 0 #0b102c;
 }
 
 .stat-chips {
@@ -107,11 +191,17 @@ body::after {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
-    border-radius: 12px;
-    background: var(--surface-strong);
-    border: 1px solid var(--border);
-    font-weight: 600;
+    padding: 11px 15px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(59, 76, 202, 0.32), rgba(9, 15, 30, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-weight: 700;
+    box-shadow: 0 10px 20px rgba(2, 4, 15, 0.45), inset 0 1px 0 rgba(255,255,255,0.16);
+    text-shadow: 1px 1px 0 #0b102c;
+}
+
+.chip i {
+    color: var(--secondary-color);
 }
 
 .top-actions {
@@ -121,29 +211,36 @@ body::after {
 }
 
 .btn {
-    background: linear-gradient(135deg, var(--primary-color), #1d4ed8);
+    background: linear-gradient(145deg, var(--primary-color), #b50f00 50%, #7a0800);
     color: white;
-    border: 1px solid rgba(255,255,255,0.15);
-    padding: 10px 14px;
-    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 11px 16px;
+    border-radius: 14px;
     cursor: pointer;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
-    box-shadow: 0 10px 20px rgba(38, 102, 255, 0.3);
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    box-shadow: 0 12px 24px rgba(227, 53, 13, 0.32), inset 0 1px 0 rgba(255,255,255,0.28);
+    text-shadow: 1px 1px 0 #0b0f1f;
 }
 
 .btn:hover {
-    transform: translateY(-2px);
+    transform: translateY(-2px) scale(1.01);
+    filter: brightness(1.05);
+    box-shadow: 0 14px 26px rgba(227, 53, 13, 0.38);
 }
 
 .btn.ghost {
-    background: transparent;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+    background: linear-gradient(135deg, rgba(59, 76, 202, 0.18), rgba(10, 20, 42, 0.7));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 10px 18px rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.22);
 }
 
 .prestige-btn {
-    background: linear-gradient(135deg, var(--accent-color), #c61b5d);
+    background: linear-gradient(145deg, var(--secondary-color), #f59f00);
+    color: #2c1a00;
+    text-shadow: none;
 }
 
 #game-container {
@@ -172,22 +269,50 @@ body::after {
     align-items: center;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.25);
+    background:
+        linear-gradient(120deg, rgba(59, 76, 202, 0.16), rgba(227, 53, 13, 0.12)),
+        url('https://raw.githubusercontent.com/msikma/pokesprite/master/resources/images/banner_gen7_2x.png'),
+        url('https://raw.githubusercontent.com/pret/pokeemerald/master/graphics/interface/menu_info.png');
+    background-size: cover, 120%, 220px 220px;
+    background-position: center, center 30%, left top;
+    background-repeat: no-repeat, no-repeat, repeat;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+    position: relative;
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(5,7,22,0.65), rgba(5,7,22,0.78));
+    z-index: 0;
 }
 
 .hero-text h2 {
     margin: 6px 0 10px 0;
-    font-size: 28px;
+    font-size: 22px;
+    font-family: 'Press Start 2P', monospace;
+    letter-spacing: 1px;
+    line-height: 1.4;
+    text-shadow: 2px 2px 0 #0b102c;
+    position: relative;
+    z-index: 1;
 }
 
 .subtitle {
     margin: 0 0 16px 0;
-    color: var(--text-muted);
+    color: #d5ddff;
+    text-shadow: 1px 1px 0 #0b102c;
+    position: relative;
+    z-index: 1;
 }
 
 .mini-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
+    position: relative;
+    z-index: 1;
 }
 
 .dual-grid {
@@ -195,14 +320,50 @@ body::after {
 }
 
 .mini-card {
-    background: var(--surface-strong);
-    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(5,7,22,0.6));
+    border: 1px solid rgba(255,255,255,0.22);
     border-radius: 10px;
     padding: 10px 12px;
-    font-weight: 600;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 12px rgba(0,0,0,0.35);
+    text-shadow: 1px 1px 0 #0b102c;
+    backdrop-filter: blur(4px);
+}
+
+.menu-tabs {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+}
+
+.menu-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(59, 76, 202, 0.22), rgba(227, 53, 13, 0.18));
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 8px 14px rgba(0,0,0,0.35);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    letter-spacing: 0.6px;
+    color: var(--text-main);
+    text-shadow: 1px 1px 0 #0b102c;
+    backdrop-filter: blur(4px);
+}
+
+.menu-tab img {
+    width: 26px;
+    height: 26px;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));
 }
 
 .hero-ball {
@@ -218,7 +379,7 @@ body::after {
     width: 260px;
     height: 260px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(38,102,255,0.25) 45%, rgba(0,0,0,0) 65%);
+    background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,203,5,0.18) 45%, rgba(227,53,13,0.2) 65%, rgba(0,0,0,0) 70%);
     filter: blur(15px);
     z-index: 0;
     animation: pulse 3s ease-in-out infinite;
@@ -227,15 +388,19 @@ body::after {
 #pokeball-container {
     position: relative;
     z-index: 1;
-    width: 170px;
-    height: 170px;
+    width: 176px;
+    height: 176px;
     border-radius: 50%;
     display: grid;
     place-items: center;
     cursor: pointer;
-    background: linear-gradient(145deg, rgba(38, 102, 255, 0.5), rgba(38, 102, 255, 0.18));
-    border: 1px solid rgba(255,255,255,0.25);
-    box-shadow: 0 20px 45px rgba(0,0,0,0.35), inset 0 0 25px rgba(255,255,255,0.15);
+    background: linear-gradient(180deg, rgba(255,255,255,0.95) 0 46%, rgba(227,53,13,0.94) 46%);
+    border: 3px solid #0c132d;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.55);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
 }
 
 #pokeball-container img {
@@ -243,10 +408,35 @@ body::after {
     height: 120px;
     filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
     transition: transform 0.12s ease;
+    pointer-events: none;
 }
 
 #pokeball-container:active img {
     transform: scale(0.92) rotate(-6deg);
+}
+
+#pokeball-container::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(50% - 8px);
+    height: 16px;
+    background: rgba(12, 19, 45, 0.9);
+    box-shadow: 0 0 18px rgba(0,0,0,0.5);
+}
+
+#pokeball-container::after {
+    content: "";
+    position: absolute;
+    left: calc(50% - 18px);
+    top: calc(50% - 18px);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid #0c132d;
+    background: radial-gradient(circle, #fffb 0%, #fffc 45%, #d7d7d7 65%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 0 12px rgba(0,0,0,0.35);
 }
 
 .click-hint {
@@ -287,24 +477,39 @@ body::after {
 }
 
 .pokemon-instance {
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255,255,255,0.22);
     border-radius: 12px;
     padding: 12px;
     text-align: center;
-    background: var(--surface-strong);
+    background: linear-gradient(180deg, rgba(6,10,20,0.9), rgba(4,6,14,0.94));
     cursor: pointer;
-    transition: transform 0.15s ease, border-color 0.15s ease;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 8px 16px rgba(0,0,0,0.38);
+    text-shadow: 1px 1px 0 #0b102c;
+    position: relative;
+    overflow: hidden;
 }
 
 .pokemon-instance:hover {
     transform: translateY(-4px);
     border-color: rgba(255,255,255,0.35);
+    box-shadow: 0 14px 20px rgba(0,0,0,0.45);
+}
+
+.pokemon-instance::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 25%, rgba(255,255,255,0.04), transparent 55%), linear-gradient(180deg, rgba(9,14,30,0.65), rgba(4,6,14,0.9));
+    z-index: 0;
 }
 
 .pokemon-instance img {
     width: 72px;
     height: 72px;
     image-rendering: pixelated;
+    position: relative;
+    z-index: 1;
 }
 
 .pokemon-instance.favorite {
@@ -317,7 +522,7 @@ body::after {
 }
 
 #favorite-pokemon-slot {
-    border: 1px dashed rgba(255,255,255,0.35);
+    border: 2px dashed rgba(255,255,255,0.28);
     border-radius: 14px;
     min-height: 140px;
     display: flex;
@@ -325,6 +530,10 @@ body::after {
     justify-content: center;
     padding: 12px;
     color: var(--text-muted);
+    background: linear-gradient(180deg, rgba(59, 76, 202, 0.18), rgba(5,7,22,0.8)), url('https://raw.githubusercontent.com/pret/pokeemerald/master/graphics/interface/menu_info.png');
+    background-size: cover, 200px 200px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16);
+    text-shadow: 1px 1px 0 #0b102c;
 }
 
 #store-items, #upgrades-items, #achievements-items {
@@ -334,8 +543,8 @@ body::after {
 }
 
 .store-item, .upgrade-item, .achievement-item {
-    background: var(--surface-strong);
-    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(9,15,30,0.94), rgba(3,5,12,0.96));
+    border: 1px solid rgba(255,255,255,0.18);
     border-radius: 12px;
     padding: 8px;
     text-align: center;
@@ -347,6 +556,46 @@ body::after {
     align-items: flex-start;
     justify-content: flex-start;
     gap: 4px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 18px rgba(0,0,0,0.32);
+    text-shadow: 1px 1px 0 #0b102c;
+}
+
+.achievement-item {
+    position: relative;
+    overflow: hidden;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--text-main);
+}
+
+.achievement-item::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.22));
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.achievement-item.unlocked {
+    border-color: rgba(255,203,5,0.4);
+    box-shadow: 0 12px 20px rgba(0,0,0,0.35), 0 0 12px rgba(255,203,5,0.2);
+}
+
+.achievement-item p {
+    margin: 0;
+    font-weight: 800;
+    position: relative;
+    z-index: 1;
+}
+
+.achievement-desc {
+    font-size: 0.82rem;
+    color: #cfd7ff;
+    opacity: 0.9;
+    line-height: 1.2;
+    position: relative;
+    z-index: 1;
 }
 
 .store-item:hover, .upgrade-item:hover {
@@ -489,9 +738,10 @@ body::after {
     grid-template-columns: 1.2fr 1fr;
     gap: 8px;
     align-items: start;
-    background: rgba(5, 7, 22, 0.8);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
+    background: linear-gradient(180deg, rgba(9, 15, 30, 0.95), rgba(3, 6, 14, 0.95)), url('https://raw.githubusercontent.com/pret/pokeemerald/master/graphics/interface/menu_info.png');
+    background-size: cover, 200px 200px;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.1);
     padding: 6px 10px;
     z-index: 100;
     backdrop-filter: blur(12px);
@@ -507,12 +757,14 @@ body::after {
 }
 
 .footer-header {
+    font-family: 'Press Start 2P', monospace;
     font-weight: 700;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.6px;
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #fff;
+    color: var(--secondary-color);
+    text-shadow: 1px 1px 0 #0b102c;
 }
 
 .horizontal-scroller {
@@ -695,17 +947,18 @@ body::after {
 
 .btn.small {
     padding: 8px 10px;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    border-radius: 10px;
 }
 
 .stat-chips .btn.small {
     align-self: center;
     margin-right: 4px;
-    background: var(--surface-strong);
-    border: 1px solid var(--border);
-    box-shadow: none;
+    background: linear-gradient(135deg, rgba(59, 76, 202, 0.32), rgba(9, 15, 30, 0.8));
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 14px rgba(0,0,0,0.3);
     color: var(--text-main);
-    font-weight: 700;
+    font-weight: 800;
 }
 
 #toast-container {
@@ -783,15 +1036,33 @@ body::after {
     gap: 8px;
 }
 #ticker-bar {
-    margin-bottom: 8px;
-    height: 26px;
+    margin-bottom: 12px;
+    height: 32px;
     overflow: hidden;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: rgba(5, 7, 22, 0.85);
+    border-radius: 12px;
+    border: 2px solid #0c132d;
+    background: linear-gradient(180deg, rgba(59, 76, 202, 0.24), rgba(5, 7, 22, 0.9));
     display: flex;
     align-items: center;
-    padding: 0 10px;
+    padding: 2px 12px;
+    position: relative;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 10px 18px rgba(0,0,0,0.35);
+    font-family: 'Press Start 2P', monospace;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+#ticker-bar::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 8px;
+    background-image: url('https://raw.githubusercontent.com/pret/pokeemerald/master/graphics/interface/ui_learn_move.png');
+    background-repeat: repeat-x;
+    background-size: auto 8px;
+    opacity: 0.75;
 }
 
 #ticker-track {
@@ -806,7 +1077,13 @@ body::after {
     gap: 40px;
     white-space: nowrap;
     animation: ticker-move 18s linear infinite;
-    color: var(--text-muted);
+    color: var(--secondary-color);
+    text-shadow: 1px 1px 0 #0b102c;
+}
+
+.hero-ball {
+    position: relative;
+    z-index: 1;
 }
 
 .ticker-line {

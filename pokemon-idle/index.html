@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
+    <div id="poke-menu-overlay" aria-hidden="true"></div>
     <div id="app-shell">
         <div id="ticker-bar">
             <div id="ticker-track">
@@ -47,11 +48,25 @@
                         <h2>Tap the Poké Ball to earn & catch.</h2>
                         <p class="subtitle">Chaque clic te donne des Pokédollars, avec une faible chance de lâcher un Pokémon sauvage.</p>
                         <div class="mini-grid">
-                            <div class="mini-card"><i class="fas fa-fire"></i> Click Power <span id="click-power">+1</span></div>
-                            <div class="mini-card"><i class="fas fa-bolt"></i> Drop Chance <span id="drop-chance">2%</span></div>
-                            <div class="mini-card"><i class="fas fa-hourglass-half"></i> Idle Boost <span id="idle-boost">x1</span></div>
+                        <div class="mini-card"><i class="fas fa-fire"></i> Click Power <span id="click-power">+1</span></div>
+                        <div class="mini-card"><i class="fas fa-bolt"></i> Drop Chance <span id="drop-chance">2%</span></div>
+                        <div class="mini-card"><i class="fas fa-hourglass-half"></i> Idle Boost <span id="idle-boost">x1</span></div>
+                    </div>
+                    <div class="menu-tabs" aria-hidden="true">
+                        <div class="menu-tab">
+                            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Poké Ball chip">
+                            <span>Capture</span>
+                        </div>
+                        <div class="menu-tab">
+                            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png" alt="Rare candy chip">
+                            <span>XP Boost</span>
+                        </div>
+                        <div class="menu-tab">
+                            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/super-rod.png" alt="Rod chip">
+                            <span>Drop Hunt</span>
                         </div>
                     </div>
+                </div>
                     <div class="hero-ball">
                         <div class="ball-glow"></div>
                         <div id="pokeball-container">

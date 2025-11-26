@@ -1529,9 +1529,13 @@ document.addEventListener('DOMContentLoaded', () => {
         achievementsItemsContainer.innerHTML = '';
         achievementsData.forEach(achievement => {
             const achievementItemElement = document.createElement('div');
-            achievementItemElement.className = `achievement-item ${unlockedAchievements.includes(achievement.id) ? 'unlocked' : ''}`;
+            const isUnlocked = unlockedAchievements.includes(achievement.id);
+            achievementItemElement.className = `achievement-item ${isUnlocked ? 'unlocked' : ''}`;
             achievementItemElement.title = achievement.description;
-            achievementItemElement.innerHTML = `<p>${achievement.name}</p>`;
+            achievementItemElement.innerHTML = `
+                <p>${achievement.name}</p>
+                <div class="achievement-desc">${achievement.description}</div>
+            `;
             achievementsItemsContainer.appendChild(achievementItemElement);
         });
     }
