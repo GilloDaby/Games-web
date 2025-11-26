@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const battlePlayerPower = document.getElementById('battle-player-power');
     const battleRisk = document.getElementById('battle-risk');
     const horizontalScrollers = Array.from(document.querySelectorAll('.horizontal-scroller'));
+    const toastContainer = document.getElementById('toast-container');
     const trainerLevelDisplay = document.getElementById('trainer-level');
     const xpBar = document.getElementById('xp-bar');
     const xpText = document.getElementById('xp-text');
@@ -91,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const PRESTIGE_REQUIREMENT = 50000000; // base requirement
     const SHINY_CHANCE = 0.01; // 1% chance
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
+    const SHINY_MULTIPLIER = 2; // 2x bonus for shiny
 
     const achievementsData = (() => {
         const list = [];
@@ -151,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             message: "Un sac de 1 000 Pokédollars apparaît !",
             action: () => {
                 money += 1000;
-                alert("Rush Pokédollars ! +1 000 cash.");
+                showToast("Rush Pokédollars ! +1 000 cash.");
             }
         },
         {
@@ -160,11 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
             action: () => {
                 temporaryMultiplier = 2;
                 calculateMoneyPerSecond();
-                alert("Boost d'entraînement ! MPS doublé pendant 30s.");
+                showToast("Boost d'entraînement ! MPS doublé pendant 30s.");
                 setTimeout(() => {
                     temporaryMultiplier = 1;
                     calculateMoneyPerSecond();
-                    alert("Le boost s'est dissipé.");
+                    showToast("Le boost s'est dissipé.");
                 }, 30000);
             }
         },
@@ -173,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             message: "Team Rocket vole 10% de tes Pokédollars !",
             action: () => {
                 money *= 0.9;
-                alert("Team Rocket a volé 10% de ta banque.");
+                showToast("Team Rocket a volé 10% de ta banque.");
             }
         }
     ];
@@ -193,6 +195,15 @@ document.addEventListener('DOMContentLoaded', () => {
             idx++;
         }
         return `${val % 1 === 0 ? val : val.toFixed(1)}${suffixes[idx]}`;
+    }
+
+    function showToast(message) {
+        if (!toastContainer) return;
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = message;
+        toastContainer.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
     }
 
     function totalOwnedPokemon() {
@@ -249,6 +260,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function getSpriteUrl(pokemon) {
+        if (!pokemon) return '';
+        const baseDex = pokemon.dex;
+        if (shinyPokemon.includes(pokemon.id)) {
+            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${baseDex}.png`;
+        }
+        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${baseDex}.png`;
+    }
+
     function recalculateClickValue() {
         clickValue = 1;
         purchasedUpgrades.forEach(upgId => {
@@ -300,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (shinyPokemon.includes(id)) {
-                    pokemonMps *= 5; // 5x MPS for shiny pokemon
+                    pokemonMps *= SHINY_MULTIPLIER; // shiny bonus
                 }
 
                 // Apply specific and all upgrades
@@ -339,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Math.random() < SHINY_CHANCE) {
                 if (!shinyPokemon.includes(pokemonId)) {
                     shinyPokemon.push(pokemonId);
-                    alert(`Incroyable ! Tu as trouvé un ${pokemon.name} shiny !`);
+                    showToast(`Shiny trouvé ! ${pokemon.name} rejoint l'équipe (bonus x${SHINY_MULTIPLIER}).`);
                     gainXp(100);
                 }
             }
@@ -467,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         pokemonElement.classList.add('shiny');
                     }
                     pokemonElement.innerHTML = `
-                        <img src="${pokemon.imageUrl}" alt="${pokemon.name}">
+                        <img src="${getSpriteUrl(pokemon)}" alt="${pokemon.name}">
                         <span>${pokemon.name} (x${formatNumber(count)})</span>
                     `;
                     pokemonElement.addEventListener('click', () => setFavoritePokemon(id));
@@ -496,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     pokemonElement.classList.add('shiny');
                 }
                 pokemonElement.innerHTML = `
-                    <img src="${pokemon.imageUrl}" alt="${pokemon.name}">
+                    <img src="${getSpriteUrl(pokemon)}" alt="${pokemon.name}">
                     <span>${pokemon.name}</span>
                 `;
                 favoritePokemonSlot.appendChild(pokemonElement);
@@ -614,7 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
         achievementsData.forEach(achievement => {
             if (!unlockedAchievements.includes(achievement.id) && achievement.condition()) {
                 unlockedAchievements.push(achievement.id);
-                alert(`Succès débloqué : ${achievement.name}`);
+                showToast(`Succès débloqué : ${achievement.name}`);
             }
         });
     }
@@ -815,10 +835,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Math.random() < POKEBALL_DROP_CHANCE && droppablePokemon.length > 0) {
                 const randomPokemon = droppablePokemon[Math.floor(Math.random() * droppablePokemon.length)];
                 ownedPokemon[randomPokemon.id] = (ownedPokemon[randomPokemon.id] || 0) + 1;
+                if (Math.random() < SHINY_CHANCE && !shinyPokemon.includes(randomPokemon.id)) {
+                    shinyPokemon.push(randomPokemon.id);
+                    showToast(`Shiny trouvé ! ${randomPokemon.name} (bonus x${SHINY_MULTIPLIER}).`);
+                }
                 gainXp(10);
                 calculateMoneyPerSecond();
                 updateUI();
-                alert(`Chance ! La Poké Ball a lâché un ${randomPokemon.name}.`);
+                showToast(`Chance ! La Poké Ball a lâché un ${randomPokemon.name}.`);
             }
         });
 

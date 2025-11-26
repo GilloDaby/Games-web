@@ -613,9 +613,43 @@ body::after {
     font-weight: 700;
 }
 
+#toast-container {
+    position: fixed;
+    top: 120px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1200;
+    pointer-events: none;
+}
+
+.toast {
+    background: rgba(15, 20, 35, 0.9);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--secondary-color);
+    color: var(--text-main);
+    padding: 10px 12px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    margin-bottom: 10px;
+    min-width: 220px;
+    max-width: 280px;
+    animation: slide-in 0.2s ease, fade-out 0.3s ease 3.5s forwards;
+}
+
 @keyframes float-up {
     from { transform: translateY(0); opacity: 1; }
     to { transform: translateY(-120px); opacity: 0; }
+}
+
+@keyframes slide-in {
+    from { transform: translateX(-12px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
 @keyframes pulse {
