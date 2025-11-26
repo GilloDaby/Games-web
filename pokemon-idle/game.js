@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const battleOpponentPower = document.getElementById('battle-opponent-power');
     const battlePlayerPower = document.getElementById('battle-player-power');
     const battleRisk = document.getElementById('battle-risk');
+    const horizontalScrollers = Array.from(document.querySelectorAll('.horizontal-scroller'));
     const trainerLevelDisplay = document.getElementById('trainer-level');
     const xpBar = document.getElementById('xp-bar');
     const xpText = document.getElementById('xp-text');
@@ -181,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let clickValue = 1;
     let currentOpponent = null;
+    let battlesFought = 0;
 
     // --- Game Logic ---
 
@@ -226,8 +228,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxIdx = Math.min(pokemonData.length - 1, ownedMax + 5);
         const chosen = pokemonData[Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx];
         const basePower = moneyPerSecond || 10;
-        const variance = (Math.random() * 0.8 + 0.6); // 60% to 140%
-        const power = Math.max(10, basePower * variance);
+        const variance = (Math.random() * 0.5 + 0.75); // 75% to 125%
+        const difficulty = Math.pow(1.12, battlesFought); // exponential scaling with battles fought
+        const power = Math.max(15, basePower * variance * difficulty);
         return { ...chosen, power };
     }
 
@@ -358,6 +361,33 @@ document.addEventListener('DOMContentLoaded', () => {
             battlePlayerPower.textContent = `Ta puissance: ${formatNumber(moneyPerSecond || 1)}`;
         }
         battleRisk.textContent = `Risque: perte 10% cash & -10 XP en cas de défaite`;
+    }
+
+    function enableDragScroll(el) {
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+        el.addEventListener('mousedown', (e) => {
+            isDown = true;
+            el.classList.add('dragging');
+            startX = e.pageX - el.offsetLeft;
+            scrollLeft = el.scrollLeft;
+        });
+        el.addEventListener('mouseleave', () => {
+            isDown = false;
+            el.classList.remove('dragging');
+        });
+        el.addEventListener('mouseup', () => {
+            isDown = false;
+            el.classList.remove('dragging');
+        });
+        el.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - el.offsetLeft;
+            const walk = (x - startX) * 1.2;
+            el.scrollLeft = scrollLeft - walk;
+        });
     }
 
     function updateTrainerUI() {
@@ -692,6 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+        horizontalScrollers.forEach(enableDragScroll);
 
         pokemonContainer.addEventListener('click', (e) => {
             // Check if the click was on an empty area of the container
@@ -750,6 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
             battleLog.innerHTML += `<p style="color: red;">${logMessage}</p>`;
         }
         battleLog.scrollTop = battleLog.scrollHeight;
+        battlesFought += 1;
         currentOpponent = generateOpponent();
         refreshBattlePreview();
     }
