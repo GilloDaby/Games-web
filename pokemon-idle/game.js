@@ -51,25 +51,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropChanceDisplay = document.getElementById('drop-chance');
     const idleBoostDisplay = document.getElementById('idle-boost');
 
-    // --- Pokémon Data (Kanto 1-151) ---
+    // --- Pokémon Data by generation ---
+    const genRanges = [
+        { gen: 1, start: 1, end: 151, label: 'Gen 1' },
+        { gen: 2, start: 152, end: 251, label: 'Gen 2' },
+        { gen: 3, start: 252, end: 386, label: 'Gen 3' },
+        { gen: 4, start: 387, end: 493, label: 'Gen 4' },
+        { gen: 5, start: 494, end: 649, label: 'Gen 5' },
+        { gen: 6, start: 650, end: 721, label: 'Gen 6' },
+        { gen: 7, start: 722, end: 809, label: 'Gen 7' },
+        { gen: 8, start: 810, end: 905, label: 'Gen 8' },
+        { gen: 9, start: 906, end: 1017, label: 'Gen 9' },
+    ];
+
     const kantoPokemonNames = [
         'Bulbasaur','Ivysaur','Venusaur','Charmander','Charmeleon','Charizard','Squirtle','Wartortle','Blastoise','Caterpie','Metapod','Butterfree','Weedle','Kakuna','Beedrill','Pidgey','Pidgeotto','Pidgeot','Rattata','Raticate','Spearow','Fearow','Ekans','Arbok','Pikachu','Raichu','Sandshrew','Sandslash','Nidoran-F','Nidorina','Nidoqueen','Nidoran-M','Nidorino','Nidoking','Clefairy','Clefable','Vulpix','Ninetales','Jigglypuff','Wigglytuff','Zubat','Golbat','Oddish','Gloom','Vileplume','Paras','Parasect','Venonat','Venomoth','Diglett','Dugtrio','Meowth','Persian','Psyduck','Golduck','Mankey','Primeape','Growlithe','Arcanine','Poliwag','Poliwhirl','Poliwrath','Abra','Kadabra','Alakazam','Machop','Machoke','Machamp','Bellsprout','Weepinbell','Victreebel','Tentacool','Tentacruel','Geodude','Graveler','Golem','Ponyta','Rapidash','Slowpoke','Slowbro','Magnemite','Magneton','Farfetchd','Doduo','Dodrio','Seel','Dewgong','Grimer','Muk','Shellder','Cloyster','Gastly','Haunter','Gengar','Onix','Drowzee','Hypno','Krabby','Kingler','Voltorb','Electrode','Exeggcute','Exeggutor','Cubone','Marowak','Hitmonlee','Hitmonchan','Lickitung','Koffing','Weezing','Rhyhorn','Rhydon','Chansey','Tangela','Kangaskhan','Horsea','Seadra','Goldeen','Seaking','Staryu','Starmie','Mr. Mime','Scyther','Jynx','Electabuzz','Magmar','Pinsir','Tauros','Magikarp','Gyarados','Lapras','Ditto','Eevee','Vaporeon','Jolteon','Flareon','Porygon','Omanyte','Omastar','Kabuto','Kabutops','Aerodactyl','Snorlax','Articuno','Zapdos','Moltres','Dratini','Dragonair','Dragonite','Mewtwo','Mew'
     ];
 
-    const pokemonData = kantoPokemonNames.map((name, index) => {
-        const dex = index + 1;
-        const safeId = `dex-${dex}`;
-        const cost = Math.floor(25 * Math.pow(1.18, index)); // steeper curve for longer runs
-        const mps = parseFloat((1.2 * Math.pow(1.14, index)).toFixed(2));
-        return {
-            id: safeId,
-            dex,
-            name,
-            cost,
-            mps,
-            imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dex}.png`
-        };
-    });
+    let currentGeneration = 1;
+    let pokemonData = [];
+    const nameCache = {};
 
     const baseUpgradeConfig = [
         { id: 'click-1', name: 'Gants de Dresseur', target: 'click', clickBonus: 1 },
@@ -85,12 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'legend-151', name: 'Aura Mew', target: 'all', multiplier: 1.6, clickBonus: 10 }
     ];
 
-    const upgradesData = baseUpgradeConfig.map((upg, idx) => {
-        const cost = Math.floor(250 * Math.pow(2.4, idx)); // exponential scaling for longer game
-        return { ...upg, cost };
-    });
+    let upgradesData = [];
 
-    const PRESTIGE_REQUIREMENT = 50000000; // plus long pour prestige
+    const PRESTIGE_REQUIREMENT = 50000000; // base requirement
     const SHINY_CHANCE = 0.01; // 1% chance
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
 
@@ -201,6 +199,56 @@ document.addEventListener('DOMContentLoaded', () => {
         return Object.values(ownedPokemon).reduce((a, b) => a + b, 0);
     }
 
+    function primeKantoNames() {
+        kantoPokemonNames.forEach((name, idx) => {
+            nameCache[idx + 1] = name;
+        });
+    }
+
+    function ensureName(dex) {
+        if (nameCache[dex]) return nameCache[dex];
+        // Try to fetch from PokeAPI asynchronously; fallback is placeholder
+        fetch(`https://pokeapi.co/api/v2/pokemon/${dex}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.name) {
+                    nameCache[dex] = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+                }
+            })
+            .catch(() => {});
+        return `Pokemon #${dex}`;
+    }
+
+    function buildPokemonData(gen) {
+        const range = genRanges.find(r => r.gen === gen) || genRanges[0];
+        const difficultyFactor = 1 + (gen - 1) * 0.7;
+        const list = [];
+        for (let dex = range.start; dex <= range.end; dex++) {
+            const indexInGen = dex - range.start;
+            const name = ensureName(dex);
+            const safeId = `dex-${dex}`;
+            const cost = Math.floor(25 * Math.pow(1.2, indexInGen) * difficultyFactor);
+            const mps = parseFloat((1.2 * Math.pow(1.16, indexInGen) * difficultyFactor).toFixed(2));
+            list.push({
+                id: safeId,
+                dex,
+                name,
+                cost,
+                mps,
+                imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dex}.png`
+            });
+        }
+        return list;
+    }
+
+    function buildUpgrades(gen) {
+        const difficultyFactor = 1 + (gen - 1) * 0.5;
+        return baseUpgradeConfig.map((upg, idx) => {
+            const cost = Math.floor(250 * Math.pow(2.6, idx) * difficultyFactor);
+            return { ...upg, cost };
+        });
+    }
+
     function recalculateClickValue() {
         clickValue = 1;
         purchasedUpgrades.forEach(upgId => {
@@ -209,6 +257,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 clickValue += upgrade.clickBonus;
             }
         });
+    }
+
+    function refreshGenerationData() {
+        primeKantoNames();
+        pokemonData = buildPokemonData(currentGeneration);
+        upgradesData = buildUpgrades(currentGeneration);
     }
 
     function highestOwnedDexIndex() {
@@ -229,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const chosen = pokemonData[Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx];
         const basePower = moneyPerSecond || 10;
         const variance = (Math.random() * 0.5 + 0.75); // 75% to 125%
-        const difficulty = Math.pow(1.12, battlesFought); // exponential scaling with battles fought
+        const difficulty = Math.pow(1.12, battlesFought) * (1 + (currentGeneration - 1) * 0.5); // exponential scaling with battles fought + gen
         const power = Math.max(15, basePower * variance * difficulty);
         return { ...chosen, power };
     }
@@ -333,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateStats() {
         moneyDisplay.textContent = formatNumber(Math.floor(money));
         moneyPerSecondDisplay.textContent = formatNumber(moneyPerSecond);
-        prestigePointsDisplay.textContent = formatNumber(prestigePoints);
+        prestigePointsDisplay.textContent = `${formatNumber(prestigePoints)} (Gen ${currentGeneration})`;
         prestigeMultiplierDisplay.textContent = `${prestigeMultiplier.toFixed(2)}x`;
         updateHeroStats();
         refreshBattlePreview();
@@ -583,6 +637,12 @@ document.addEventListener('DOMContentLoaded', () => {
             prestigePoints += newPrestigePoints;
             prestigeMultiplier = 1 + prestigePoints * 0.1;
 
+            // Avance à la génération suivante si possible
+            if (currentGeneration < genRanges.length) {
+                currentGeneration += 1;
+                alert(`Nouvelle génération débloquée : Gen ${currentGeneration}!`);
+            }
+
             // Reset progress
             money = 15;
             ownedPokemon = {};
@@ -594,11 +654,13 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerXp = 0;
             xpToNextLevel = 100;
             clickValue = 1;
+            battlesFought = 0;
             prestigeButton.style.display = 'none';
 
+            refreshGenerationData();
             calculateMoneyPerSecond();
             updateUI();
-            alert(`Prestige +${newPrestigePoints} ! Nouveau multiplicateur : ${prestigeMultiplier.toFixed(2)}x`);
+            alert(`Prestige +${newPrestigePoints} ! Nouveau multiplicateur : ${prestigeMultiplier.toFixed(2)}x (Gen ${currentGeneration})`);
         }
     }
 
@@ -616,6 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerLevel: trainerLevel,
             trainerXp: trainerXp,
             xpToNextLevel: xpToNextLevel,
+            currentGeneration: currentGeneration,
             lastSave: Date.now() // Store the timestamp
         };
         localStorage.setItem('pokemonIdleSave', JSON.stringify(gameState));
@@ -639,6 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 trainerLevel = gameState.trainerLevel || 1;
                 trainerXp = gameState.trainerXp || 0;
                 xpToNextLevel = gameState.xpToNextLevel || 100;
+                currentGeneration = gameState.currentGeneration || 1;
 
                 return gameState.lastSave; // Return the last save time
             } else {
@@ -659,6 +723,7 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerLevel = 1;
             trainerXp = 0;
             xpToNextLevel = 100;
+            currentGeneration = 1;
             alert('Echec de chargement. Nouvelle partie lancée.');
             return null;
         }
@@ -667,6 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Initialization ---
     function init() {
         const lastSaveTime = loadGame(); // Load saved data first
+        refreshGenerationData();
         recalculateClickValue();
         calculateMoneyPerSecond();
 
