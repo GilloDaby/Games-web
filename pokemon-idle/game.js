@@ -50,6 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeInventoryButton = document.getElementById('close-inventory');
     const inventoryModal = document.getElementById('inventory-modal');
     const inventoryList = document.getElementById('inventory-list');
+    const openPokedexButton = document.getElementById('open-pokedex');
+    const closePokedexButton = document.getElementById('close-pokedex');
+    const pokedexModal = document.getElementById('pokedex-modal');
+    const pokedexGrid = document.getElementById('pokedex-grid');
+    const pokedexSummary = document.getElementById('pokedex-summary');
+    const settingsButton = document.getElementById('settings-button');
+    const settingsContainer = document.getElementById('settings-container');
+    const openAutoBuyButton = document.getElementById('open-auto-buy');
+    const closeAutoBuyButton = document.getElementById('close-auto-buy');
+    const autoBuyModal = document.getElementById('auto-buy-modal');
+    const autoBuyGridModal = document.getElementById('auto-buy-grid-modal');
+    const autoBuyCurrentLabel = document.getElementById('auto-buy-current');
     const saveButton = document.getElementById('save-button');
     const loadButton = document.getElementById('load-button');
     const prestigeButton = document.getElementById('prestige-button');
@@ -197,15 +209,111 @@ document.addEventListener('DOMContentLoaded', () => {
     const consumablesData = [
         { id: 'berry-shiny', name: 'Baie Lumi', desc: '+2% shiny pendant 60s', effect: { shinyBonus: 0.02 }, duration: 60000 },
         { id: 'incense-click', name: 'Encens Turbo', desc: 'Clics x2 pendant 45s', effect: { clickMult: 2 }, duration: 45000 },
-        { id: 'coupon-store', name: 'Coupon Shop', desc: '-20% coûts store pendant 60s', effect: { storeDiscount: 0.2 }, duration: 60000 }
+        { id: 'coupon-store', name: 'Coupon Shop', desc: '-20% coûts store pendant 60s', effect: { storeDiscount: 0.2 }, duration: 60000 },
+        { id: 'berry-attack', name: 'Baie Attaque', desc: '+10% MPS 60s', effect: { mpsMult: 1.1 }, duration: 60000 },
+        { id: 'berry-defense', name: 'Baie Défense', desc: '-10% pertes combat 60s', effect: { lossReduction: 0.1 }, duration: 60000 },
+        { id: 'berry-speed', name: 'Baie Vitesse', desc: '+25% clics 45s', effect: { clickMult: 1.25 }, duration: 45000 },
+        { id: 'berry-focus', name: 'Baie Focus', desc: '+5% crit 45s', effect: { critChance: 0.05, critMult: 3 }, duration: 45000 },
+        { id: 'berry-odor', name: 'Baie Odor', desc: '+1% shiny 60s', effect: { shinyBonus: 0.01 }, duration: 60000 },
+        { id: 'berry-stamina', name: 'Baie Stamina', desc: '+5% MPS 120s', effect: { mpsMult: 1.05 }, duration: 120000 },
+        { id: 'berry-luck', name: 'Baie Chance', desc: '+5% drops objets 60s', effect: { itemDropBonus: 0.05 }, duration: 60000 },
+        { id: 'berry-chill', name: 'Baie Glace', desc: 'Boost combat +5% 60s', effect: { battleBoost: 1.05 }, duration: 60000 },
+        { id: 'berry-blaze', name: 'Baie Feu', desc: 'Boost combat +8% 45s', effect: { battleBoost: 1.08 }, duration: 45000 },
+        { id: 'berry-mind', name: 'Baie Esprit', desc: '+5% XP gain 60s', effect: { xpBonus: 0.05 }, duration: 60000 },
+        { id: 'berry-charge', name: 'Baie Charge', desc: '+15% clics 30s', effect: { clickMult: 1.15 }, duration: 30000 },
+        { id: 'incense-mps', name: 'Encens Profit', desc: 'MPS x1.3 45s', effect: { mpsMult: 1.3 }, duration: 45000 },
+        { id: 'incense-shiny', name: 'Encens Brillant', desc: '+2% shiny 45s', effect: { shinyBonus: 0.02 }, duration: 45000 },
+        { id: 'incense-calm', name: 'Encens Calme', desc: '-15% coûts upgrades 45s', effect: { upgradeDiscount: 0.15 }, duration: 45000 },
+        { id: 'incense-shop', name: 'Encens Marchand', desc: '-15% coûts store 45s', effect: { storeDiscount: 0.15 }, duration: 45000 },
+        { id: 'incense-crit', name: 'Encens Critique', desc: '+3% crit 60s', effect: { critChance: 0.03, critMult: 4 }, duration: 60000 },
+        { id: 'incense-rally', name: 'Encens Rallye', desc: '+10% MPS 90s', effect: { mpsMult: 1.1 }, duration: 90000 },
+        { id: 'incense-guard', name: 'Encens Gardien', desc: '-20% pertes combat 45s', effect: { lossReduction: 0.2 }, duration: 45000 },
+        { id: 'coupon-upgrade', name: 'Coupon Upgrade', desc: '-20% upgrades 60s', effect: { upgradeDiscount: 0.2 }, duration: 60000 },
+        { id: 'coupon-battle', name: 'Ticket Combat', desc: '+20% récompense combat 45s', effect: { battleReward: 1.2 }, duration: 45000 },
+        { id: 'coupon-shiny', name: 'Ticket Shiny', desc: '+3% shiny 30s', effect: { shinyBonus: 0.03 }, duration: 30000 },
+        { id: 'coupon-event', name: 'Ticket Event', desc: 'Events +15% durée', effect: { eventDurationBonus: 0.15 }, duration: 60000 },
+        { id: 'potion-mini', name: 'Potion Mini', desc: '+3% MPS 60s', effect: { mpsMult: 1.03 }, duration: 60000 },
+        { id: 'potion-plus', name: 'Potion Plus', desc: '+8% MPS 45s', effect: { mpsMult: 1.08 }, duration: 45000 },
+        { id: 'potion-crit', name: 'Potion Critique', desc: '+2% crit 30s', effect: { critChance: 0.02, critMult: 5 }, duration: 30000 },
+        { id: 'potion-click', name: 'Potion Clic', desc: 'Clics x1.5 30s', effect: { clickMult: 1.5 }, duration: 30000 },
+        { id: 'potion-xp', name: 'Potion XP', desc: '+10% XP gain 60s', effect: { xpBonus: 0.1 }, duration: 60000 },
+        { id: 'potion-guard', name: 'Potion Gardien', desc: '-10% pertes combat 60s', effect: { lossReduction: 0.1 }, duration: 60000 },
+        { id: 'potion-marchand', name: 'Potion Marchand', desc: '-10% coûts store 60s', effect: { storeDiscount: 0.1 }, duration: 60000 },
+        { id: 'potion-ingenieur', name: 'Potion Ingé', desc: '-10% coûts upgrades 60s', effect: { upgradeDiscount: 0.1 }, duration: 60000 },
+        { id: 'potion-rally', name: 'Potion Rallye', desc: '+12% MPS 60s', effect: { mpsMult: 1.12 }, duration: 60000 },
+        { id: 'potion-dynamo', name: 'Potion Dynamo', desc: 'Clics x1.8 20s', effect: { clickMult: 1.8 }, duration: 20000 },
+        { id: 'potion-brio', name: 'Potion Brio', desc: '+1% shiny 45s', effect: { shinyBonus: 0.01 }, duration: 45000 },
+        { id: 'potion-omega', name: 'Potion Omega', desc: '+15% MPS 45s', effect: { mpsMult: 1.15 }, duration: 45000 },
+        { id: 'stone-dawn', name: 'Pierre Aube', desc: '+5% MPS 90s', effect: { mpsMult: 1.05 }, duration: 90000 },
+        { id: 'stone-dusk', name: 'Pierre Nuit', desc: '+7% shiny 20s', effect: { shinyBonus: 0.07 }, duration: 20000 },
+        { id: 'stone-water', name: 'Pierre Eau', desc: '-5% coûts store 120s', effect: { storeDiscount: 0.05 }, duration: 120000 },
+        { id: 'stone-fire', name: 'Pierre Feu', desc: '+2% crit 60s', effect: { critChance: 0.02, critMult: 5 }, duration: 60000 },
+        { id: 'stone-thunder', name: 'Pierre Foudre', desc: 'Clics x2 25s', effect: { clickMult: 2 }, duration: 25000 },
+        { id: 'stone-leaf', name: 'Pierre Plante', desc: '+10% MPS 50s', effect: { mpsMult: 1.1 }, duration: 50000 },
+        { id: 'stone-ice', name: 'Pierre Glace', desc: '+5% récompenses combat 60s', effect: { battleReward: 1.05 }, duration: 60000 },
+        { id: 'stone-dragon', name: 'Pierre Dragon', desc: '+15% MPS 30s', effect: { mpsMult: 1.15 }, duration: 30000 },
+        { id: 'stone-dark', name: 'Pierre Obscur', desc: 'Shiny +2% 30s', effect: { shinyBonus: 0.02 }, duration: 30000 },
+        { id: 'stone-light', name: 'Pierre Lumière', desc: '-15% coûts store 45s', effect: { storeDiscount: 0.15 }, duration: 45000 },
+        { id: 'stone-metal', name: 'Pierre Métal', desc: '-15% coûts upgrades 45s', effect: { upgradeDiscount: 0.15 }, duration: 45000 },
+        { id: 'stone-sky', name: 'Pierre Ciel', desc: '+5% XP gain 90s', effect: { xpBonus: 0.05 }, duration: 90000 },
+        { id: 'stone-mind', name: 'Pierre Esprit', desc: '+3% crit 40s', effect: { critChance: 0.03, critMult: 4 }, duration: 40000 },
+        { id: 'stone-spirit', name: 'Pierre Esprit+', desc: '+20% MPS 25s', effect: { mpsMult: 1.2 }, duration: 25000 }
     ];
     const itemDrops = [
         { id: 'berry-shiny', name: 'Baie Lumi', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/lum-berry.png' },
         { id: 'incense-click', name: 'Encens Turbo', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/odd-incense.png' },
-        { id: 'coupon-store', name: 'Coupon Shop', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/coupon-1.png' }
+        { id: 'coupon-store', name: 'Coupon Shop', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/coupon-1.png' },
+        { id: 'berry-attack', name: 'Baie Attaque', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liechi-berry.png' },
+        { id: 'berry-defense', name: 'Baie Défense', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ganlon-berry.png' },
+        { id: 'berry-speed', name: 'Baie Vitesse', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/salac-berry.png' },
+        { id: 'berry-focus', name: 'Baie Focus', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/petaya-berry.png' },
+        { id: 'berry-odor', name: 'Baie Odor', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/apscotch-berry.png' },
+        { id: 'berry-stamina', name: 'Baie Stamina', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/apicot-berry.png' },
+        { id: 'berry-luck', name: 'Baie Chance', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/starf-berry.png' },
+        { id: 'berry-chill', name: 'Baie Glace', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ice-gem.png' },
+        { id: 'berry-blaze', name: 'Baie Feu', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fire-gem.png' },
+        { id: 'berry-mind', name: 'Baie Esprit', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/psychic-gem.png' },
+        { id: 'berry-charge', name: 'Baie Charge', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/quick-claw.png' },
+        { id: 'incense-mps', name: 'Encens Profit', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/luck-incense.png' },
+        { id: 'incense-shiny', name: 'Encens Brillant', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/odd-incense.png' },
+        { id: 'incense-calm', name: 'Encens Calme', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/pure-incense.png' },
+        { id: 'incense-shop', name: 'Encens Marchand', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rose-incense.png' },
+        { id: 'incense-crit', name: 'Encens Critique', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scope-lens.png' },
+        { id: 'incense-rally', name: 'Encens Rallye', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/muscle-band.png' },
+        { id: 'incense-guard', name: 'Encens Gardien', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/focus-band.png' },
+        { id: 'coupon-upgrade', name: 'Coupon Upgrade', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/coupon-2.png' },
+        { id: 'coupon-battle', name: 'Ticket Combat', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-gold.png' },
+        { id: 'coupon-shiny', name: 'Ticket Shiny', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dream-ball.png' },
+        { id: 'coupon-event', name: 'Ticket Event', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-toy.png' },
+        { id: 'potion-mini', name: 'Potion Mini', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/potion.png' },
+        { id: 'potion-plus', name: 'Potion Plus', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/super-potion.png' },
+        { id: 'potion-crit', name: 'Potion Critique', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/zoom-lens.png' },
+        { id: 'potion-click', name: 'Potion Clic', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/pp-max.png' },
+        { id: 'potion-xp', name: 'Potion XP', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/exp-share.png' },
+        { id: 'potion-guard', name: 'Potion Gardien', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sitrus-berry.png' },
+        { id: 'potion-marchand', name: 'Potion Marchand', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/amulet-coin.png' },
+        { id: 'potion-ingenieur', name: 'Potion Ingé', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/iron.png' },
+        { id: 'potion-rally', name: 'Potion Rallye', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/macho-brace.png' },
+        { id: 'potion-dynamo', name: 'Potion Dynamo', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png' },
+        { id: 'potion-brio', name: 'Potion Brio', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/pearl.png' },
+        { id: 'potion-omega', name: 'Potion Omega', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png' },
+        { id: 'stone-dawn', name: 'Pierre Aube', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dawn-stone.png' },
+        { id: 'stone-dusk', name: 'Pierre Nuit', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dusk-stone.png' },
+        { id: 'stone-water', name: 'Pierre Eau', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/water-stone.png' },
+        { id: 'stone-fire', name: 'Pierre Feu', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fire-stone.png' },
+        { id: 'stone-thunder', name: 'Pierre Foudre', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/thunder-stone.png' },
+        { id: 'stone-leaf', name: 'Pierre Plante', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/leaf-stone.png' },
+        { id: 'stone-ice', name: 'Pierre Glace', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ice-stone.png' },
+        { id: 'stone-dragon', name: 'Pierre Dragon', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dragon-scale.png' },
+        { id: 'stone-dark', name: 'Pierre Obscur', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dark-stone.png' },
+        { id: 'stone-light', name: 'Pierre Lumière', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-stone.png' },
+        { id: 'stone-metal', name: 'Pierre Métal', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/metal-coat.png' },
+        { id: 'stone-sky', name: 'Pierre Ciel', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sky-plate.png' },
+        { id: 'stone-mind', name: 'Pierre Esprit', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mind-plate.png' },
+        { id: 'stone-spirit', name: 'Pierre Esprit+', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/spiritomb.png' }
     ];
 
-    const PRESTIGE_REQUIREMENT = 50000000; // base requirement
+    const PRESTIGE_REQUIREMENT = 5000000000; // base requirement
     const SHINY_CHANCE = 0.01; // 1% chance
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
     const SHINY_MULTIPLIER = 2; // 2x bonus for shiny
@@ -320,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeEventEndsAt = 0;
     let activeChallenge = null;
     let activeConsumables = [];
+    let knownSprites = {};
 
     // --- Game Logic ---
 
@@ -431,10 +540,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function getSpriteUrl(pokemon) {
         if (!pokemon) return '';
         const baseDex = pokemon.dex;
-        if (shinyPokemon.includes(pokemon.id)) {
-            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${baseDex}.png`;
-        }
-        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${baseDex}.png`;
+        const key = shinyPokemon.includes(pokemon.id) ? `shiny-${baseDex}` : `norm-${baseDex}`;
+        if (knownSprites[key]) return knownSprites[key];
+        const url = shinyPokemon.includes(pokemon.id)
+            ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${baseDex}.png`
+            : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${baseDex}.png`;
+        knownSprites[key] = url;
+        return url;
     }
 
     function recalculateClickValue() {
@@ -450,7 +562,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function refreshGenerationData() {
         primeKantoNames();
-        pokemonData = buildPokemonData(currentGeneration);
+        pokemonData = [];
+        for (let g = 1; g <= currentGeneration; g++) {
+            pokemonData = pokemonData.concat(buildPokemonData(g));
+        }
         upgradesData = buildUpgrades(currentGeneration);
         ensureDailyQuests();
     }
@@ -659,6 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
+        // fallback: first affordable unlocked
         for (let i = 0; i < pokemonData.length; i++) {
             const p = pokemonData[i];
             const cost = discountedCost(p.cost, 'store');
@@ -895,23 +1011,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderAutomation() {
         const container = document.getElementById('automation-items');
-        const select = document.getElementById('auto-buy-select');
         if (!container) return;
         container.innerHTML = '';
-        if (select) {
-            select.innerHTML = '';
-            pokemonData.slice(0, 50).forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = `#${p.dex} ${p.name}`;
-                select.appendChild(opt);
-            });
-            if (autoBuyTargetId) {
-                select.value = autoBuyTargetId;
-            }
-            select.onchange = () => {
-                autoBuyTargetId = select.value;
-            };
+        if (autoBuyCurrentLabel) {
+            const target = pokemonData.find(p => p.id === autoBuyTargetId);
+            autoBuyCurrentLabel.textContent = target ? `Cible: #${target.dex} ${target.name}` : 'Aucune cible';
         }
         automationUpgradesData.forEach(upg => {
             const purchased = purchasedAutomation.includes(upg.id);
@@ -1087,6 +1191,48 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.onclick = () => useConsumable(item);
             pill.appendChild(btn);
             inventoryList.appendChild(pill);
+        });
+    }
+
+    function renderAutoBuyModal() {
+        if (!autoBuyGridModal) return;
+        autoBuyGridModal.innerHTML = '';
+        pokemonData.forEach(p => {
+            const card = document.createElement('div');
+            card.className = `auto-buy-card ${autoBuyTargetId === p.id ? 'selected' : ''}`;
+            card.innerHTML = `
+                <img src="${p.imageUrl}" alt="${p.name}">
+                <strong>#${p.dex}</strong>
+                <span>${p.name}</span>
+            `;
+            card.onclick = () => {
+                autoBuyTargetId = p.id;
+                renderAutoBuyModal();
+                renderAutomation();
+                autoBuyModal.style.display = 'none';
+            };
+            autoBuyGridModal.appendChild(card);
+        });
+    }
+
+    function renderPokedex() {
+        if (!pokedexGrid || !pokedexSummary) return;
+        pokedexGrid.innerHTML = '';
+        const caughtIds = Object.keys(ownedPokemon).filter(id => ownedPokemon[id] > 0);
+        const shinyCaught = shinyPokemon.slice();
+        pokedexSummary.textContent = `${caughtIds.length} capturés / ${pokemonData.length}  | Shiny: ${shinyCaught.length}`;
+        pokemonData.forEach(p => {
+            const caught = caughtIds.includes(p.id);
+            const shiny = shinyCaught.includes(p.id);
+            const item = document.createElement('div');
+            item.className = 'achievement-item';
+            item.style.opacity = caught ? 1 : 0.5;
+            item.innerHTML = `
+                <p>#${p.dex} ${p.name}</p>
+                <img src="${shiny ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${p.dex}.png` : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.dex}.png`}" style="width:48px;height:48px;image-rendering:pixelated;">
+                <small>${caught ? 'Capturé' : 'Manquant'} ${shiny ? '(Shiny)' : ''}</small>
+            `;
+            pokedexGrid.appendChild(item);
         });
     }
 
@@ -1592,6 +1738,39 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        if (openPokedexButton && pokedexModal && closePokedexButton) {
+            openPokedexButton.addEventListener('click', () => {
+                pokedexModal.style.display = 'flex';
+                renderPokedex();
+            });
+            closePokedexButton.addEventListener('click', () => {
+                pokedexModal.style.display = 'none';
+            });
+            pokedexModal.addEventListener('click', (e) => {
+                if (e.target === pokedexModal) pokedexModal.style.display = 'none';
+            });
+        }
+
+        if (openAutoBuyButton && autoBuyModal && closeAutoBuyButton) {
+            openAutoBuyButton.addEventListener('click', () => {
+                autoBuyModal.style.display = 'flex';
+                renderAutoBuyModal();
+            });
+            closeAutoBuyButton.addEventListener('click', () => {
+                autoBuyModal.style.display = 'none';
+            });
+            autoBuyModal.addEventListener('click', (e) => {
+                if (e.target === autoBuyModal) autoBuyModal.style.display = 'none';
+            });
+        }
+
+        if (settingsButton && settingsContainer) {
+            settingsButton.addEventListener('click', () => {
+                const isOpen = settingsContainer.style.display === 'block';
+                settingsContainer.style.display = isOpen ? 'none' : 'block';
+            });
+        }
+
         currentOpponent = generateOpponent();
         refreshBattlePreview();
 
@@ -1649,7 +1828,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkQuests();
             }
             // Item drop
-            if (Math.random() < 0.05) {
+            if (Math.random() < 0.01) {
                 const item = itemDrops[Math.floor(Math.random() * itemDrops.length)];
                 inventoryItems[item.id] = (inventoryItems[item.id] || 0) + 1;
                 showToast(`<img src="${item.sprite}" style="width:24px;height:24px;vertical-align:middle;"> ${item.name} obtenu !`, true);
@@ -1706,13 +1885,14 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
 });
     function generateQuestsForDate(dateKey) {
+        const poolSrc = (typeof questPool !== 'undefined' && questPool.length) ? questPool : [];
         // deterministic pick based on date string
         let seed = dateKey.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
         const rand = () => {
             seed = (seed * 9301 + 49297) % 233280;
             return seed / 233280;
         };
-        const poolCopy = [...questPool];
+        const poolCopy = [...poolSrc];
         const picked = [];
         for (let i = 0; i < 4 && poolCopy.length > 0; i++) {
             const idx = Math.floor(rand() * poolCopy.length);
