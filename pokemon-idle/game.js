@@ -524,13 +524,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildPokemonData(gen) {
         const range = genRanges.find(r => r.gen === gen) || genRanges[0];
-        const difficultyFactor = 1 + (gen - 1) * 0.7;
+        const difficultyFactor = 1 + (gen - 1) * 1.5; // Augmentation de la difficulté par génération
         const list = [];
         for (let dex = range.start; dex <= range.end; dex++) {
             const indexInGen = dex - range.start;
             const name = ensureName(dex);
             const safeId = `dex-${dex}`;
-            const cost = Math.floor(25 * Math.pow(1.2, indexInGen) * difficultyFactor);
+            const cost = Math.floor(25 * Math.pow(1.25, indexInGen) * difficultyFactor); // Pokémon plus chers
             const mps = parseFloat((1.2 * Math.pow(1.16, indexInGen) * difficultyFactor).toFixed(2));
             list.push({
                 id: safeId,
@@ -545,9 +545,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildUpgrades(gen) {
-        const difficultyFactor = 1 + (gen - 1) * 0.5;
+        const difficultyFactor = 1 + (gen - 1) * 1.0; // Difficulté des améliorations accrue par génération
         return baseUpgradeConfig.map((upg, idx) => {
-            const cost = Math.floor(250 * Math.pow(2.6, idx) * difficultyFactor);
+            const cost = Math.floor(250 * Math.pow(2.8, idx) * difficultyFactor); // Améliorations plus chères
             return { ...upg, cost };
         });
     }
