@@ -1530,11 +1530,12 @@ document.addEventListener('DOMContentLoaded', () => {
         achievementsData.forEach(achievement => {
             const achievementItemElement = document.createElement('div');
             const isUnlocked = unlockedAchievements.includes(achievement.id);
-            achievementItemElement.className = `achievement-item ${isUnlocked ? 'unlocked' : ''}`;
+            achievementItemElement.className = `achievement-item ${isUnlocked ? 'unlocked' : 'locked'}`;
             achievementItemElement.title = achievement.description;
             achievementItemElement.innerHTML = `
                 <p>${achievement.name}</p>
                 <div class="achievement-desc">${achievement.description}</div>
+                ${isUnlocked ? '' : '<span class="achievement-badge">Locked</span>'}
             `;
             achievementsItemsContainer.appendChild(achievementItemElement);
         });
