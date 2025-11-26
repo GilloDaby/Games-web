@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const battleRisk = document.getElementById('battle-risk');
     const horizontalScrollers = Array.from(document.querySelectorAll('.horizontal-scroller'));
     const toastContainer = document.getElementById('toast-container');
+    const storeFilterButtons = Array.from(document.querySelectorAll('[data-store-filter]'));
     const trainerLevelDisplay = document.getElementById('trainer-level');
     const xpBar = document.getElementById('xp-bar');
     const xpText = document.getElementById('xp-text');
@@ -139,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'shiny-boost-2', name: 'Charme Shiny II', target: 'all', shinyBonus: 0.0015 },
         { id: 'shiny-boost-3', name: 'Charme Shiny III', target: 'all', shinyBonus: 0.002 }
     );
-    const baseUpgradeConfig = [...baseUpgradeConfigSeed, ...generatedUpgrades];
+    const baseUpgradeConfig = [...baseUpgradeConfigSeed, ...generatedUpgrades, { id: 'auto-buy-chain-shiny', name: 'Auto Buy Progressif Shiny', target: 'all', multiplier: 1.05, shinyBonus: 0.002 }];
 
     let upgradesData = [];
     const automationUpgradesData = [
@@ -149,7 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'auto-click-4', name: 'PokéBot v4', cost: 900000, autoClick: 30 },
         { id: 'auto-click-5', name: 'PokéBot v5', cost: 2600000, autoClick: 70 },
         { id: 'auto-buy-store', name: 'Auto Buy Store', cost: 1200000, autoBuyPokemon: true },
-        { id: 'auto-buy-upgrades', name: 'Auto Buy Upgrades', cost: 2200000, autoBuyUpgrade: true }
+        { id: 'auto-buy-upgrades', name: 'Auto Buy Upgrades', cost: 2200000, autoBuyUpgrade: true },
+        { id: 'auto-buy-chain', name: 'Auto Buy Progressif', cost: 3500000, autoBuyChain: true }
     ];
 
     const talentsData = [
@@ -453,6 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeChallenge = null;
     let activeConsumables = [];
     let knownSprites = {};
+    let storeFilterGen = 'all';
 
     // --- Game Logic ---
 
@@ -602,6 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
         automationState.autoClickRate = 0;
         automationState.autoBuyPokemon = false;
         automationState.autoBuyUpgrade = false;
+        automationState.autoBuyChain = false;
         purchasedAutomation.forEach(id => {
             const a = automationUpgradesData.find(item => item.id === id);
             if (a && a.autoClick) {
@@ -609,6 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (a && a.autoBuyPokemon) automationState.autoBuyPokemon = true;
             if (a && a.autoBuyUpgrade) automationState.autoBuyUpgrade = true;
+            if (a && a.autoBuyChain) automationState.autoBuyChain = true;
         });
     }
 
@@ -802,15 +807,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         }
-        // fallback: first affordable unlocked
-        for (let i = 0; i < pokemonData.length; i++) {
-            const p = pokemonData[i];
-            const cost = discountedCost(p.cost, 'store');
-            if (money >= cost) {
-                buyPokemon(p.id);
-                break;
+        if (automationState.autoBuyChain) {
+            for (let i = 0; i < pokemonData.length; i++) {
+                const p = pokemonData[i];
+                const cost = discountedCost(p.cost, 'store');
+                if (money >= cost) {
+                    buyPokemon(p.id);
+                    break;
+                }
+                if ((ownedPokemon[p.id] || 0) === 0) break;
             }
-            if ((ownedPokemon[p.id] || 0) === 0) break;
         }
     }
 
@@ -1225,6 +1231,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAutoBuyModal() {
         if (!autoBuyGridModal) return;
         autoBuyGridModal.innerHTML = '';
+        // Option none
+        const noneCard = document.createElement('div');
+        noneCard.className = `auto-buy-card ${!autoBuyTargetId ? 'selected' : ''}`;
+        noneCard.innerHTML = `<strong>Aucune cible</strong>`;
+        noneCard.onclick = () => {
+            autoBuyTargetId = null;
+            renderAutoBuyModal();
+            renderAutomation();
+            autoBuyModal.style.display = 'none';
+        };
+        autoBuyGridModal.appendChild(noneCard);
         pokemonData.forEach(p => {
             const card = document.createElement('div');
             card.className = `auto-buy-card ${autoBuyTargetId === p.id ? 'selected' : ''}`;
@@ -1330,8 +1347,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderStore() {
         storeItemsContainer.innerHTML = '';
-        pokemonData.forEach((pokemon, index) => {
-            const unlocked = index === 0 || (ownedPokemon[pokemonData[index - 1].id] || 0) > 0;
+        const filtered = storeFilterGen === 'all'
+            ? pokemonData
+            : pokemonData.filter(p => {
+                const gen = genRanges.find(gr => p.dex >= gr.start && p.dex <= gr.end);
+                return gen && `${gen.gen}` === storeFilterGen;
+            });
+        filtered.forEach((pokemon, index) => {
+            const unlocked = index === 0 || (ownedPokemon[filtered[index - 1]?.id] || 0) > 0;
             const isLocked = !unlocked;
             const canAfford = money >= pokemon.cost;
             const storeItemElement = document.createElement('div');
@@ -1798,6 +1821,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 settingsContainer.style.display = isOpen ? 'none' : 'block';
             });
         }
+
+        storeFilterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                storeFilterGen = btn.getAttribute('data-store-filter');
+                renderStore();
+            });
+        });
 
         currentOpponent = generateOpponent();
         refreshBattlePreview();
