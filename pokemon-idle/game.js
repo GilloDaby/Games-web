@@ -17,6 +17,21 @@ document.addEventListener('DOMContentLoaded', () => {
         floatingNumbers: true,
         dynamicBackground: true,
     };
+    let battleState = null;
+    let nextBattleAllowedAt = 0;
+    let battleDataLoaded = false;
+    const movesById = {};
+    const pokemonTypesMap = {};
+    const typeChart = {};
+    const baseStatsByPokemon = {};
+    const learnsetByPokemon = {};
+    const POKEAPI_CSV_BASE = 'https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv';
+    const TYPE_ID_MAP = {
+        1: 'normal', 2: 'fighting', 3: 'flying', 4: 'poison', 5: 'ground',
+        6: 'rock', 7: 'bug', 8: 'ghost', 9: 'steel', 10: 'fire', 11: 'water',
+        12: 'grass', 13: 'electric', 14: 'psychic', 15: 'ice', 16: 'dragon',
+        17: 'dark', 18: 'fairy'
+    };
 
     // --- DOM Elements ---
     const moneyDisplay = document.getElementById('money');
@@ -73,6 +88,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const battleOpponentPower = document.getElementById('battle-opponent-power');
     const battlePlayerPower = document.getElementById('battle-player-power');
     const battleRisk = document.getElementById('battle-risk');
+    const battlePlayerLabel = document.getElementById('battle-player-label');
+    const battlePlayerHpFill = document.getElementById('battle-player-hp-fill');
+    const battlePlayerHpText = document.getElementById('battle-player-hp-text');
+    const battlePlayerSprite = document.getElementById('battle-player-sprite');
+    const battleFoeLabel = document.getElementById('battle-foe-label');
+    const battleFoeHpFill = document.getElementById('battle-foe-hp-fill');
+    const battleFoeHpText = document.getElementById('battle-foe-hp-text');
+    const battleFoeSprite = document.getElementById('battle-foe-sprite');
+    const battleActions = document.getElementById('battle-actions');
     const horizontalScrollers = Array.from(document.querySelectorAll('.horizontal-scroller'));
     const toastContainer = document.getElementById('toast-container');
     const storeFilterButtons = Array.from(document.querySelectorAll('[data-store-filter]'));
@@ -343,6 +367,102 @@ document.addEventListener('DOMContentLoaded', () => {
     const SHINY_CHANCE = 1 / 4096; // align closer to main games
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
     const SHINY_MULTIPLIER = 2; // 2x bonus for shiny
+    const BATTLE_LEVEL_BASE = 30;
+
+    // --- Battle data loading (PokeAPI official CSV on GitHub) ---
+    async function fetchCsv(url) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`CSV fetch failed: ${url}`);
+        const text = await res.text();
+        return text.split('\n').map(l => l.trim()).filter(Boolean);
+    }
+
+    function parseCsvRow(line) {
+        // Simple split sufficient for PokeAPI CSV we use (no embedded commas in selected columns)
+        return line.split(',');
+    }
+
+    async function loadBattleData() {
+        if (battleDataLoaded) return;
+        const [movesCsv, typesCsv, efficacyCsv, pokemonTypesCsv, pokemonStatsCsv, pokemonMovesCsv] = await Promise.all([
+            fetchCsv(`${POKEAPI_CSV_BASE}/moves.csv`),
+            fetchCsv(`${POKEAPI_CSV_BASE}/types.csv`),
+            fetchCsv(`${POKEAPI_CSV_BASE}/type_efficacy.csv`),
+            fetchCsv(`${POKEAPI_CSV_BASE}/pokemon_types.csv`),
+            fetchCsv(`${POKEAPI_CSV_BASE}/pokemon_stats.csv`),
+            fetchCsv(`${POKEAPI_CSV_BASE}/pokemon_moves.csv`),
+        ]);
+
+        const typeNameById = {};
+        typesCsv.slice(1).forEach(line => {
+            const [id, identifier] = parseCsvRow(line);
+            typeNameById[Number(id)] = identifier;
+        });
+
+        efficacyCsv.slice(1).forEach(line => {
+            const [damageTypeId, targetTypeId, factor] = parseCsvRow(line).map(Number);
+            const atk = typeNameById[damageTypeId];
+            const def = typeNameById[targetTypeId];
+            if (!atk || !def) return;
+            if (!typeChart[atk]) typeChart[atk] = {};
+            typeChart[atk][def] = (factor || 100) / 100;
+        });
+
+        movesCsv.slice(1).forEach(line => {
+            const cols = parseCsvRow(line);
+            const id = Number(cols[0]);
+            const identifier = cols[1];
+            const typeId = Number(cols[2]);
+            const power = cols[4] ? Number(cols[4]) : 0;
+            const pp = cols[5] ? Number(cols[5]) : 10;
+            const accuracy = cols[6] ? Number(cols[6]) : 100;
+            const damageClassId = Number(cols[9]); // 2 phys, 3 special, 1 status
+            const type = typeNameById[typeId] || TYPE_ID_MAP[typeId] || 'normal';
+            movesById[id] = {
+                id,
+                name: identifier.replace(/-/g, ' '),
+                type,
+                power,
+                pp,
+                accuracy,
+                damageClass: damageClassId === 3 ? 'special' : damageClassId === 2 ? 'physical' : 'status',
+            };
+        });
+
+        pokemonTypesCsv.slice(1).forEach(line => {
+            const cols = parseCsvRow(line);
+            const pokemonId = Number(cols[0]);
+            const typeId = Number(cols[1]);
+            const typeName = typeNameById[typeId] || TYPE_ID_MAP[typeId];
+            if (!pokemonTypesMap[pokemonId]) pokemonTypesMap[pokemonId] = [];
+            if (typeName) pokemonTypesMap[pokemonId].push(typeName);
+        });
+
+        pokemonStatsCsv.slice(1).forEach(line => {
+            const cols = parseCsvRow(line);
+            const pokemonId = Number(cols[0]);
+            const statId = Number(cols[1]);
+            const baseStat = Number(cols[2]);
+            if (!baseStatsByPokemon[pokemonId]) baseStatsByPokemon[pokemonId] = {};
+            const statKey = ['hp','atk','def','spa','spd','spe'][statId - 1];
+            if (statKey) baseStatsByPokemon[pokemonId][statKey] = baseStat;
+        });
+
+        pokemonMovesCsv.slice(1).forEach(line => {
+            const cols = parseCsvRow(line);
+            const pokemonId = Number(cols[0]);
+            if (pokemonId > 251) return; // limiter pour perf
+            const versionGroupId = Number(cols[1]);
+            const moveId = Number(cols[2]);
+            const learnMethodId = Number(cols[3]); // pokemon_move_method_id
+            const level = Number(cols[4]);
+            if (learnMethodId !== 1) return; // level-up only
+            if (!learnsetByPokemon[pokemonId]) learnsetByPokemon[pokemonId] = [];
+            learnsetByPokemon[pokemonId].push({ moveId, level, versionGroupId });
+        });
+
+        battleDataLoaded = true;
+    }
 
     const achievementsData = (() => {
         const list = [];
@@ -468,6 +588,234 @@ document.addEventListener('DOMContentLoaded', () => {
             idx++;
         }
         return `${val % 1 === 0 ? val : val.toFixed(1)}${suffixes[idx]}`;
+    }
+
+    function calcStat(base, level, isHp = false) {
+        if (!base) base = 50;
+        return isHp
+            ? Math.floor(((base * 2 * level) / 100) + level + 10)
+            : Math.floor(((base * 2 * level) / 100) + 5);
+    }
+
+    function pickMovesForPokemon(pokemonId) {
+        const learnset = learnsetByPokemon[pokemonId] || [];
+        if (!learnset.length) {
+            const tackle = Object.values(movesById).find(m => m.name === 'tackle') || { name: 'Tackle', type: 'normal', power: 40, accuracy: 100, damageClass: 'physical' };
+            return [tackle];
+        }
+        const maxVersion = Math.max(...learnset.map(l => l.versionGroupId || 0));
+        const candidates = learnset
+            .filter(l => (l.versionGroupId || 0) === maxVersion)
+            .map(m => ({ ...movesById[m.moveId], level: m.level }))
+            .filter(m => m && m.name);
+        candidates.sort((a, b) => (b.level || 0) - (a.level || 0) || (b.power || 0) - (a.power || 0));
+        const unique = [];
+        const names = new Set();
+        for (const mv of candidates) {
+            if (!mv) continue;
+            if (names.has(mv.name)) continue;
+            unique.push(mv);
+            names.add(mv.name);
+            if (unique.length >= 4) break;
+        }
+        if (!unique.length) {
+            const tackle = Object.values(movesById).find(m => m.name === 'tackle') || { name: 'Tackle', type: 'normal', power: 40, accuracy: 100, damageClass: 'physical' };
+            unique.push(tackle);
+        }
+        return unique;
+    }
+
+    function buildCombatantFromDex(dex, levelBoost = 0) {
+        const pokemon = pokemonData.find(p => p.dex === dex || p.id === `dex-${dex}`);
+        const pokemonId = Number(String(dex).replace('dex-', ''));
+        const types = pokemonTypesMap[pokemonId] || ['normal'];
+        const bases = baseStatsByPokemon[pokemonId] || { hp: 60, atk: 60, def: 60, spa: 60, spd: 60, spe: 60 };
+        const level = Math.max(10, BATTLE_LEVEL_BASE + levelBoost);
+        const stats = {
+            hp: calcStat(bases.hp, level, true),
+            atk: calcStat(bases.atk, level),
+            def: calcStat(bases.def, level),
+            spa: calcStat(bases.spa, level),
+            spd: calcStat(bases.spd, level),
+            spe: calcStat(bases.spe, level),
+        };
+        return {
+            id: pokemonId,
+            name: pokemon ? pokemon.name : `Pokemon #${pokemonId}`,
+            sprite: pokemon ? pokemon.imageUrl : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`,
+            types,
+            level,
+            stats,
+            currentHp: stats.hp,
+            moves: pickMovesForPokemon(pokemonId),
+        };
+    }
+
+    function typeEffectiveness(moveType, defenderTypes) {
+        let mult = 1;
+        defenderTypes.forEach(t => {
+            const eff = (typeChart[moveType] && typeChart[moveType][t]) || 1;
+            mult *= eff;
+        });
+        return mult;
+    }
+
+    function computeDamage(attacker, defender, move) {
+        if (!move || move.damageClass === 'status' || !move.power) return 0;
+        const atk = move.damageClass === 'special' ? attacker.stats.spa : attacker.stats.atk;
+        const def = move.damageClass === 'special' ? defender.stats.spd : defender.stats.def;
+        const base = (((2 * attacker.level / 5 + 2) * move.power * (atk / Math.max(1, def))) / 50) + 2;
+        const stab = attacker.types.includes(move.type) ? 1.5 : 1;
+        const eff = typeEffectiveness(move.type, defender.types);
+        const rand = 0.85 + Math.random() * 0.15;
+        return Math.max(1, Math.floor(base * stab * eff * rand));
+    }
+
+    function pickPlayerPokemonForBattle() {
+        if (!Object.keys(ownedPokemon).length) return null;
+        let best = null;
+        let bestCost = -1;
+        pokemonData.forEach(p => {
+            const qty = ownedPokemon[p.id] || 0;
+            if (qty > 0 && p.cost > bestCost) {
+                best = p;
+                bestCost = p.cost;
+            }
+        });
+        if (favoritePokemon && ownedPokemon[favoritePokemon]) {
+            const fav = pokemonData.find(p => p.id === favoritePokemon);
+            if (fav) best = fav;
+        }
+        return best;
+    }
+
+    function generateBattleOpponentCombatant() {
+        const maxDex = Math.max(...pokemonData.map(p => p.dex));
+        const playerOwnedMax = highestOwnedDexIndex() + 1;
+        const dex = Math.max(1, Math.min(maxDex, playerOwnedMax + Math.floor(Math.random() * 5)));
+        const levelBoost = Math.max(0, battlesFought * 2 + currentGeneration * 3);
+        return buildCombatantFromDex(dex, levelBoost);
+    }
+
+    function effectivenessText(mult) {
+        if (mult === 0) return "Ça n'a aucun effet...";
+        if (mult > 1.5) return "C'est super efficace !";
+        if (mult < 0.9) return "Ce n'est pas très efficace...";
+        return "";
+    }
+
+    function renderBattleUI() {
+        if (!battleState) return;
+        const { player, foe } = battleState;
+        if (battlePlayerLabel) battlePlayerLabel.textContent = `${player.name} Lv.${player.level}`;
+        if (battleFoeLabel) battleFoeLabel.textContent = `${foe.name} Lv.${foe.level}`;
+        if (battlePlayerSprite) battlePlayerSprite.src = player.sprite;
+        if (battleFoeSprite) battleFoeSprite.src = foe.sprite;
+        if (battleActions) {
+            battleActions.innerHTML = '';
+            player.moves.forEach(mv => {
+                const btn = document.createElement('button');
+                btn.className = 'btn small';
+                btn.textContent = `${mv.name} (${mv.type.toUpperCase()})`;
+                btn.addEventListener('click', () => performBattleTurn(mv));
+                battleActions.appendChild(btn);
+            });
+        }
+        updateHpBars();
+    }
+
+    function updateHpBars() {
+        if (!battleState) return;
+        const { player, foe } = battleState;
+        const playerPct = Math.max(0, (player.currentHp / player.stats.hp) * 100);
+        const foePct = Math.max(0, (foe.currentHp / foe.stats.hp) * 100);
+        if (battlePlayerHpFill) battlePlayerHpFill.style.width = `${playerPct}%`;
+        if (battleFoeHpFill) battleFoeHpFill.style.width = `${foePct}%`;
+        if (battlePlayerHpText) battlePlayerHpText.textContent = `${player.currentHp}/${player.stats.hp}`;
+        if (battleFoeHpText) battleFoeHpText.textContent = `${foe.currentHp}/${foe.stats.hp}`;
+    }
+
+    function logBattle(message, color = 'white') {
+        if (!battleLog) return;
+        const p = document.createElement('p');
+        p.style.color = color;
+        p.textContent = message;
+        battleLog.appendChild(p);
+        battleLog.scrollTop = battleLog.scrollHeight;
+    }
+
+    function endBattle(victory) {
+        const { foe } = battleState;
+        if (victory) {
+            const reward = Math.floor(foe.level * 120 * prestigeMultiplier);
+            money += reward;
+            gainXp(80);
+            questProgress.money += reward;
+            questProgress.battles += 1;
+            showToast(`Victoire ! +${formatNumber(reward)} Pokédollars, +80 XP`);
+        } else {
+            const lossMoney = Math.floor(money * 0.08);
+            money = Math.max(0, money - lossMoney);
+            trainerXp = Math.max(0, trainerXp - 10);
+            showToast(`Défaite... -${formatNumber(lossMoney)} Pokédollars, -10 XP`);
+            nextBattleAllowedAt = Date.now() + 10000;
+        }
+        battlesFought += 1;
+        updateStats();
+        checkQuests();
+        battleState.finished = true;
+        currentOpponent = null;
+        refreshBattlePreview();
+    }
+
+    function performBattleTurn(playerMove) {
+        if (!battleState || battleState.finished) return;
+        const { player, foe } = battleState;
+        battleLog.innerHTML = '';
+
+        const foeMove = chooseBestMove(foe, player);
+
+        const order = [];
+        const playerPriority = player.stats.spe >= foe.stats.spe ? 0 : 1;
+        if (playerPriority === 0) order.push({ actor: player, target: foe, move: playerMove, isPlayer: true }, { actor: foe, target: player, move: foeMove, isPlayer: false });
+        else order.push({ actor: foe, target: player, move: foeMove, isPlayer: false }, { actor: player, target: foe, move: playerMove, isPlayer: true });
+
+        for (const step of order) {
+            if (player.currentHp <= 0 || foe.currentHp <= 0) continue;
+            const { actor, target, move, isPlayer } = step;
+            if (move.accuracy && Math.random() * 100 > move.accuracy) {
+                logBattle(`${actor.name} rate ${move.name} !`, '#ffb347');
+                continue;
+            }
+            const dmg = computeDamage(actor, target, move);
+            target.currentHp = Math.max(0, target.currentHp - dmg);
+            const effText = effectivenessText(typeEffectiveness(move.type, target.types));
+            logBattle(`${actor.name} utilise ${move.name} (${dmg} dégâts). ${effText}`, isPlayer ? '#9be7ff' : '#ffd166');
+            updateHpBars();
+            if (target.currentHp <= 0) {
+                logBattle(`${target.name} est K.O. !`, '#ff6961');
+            }
+        }
+
+        if (foe.currentHp <= 0) {
+            endBattle(true);
+        } else if (player.currentHp <= 0) {
+            endBattle(false);
+        }
+    }
+
+    function chooseBestMove(attacker, target) {
+        // Favorise super efficace, puis puissance, puis aléatoire pondéré
+        const scored = attacker.moves.map(mv => {
+            const eff = typeEffectiveness(mv.type, target.types);
+            const dmg = computeDamage(attacker, target, mv);
+            const score = (dmg || 0) * eff * (mv.accuracy ? mv.accuracy / 100 : 1);
+            return { mv, score };
+        }).sort((a, b) => b.score - a.score);
+        const top = scored[0] ? scored[0].mv : attacker.moves[0];
+        // petite randomisation pour éviter la monotonie
+        if (scored.length > 1 && Math.random() < 0.2) return scored[1].mv;
+        return top;
     }
 
     function showToast(message, isHtml = false) {
@@ -834,29 +1182,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function startLeagueBattle(league, isBoss = false) {
+    async function startLeagueBattle(league, isBoss = false) {
         const entry = league.entry;
         if (money < entry) {
             showToast('Pas assez pour le ticket de ligue.');
             return;
         }
         money -= entry;
-        const originalOpponent = currentOpponent;
-        const boosted = generateOpponent();
-        boosted.power *= league.difficulty || 1;
-        currentOpponent = boosted;
-        startBattle();
-        // Apply reward multiplier on last battle result via streak concept
-        // Simple approach: after victory we add bonus
-        if (battleLog.innerHTML.includes('Victoire')) {
-            const bonus = Math.floor((currentOpponent.power || 0) * (league.rewardMult || 1));
-            money += bonus;
-            showToast(`${league.name}: bonus +${formatNumber(bonus)} Pokédollars`);
-        }
-        if (isBoss) {
-            battlesFought += 2;
-        }
-        currentOpponent = originalOpponent;
+        showToast(`${league.name}: combat lancé (difficulté ${league.difficulty || 1}x)`);
+        await startBattle();
+        if (isBoss) battlesFought += 2;
     }
 
     function activateChallenge(challenge) {
@@ -952,6 +1287,15 @@ document.addEventListener('DOMContentLoaded', () => {
             battlePlayerPower.textContent = `Ta puissance: ${formatNumber(moneyPerSecond || 1)}`;
         }
         battleRisk.textContent = `Risque: perte 10% cash & -10 XP en cas de défaite`;
+
+        // Preview sprites with favorite or best available
+        const fav = favoritePokemon && pokemonData.find(p => p.id === favoritePokemon);
+        const best = pickPlayerPokemonForBattle();
+        const previewMon = fav || best;
+        if (previewMon && battlePlayerSprite) battlePlayerSprite.src = previewMon.imageUrl;
+        if (previewMon && battlePlayerLabel) battlePlayerLabel.textContent = `${previewMon.name} (preview)`;
+        if (battleFoeSprite) battleFoeSprite.src = currentOpponent.imageUrl;
+        if (battleFoeLabel) battleFoeLabel.textContent = `${currentOpponent.name}`;
     }
 
     function enableDragScroll(el) {
@@ -1902,34 +2246,29 @@ document.addEventListener('DOMContentLoaded', () => {
         battleButton.addEventListener('click', startBattle);
     }
 
-    function startBattle() {
-        if (!currentOpponent) currentOpponent = generateOpponent();
-        const playerPower = moneyPerSecond || 1;
-        const opponentPower = currentOpponent.power;
-
-        let logMessage = `Rival: ${currentOpponent.name} (Puissance ${formatNumber(opponentPower)}) vs toi (${formatNumber(playerPower)}).`;
-
-        if (playerPower > opponentPower) {
-            const reward = Math.floor(opponentPower * 12);
-            const rewardText = formatNumber(reward);
-            money += reward;
-            gainXp(80);
-            questProgress.money += reward;
-            questProgress.battles += 1;
-            logMessage += `\nVictoire ! +${rewardText} Pokédollars et +80 XP.`;
-            battleLog.innerHTML += `<p style="color: green;">${logMessage}</p>`;
-        } else {
-            const lossMoney = Math.floor(money * 0.1);
-            money = Math.max(0, money - lossMoney);
-            trainerXp = Math.max(0, trainerXp - 10);
-            logMessage += `\nDéfaite ! -${formatNumber(lossMoney)} Pokédollars et -10 XP.`;
-            battleLog.innerHTML += `<p style="color: red;">${logMessage}</p>`;
+    async function startBattle() {
+        const now = Date.now();
+        if (now < nextBattleAllowedAt) {
+            const wait = Math.ceil((nextBattleAllowedAt - now) / 1000);
+            showToast(`Attends ${wait}s avant de relancer un combat.`);
+            return;
         }
-        battleLog.scrollTop = battleLog.scrollHeight;
-        battlesFought += 1;
-        currentOpponent = generateOpponent();
-        refreshBattlePreview();
-        checkQuests();
+        if (!Object.keys(ownedPokemon).length) {
+            showToast("Pas de Pokémon pour combattre ! Achète ou drop un Pokémon.");
+            return;
+        }
+        await loadBattleData().catch(() => showToast("Impossible de charger les données de combat."));
+        const playerMon = pickPlayerPokemonForBattle();
+        if (!playerMon) {
+            showToast("Aucun Pokémon disponible pour le combat.");
+            return;
+        }
+        const player = buildCombatantFromDex(playerMon.dex || Number(playerMon.id.replace('dex-', '')), trainerLevel);
+        const foe = generateBattleOpponentCombatant();
+        battleState = { player, foe, finished: false };
+        battleLog.innerHTML = '';
+        logBattle(`Un ${foe.name} sauvage (Lv.${foe.level}) apparaît !`, '#ffd166');
+        renderBattleUI();
     }
 
     function createFloatingNumber(x, y, value) {

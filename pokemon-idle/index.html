@@ -107,23 +107,42 @@
                 </div>
                 <div id="battle-container" class="card">
                     <h2><i class="fas fa-gamepad"></i> Battle</h2>
-                    <div id="battle-preview">
-                        <div class="opponent-info">
-                            <img id="battle-opponent-sprite" src="" alt="opponent">
-                            <div>
-                                <p class="eyebrow">Rival</p>
-                                <div id="battle-opponent-name"></div>
-                                <div id="battle-opponent-power" class="muted"></div>
-                            </div>
+                <div id="battle-preview">
+                    <div class="opponent-info">
+                        <img id="battle-opponent-sprite" src="" alt="opponent">
+                        <div>
+                            <p class="eyebrow">Rival</p>
+                            <div id="battle-opponent-name"></div>
+                            <div id="battle-opponent-power" class="muted"></div>
                         </div>
-                        <p id="battle-player-power" class="muted"></p>
-                        <p id="battle-risk" class="muted"></p>
                     </div>
-                    <div class="pill-list">
-                        <button id="battle-button" class="btn"><i class="fas fa-fist-raised"></i> Start Battle</button>
-                        <button id="open-leagues" class="btn ghost small"><i class="fas fa-trophy"></i> Leagues/Boss</button>
+                    <p id="battle-player-power" class="muted"></p>
+                    <p id="battle-risk" class="muted"></p>
+                </div>
+                <div id="battle-status" class="battle-status">
+                    <div class="battle-side">
+                        <div class="hp-line">
+                            <span id="battle-player-label"></span>
+                            <div class="hp-bar"><div id="battle-player-hp-fill"></div></div>
+                            <span id="battle-player-hp-text"></span>
+                        </div>
+                        <img id="battle-player-sprite" src="" alt="player">
                     </div>
-                    <div id="battle-log"></div>
+                    <div class="battle-side">
+                        <div class="hp-line">
+                            <span id="battle-foe-label"></span>
+                            <div class="hp-bar"><div id="battle-foe-hp-fill"></div></div>
+                            <span id="battle-foe-hp-text"></span>
+                        </div>
+                        <img id="battle-foe-sprite" src="" alt="foe">
+                    </div>
+                </div>
+                <div id="battle-actions" class="battle-actions pill-list"></div>
+                <div class="pill-list">
+                    <button id="battle-button" class="btn"><i class="fas fa-fist-raised"></i> Start Battle</button>
+                    <button id="open-leagues" class="btn ghost small"><i class="fas fa-trophy"></i> Leagues/Boss</button>
+                </div>
+                <div id="battle-log"></div>
                 </div>
             </div>
         </main>
