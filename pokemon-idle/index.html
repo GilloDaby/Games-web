@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Idle Trainer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="stats-container">
+            <h1>Pokédollars: <span id="money">0</span></h1>
+            <h2>$/sec: <span id="money-per-second">0</span></h2>
+            <h3>Prestige Points: <span id="prestige-points">0</span></h3>
+            <h3>Prestige Multiplier: <span id="prestige-multiplier">1</span>x</h3>
+            <button id="save-button">Save</button>
+            <button id="load-button">Load</button>
+            <button id="prestige-button" style="display: none;">Prestige</button>
+        </div>
+        <div id="trainer-container">
+            <h2>Trainer Level: <span id="trainer-level">1</span></h2>
+            <progress id="xp-bar" value="0" max="100"></progress>
+            <span id="xp-text">0 / 100 XP</span>
+        </div>
+        <div id="pokemon-container">
+            <!-- Pokémon will be dynamically added here -->
+        </div>
+        <div id="favorite-pokemon-container">
+            <h2>Favorite Pokémon</h2>
+            <div id="favorite-pokemon-slot">
+                <!-- Favorite Pokémon will be displayed here -->
+            </div>
+        </div>
+        <div id="store-container">
+            <h2>Store</h2>
+            <div id="store-items">
+                <!-- Store items will be dynamically added here -->
+            </div>
+        </div>
+        <div id="upgrades-container">
+            <h2>Upgrades</h2>
+            <div id="upgrades-items">
+                <!-- Upgrades will be dynamically added here -->
+            </div>
+        </div>
+        <div id="achievements-container">
+            <h2>Achievements</h2>
+            <div id="achievements-items">
+                <!-- Achievements will be dynamically added here -->
+            </div>
+        </div>
+        <div id="battle-container">
+            <h2>Battle</h2>
+            <button id="battle-button">Start Battle</button>
+            <div id="battle-log"></div>
+        </div>
+    </div>
+    <div id="settings-button">⚙️</div>
+    <div id="settings-container" style="display: none;">
+        <h2>Settings</h2>
+        <label>
+            <input type="checkbox" id="toggle-floating-numbers" checked>
+            Floating Numbers
+        </label>
+        <label>
+            <input type="checkbox" id="toggle-dynamic-background" checked>
+            Dynamic Background
+        </label>
+    </div>
+    <div id="pokeball-container">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Poké Ball">
+    </div>
+    <div id="floating-numbers-container"></div>
+    <script src="game.js"></script>
+</body>
+</html>

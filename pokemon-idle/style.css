@@ -1,0 +1,321 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    transition: background-color 1s ease;
+}
+
+body.day {
+    background-color: #87CEEB; /* Sky Blue */
+}
+
+body.sunset {
+    background-color: #FF7F50; /* Coral */
+}
+
+body.night {
+    background-color: #483D8B; /* Dark Slate Blue */
+    color: #f0f0f0;
+}
+
+
+#game-container {
+    display: grid;
+    grid-template-areas:
+        "stats"
+        "trainer"
+        "pokemon"
+        "favorite"
+        "store"
+        "upgrades"
+        "achievements"
+        "battle";
+    gap: 20px;
+    width: 800px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+#stats-container {
+    grid-area: stats;
+    text-align: center;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+#pokemon-container {
+    grid-area: pokemon;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    min-height: 150px;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.pokemon-instance {
+    width: 100px;
+    text-align: center;
+}
+
+.pokemon-instance img {
+    width: 80px;
+    height: 80px;
+}
+
+.pokemon-instance.favorite img {
+    border: 2px solid gold;
+    border-radius: 50%;
+}
+
+.pokemon-instance.shiny img {
+    filter: hue-rotate(90deg) brightness(1.5);
+}
+
+#trainer-container {
+    grid-area: trainer;
+    text-align: center;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+#xp-bar {
+    width: 80%;
+    height: 20px;
+    margin-top: 5px;
+}
+
+
+
+#favorite-pokemon-container {
+    grid-area: favorite;
+    border-top: 2px solid #eee;
+    padding-top: 10px;
+    text-align: center;
+}
+
+#favorite-pokemon-slot {
+    display: inline-block;
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    color: #888;
+}
+
+#favorite-pokemon-slot .pokemon-instance {
+    margin: 0;
+}
+
+
+#store-container {
+    grid-area: store;
+    border-top: 2px solid #eee;
+    padding-top: 10px;
+}
+
+#store-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.store-item {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    width: 120px;
+}
+
+.store-item:hover {
+    background-color: #e9e9e9;
+}
+
+#upgrades-container {
+    grid-area: upgrades;
+    border-top: 2px solid #eee;
+    padding-top: 10px;
+}
+
+#upgrades-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.upgrade-item {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    width: 120px;
+}
+
+.upgrade-item:hover {
+    background-color: #e9e9e9;
+}
+
+.upgrade-item.purchased {
+    background-color: #d4edda;
+    cursor: default;
+}
+
+#achievements-container {
+    grid-area: achievements;
+    border-top: 2px solid #eee;
+    padding-top: 10px;
+}
+
+#achievements-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.achievement-item {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    width: 120px;
+}
+
+.achievement-item.unlocked {
+    background-color: #d4edda;
+}
+
+#battle-container {
+    grid-area: battle;
+    border-top: 2px solid #eee;
+    padding-top: 10px;
+    text-align: center;
+}
+
+#battle-log {
+    margin-top: 10px;
+    height: 100px;
+    overflow-y: scroll;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    text-align: left;
+}
+
+
+body.night #game-container {
+    background: #2c2f33;
+    color: #f0f0f0;
+}
+
+body.night .store-item,
+body.night .upgrade-item,
+body.night .achievement-item {
+    background-color: #40444b;
+    border-color: #54575c;
+}
+
+#floating-numbers-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.floating-number {
+    position: absolute;
+    font-size: 24px;
+    color: gold;
+    animation: float-up 1s ease-out forwards;
+    text-shadow: 1px 1px 2px black;
+}
+
+@keyframes float-up {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-100px);
+        opacity: 0;
+    }
+}
+
+#pokeball-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+#pokeball-container img {
+    width: 80px;
+    height: 80px;
+    transition: transform 0.1s ease;
+}
+
+#pokeball-container img:active {
+    transform: scale(0.9);
+}
+
+#settings-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    font-size: 30px;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+#settings-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    color: #333;
+}
+
+#settings-container h2 {
+    text-align: center;
+    margin-top: 0;
+}
+
+#settings-container label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+
+
+
+
+
