@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pokemonIndex > 0) {
             const previousId = pokemonData[pokemonIndex - 1].id;
             if (!(ownedPokemon[previousId] > 0)) {
-                alert('Achète le Pokémon précédent pour débloquer celui-ci.');
+                showToast('Achète le Pokémon précédent pour débloquer celui-ci.');
                 return;
             }
         }
@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateMoneyPerSecond();
             updateUI();
         } else {
-            alert('Pas assez de Pokédollars !');
+            showToast('Pas assez de Pokédollars !');
         }
     }
 
@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (upgradeIndex > 0) {
             const prevId = upgradesData[upgradeIndex - 1].id;
             if (!purchasedUpgrades.includes(prevId)) {
-                alert('Achète l\'upgrade précédente pour débloquer celle-ci.');
+                showToast('Achète l\'upgrade précédente pour débloquer celle-ci.');
                 return;
             }
         }
@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateMoneyPerSecond();
             updateUI();
         } else {
-            alert('Amélioration impossible !');
+            showToast('Amélioration impossible !');
         }
     }
 
@@ -583,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerLevel++;
             trainerXp -= xpToNextLevel;
             xpToNextLevel = Math.floor(xpToNextLevel * 1.5);
-            alert(`Niveau ${trainerLevel} atteint ! GG !`);
+            showToast(`Niveau ${trainerLevel} atteint ! GG !`);
             // Apply level up bonus
             moneyPerSecond *= 1.1;
         }
@@ -660,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Avance à la génération suivante si possible
             if (currentGeneration < genRanges.length) {
                 currentGeneration += 1;
-                alert(`Nouvelle génération débloquée : Gen ${currentGeneration}!`);
+                showToast(`Nouvelle génération débloquée : Gen ${currentGeneration}!`);
             }
 
             // Reset progress
@@ -680,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
             refreshGenerationData();
             calculateMoneyPerSecond();
             updateUI();
-            alert(`Prestige +${newPrestigePoints} ! Nouveau multiplicateur : ${prestigeMultiplier.toFixed(2)}x (Gen ${currentGeneration})`);
+            showToast(`Prestige +${newPrestigePoints} ! Nouveau multiplicateur : ${prestigeMultiplier.toFixed(2)}x (Gen ${currentGeneration})`);
         }
     }
 
@@ -702,7 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lastSave: Date.now() // Store the timestamp
         };
         localStorage.setItem('pokemonIdleSave', JSON.stringify(gameState));
-        alert('Sauvegarde réussie !');
+        showToast('Sauvegarde réussie !');
     }
 
     function loadGame() {
@@ -744,7 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
             trainerXp = 0;
             xpToNextLevel = 100;
             currentGeneration = 1;
-            alert('Echec de chargement. Nouvelle partie lancée.');
+            showToast('Echec de chargement. Nouvelle partie lancée.');
             return null;
         }
     }
@@ -761,9 +761,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const offlineEarnings = offlineTime * moneyPerSecond;
             if (offlineEarnings > 0) {
                 money += offlineEarnings;
-                alert(`De retour ! +${Math.floor(offlineEarnings)} Pokédollars gagnés en offline.`);
+                showToast(`De retour ! +${Math.floor(offlineEarnings)} Pokédollars gagnés en offline.`);
             } else {
-                alert('Partie chargée !');
+                showToast('Partie chargée !');
             }
         }
 
@@ -777,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
             recalculateClickValue();
             calculateMoneyPerSecond();
             updateUI();
-            alert('Partie chargée !');
+            showToast('Partie chargée !');
         });
         prestigeButton.addEventListener('click', prestige);
         if (achievementsButton && achievementsModal && closeAchievementsButton) {
