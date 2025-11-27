@@ -22,21 +22,21 @@
             <div class="brand">
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Logo Poké Ball">
                 <div>
-                    <p class="eyebrow">Idle Clicker Edition</p>
-                    <h1>Pokémon Idle Trainer</h1>
+                    <p class="eyebrow" data-i18n="tagline">Idle Clicker Edition</p>
+                    <h1 data-i18n="title-main">Pokémon Idle Trainer</h1>
                 </div>
             </div>
             <div class="stat-chips">
-                <button id="achievements-button" class="btn ghost small"><i class="fas fa-medal"></i> Achievement</button>
+                <button id="achievements-button" class="btn ghost small" data-i18n="btn-achievements"><i class="fas fa-medal"></i> Achievement</button>
                 <div class="chip"><i class="fas fa-coins"></i><span id="money">0</span> Pokédollars</div>
                 <div class="chip"><i class="fas fa-hand-holding-dollar"></i><span id="money-per-second">0</span> $/sec</div>
                 <div class="chip"><i class="fas fa-star"></i><span id="prestige-points">0</span> Prestige</div>
                 <div class="chip"><i class="fas fa-arrow-up-right-dots"></i><span id="prestige-multiplier">1</span>x Multi</div>
             </div>
             <div class="top-actions">
-                <button id="save-button" class="btn ghost"><i class="fas fa-save"></i> Save</button>
-                <button id="load-button" class="btn ghost"><i class="fas fa-folder-open"></i> Load</button>
-                <button id="prestige-button" class="btn prestige-btn" style="display: none;"><i class="fas fa-trophy"></i> Prestige</button>
+                <button id="save-button" class="btn ghost" data-i18n="btn-save"><i class="fas fa-save"></i> Save</button>
+                <button id="load-button" class="btn ghost" data-i18n="btn-load"><i class="fas fa-folder-open"></i> Load</button>
+                <button id="prestige-button" class="btn prestige-btn" style="display: none;" data-i18n="btn-prestige"><i class="fas fa-trophy"></i> Prestige</button>
             </div>
         </header>
 
@@ -44,26 +44,26 @@
             <div id="main-column">
                 <section id="hero-card" class="card hero">
                     <div class="hero-text">
-                        <p class="eyebrow">Hoenn Plains - Live Event</p>
-                        <h2>Tap the Poké Ball to earn & catch.</h2>
-                        <p class="subtitle">Chaque clic te donne des Pokédollars, avec une faible chance de lâcher un Pokémon sauvage.</p>
+                        <p class="eyebrow" data-i18n="hero-event">Hoenn Plains - Live Event</p>
+                        <h2 data-i18n="hero-title">Tap the Pok´┐¢ Ball to earn & catch.</h2>
+                        <p class="subtitle" data-i18n="hero-subtitle">Chaque clic te donne des Pok´┐¢dollars, avec une faible chance de l├ócher un Pok├®mon sauvage.</p>
                         <div class="mini-grid">
-                        <div class="mini-card"><i class="fas fa-fire"></i> Click Power <span id="click-power">+1</span></div>
-                        <div class="mini-card"><i class="fas fa-bolt"></i> Drop Chance <span id="drop-chance">2%</span></div>
-                        <div class="mini-card"><i class="fas fa-hourglass-half"></i> Idle Boost <span id="idle-boost">x1</span></div>
+                        <div class="mini-card"><i class="fas fa-fire"></i> <span data-i18n="stat-click-power">Click Power</span> <span id="click-power">+1</span></div>
+                        <div class="mini-card"><i class="fas fa-bolt"></i> <span data-i18n="stat-drop-chance">Drop Chance</span> <span id="drop-chance">2%</span></div>
+                        <div class="mini-card"><i class="fas fa-hourglass-half"></i> <span data-i18n="stat-idle-boost">Idle Boost</span> <span id="idle-boost">x1</span></div>
                     </div>
                     <div class="menu-tabs" aria-hidden="true">
                         <div class="menu-tab">
                             <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Poké Ball chip">
-                            <span>Capture</span>
+                            <span data-i18n="tab-capture">Capture</span>
                         </div>
                         <div class="menu-tab">
                             <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png" alt="Rare candy chip">
-                            <span>XP Boost</span>
+                            <span data-i18n="tab-xp-boost">XP Boost</span>
                         </div>
                         <div class="menu-tab">
                             <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/super-rod.png" alt="Rod chip">
-                            <span>Drop Hunt</span>
+                            <span data-i18n="tab-drop-hunt">Drop Hunt</span>
                         </div>
                     </div>
                 </div>
@@ -72,24 +72,24 @@
                         <div id="pokeball-container">
                             <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Poké Ball">
                         </div>
-                        <p class="click-hint"><i class="fas fa-hand-pointer"></i> Clique au centre pour farmer.</p>
+                        <p class="click-hint" data-i18n="hero-hint"><i class="fas fa-hand-pointer"></i> Clique au centre pour farmer.</p>
                     </div>
                 </section>
 
                 <div id="trainer-container" class="card">
-                    <h2><i class="fas fa-user"></i> Trainer Level: <span id="trainer-level">1</span></h2>
+                    <h2><i class="fas fa-user"></i> <span data-i18n="trainer-level">Trainer Level:</span> <span id="trainer-level">1</span></h2>
                     <progress id="xp-bar" value="0" max="100"></progress>
                     <span id="xp-text">0 / 100 XP</span>
                 </div>
                 <div id="automation-talents-card" class="card">
-                    <h2><i class="fas fa-robot"></i> Automation & Talents</h2>
+                    <h2><i class="fas fa-robot"></i> <span data-i18n="automation-talents">Automation & Talents</span></h2>
                     <div class="pill-list">
-                        <button id="open-automation" class="btn small"><i class="fas fa-cogs"></i> Gérer les automations</button>
-                        <button id="open-talents" class="btn small"><i class="fas fa-brain"></i> Gérer les talents</button>
-                        <button id="open-challenges" class="btn ghost small"><i class="fas fa-flag-checkered"></i> Challenges</button>
-                        <button id="open-inventory" class="btn ghost small"><i class="fas fa-boxes-stacked"></i> Inventaire</button>
-                        <button id="open-calendar" class="btn ghost small"><i class="fas fa-calendar"></i> Calendrier</button>
-                        <button id="open-pokedex" class="btn ghost small"><i class="fas fa-book"></i> Pokédex</button>
+                        <button id="open-automation" class="btn small" data-i18n="btn-automation"><i class="fas fa-cogs"></i> Gérer les automations</button>
+                        <button id="open-talents" class="btn small" data-i18n="btn-talents"><i class="fas fa-brain"></i> Gérer les talents</button>
+                        <button id="open-challenges" class="btn ghost small" data-i18n="btn-challenges"><i class="fas fa-flag-checkered"></i> Challenges</button>
+                        <button id="open-inventory" class="btn ghost small" data-i18n="btn-inventory"><i class="fas fa-boxes-stacked"></i> Inventaire</button>
+                        <button id="open-calendar" class="btn ghost small" data-i18n="btn-calendar"><i class="fas fa-calendar"></i> Calendrier</button>
+                        <button id="open-pokedex" class="btn ghost small" data-i18n="btn-pokedex"><i class="fas fa-book"></i> Pokédex</button>
                     </div>
                 </div>
 
@@ -100,18 +100,18 @@
 
             <div id="side-column">
                 <div id="favorite-pokemon-container" class="card">
-                    <h2><i class="fas fa-heart"></i> Favorite Pokémon</h2>
+                    <h2><i class="fas fa-heart"></i> <span data-i18n="favorite">Favorite Pok´┐¢mon</span></h2>
                     <div id="favorite-pokemon-slot">
                         <!-- Favorite Pokémon will be displayed here -->
                     </div>
                 </div>
                 <div id="battle-container" class="card">
-                    <h2><i class="fas fa-gamepad"></i> Battle</h2>
+                    <h2><i class="fas fa-gamepad"></i> <span data-i18n="battle">Battle</span></h2>
                 <div id="battle-preview">
                     <div class="opponent-info">
                         <img id="battle-opponent-sprite" src="" alt="opponent">
                         <div>
-                            <p class="eyebrow">Rival</p>
+                            <p class="eyebrow" data-i18n="rival">Rival</p>
                             <div id="battle-opponent-name"></div>
                             <div id="battle-opponent-power" class="muted"></div>
                         </div>
@@ -139,8 +139,8 @@
                 </div>
                 <div id="battle-actions" class="battle-actions pill-list"></div>
                 <div class="pill-list">
-                    <button id="battle-button" class="btn"><i class="fas fa-fist-raised"></i> Start Battle</button>
-                    <button id="open-leagues" class="btn ghost small"><i class="fas fa-trophy"></i> Leagues/Boss</button>
+                    <button id="battle-button" class="btn" data-i18n="btn-battle"><i class="fas fa-fist-raised"></i> Start Battle</button>
+                    <button id="open-leagues" class="btn ghost small" data-i18n="btn-leagues"><i class="fas fa-trophy"></i> Leagues/Boss</button>
                 </div>
                 <div id="battle-log"></div>
                 </div>
@@ -151,8 +151,8 @@
     <div id="achievements-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
-                <h3><i class="fas fa-medal"></i> Achievements (100)</h3>
-                <button id="close-achievements" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <h3><i class="fas fa-medal"></i> <span data-i18n="achievements-title">Achievements</span> (100)</h3>
+                <button id="close-achievements" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="achievements-items" class="achievements-grid">
                 <!-- Achievements will be dynamically added here -->
@@ -163,12 +163,12 @@
     <div id="automation-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
-                <h3><i class="fas fa-robot"></i> Automations</h3>
-                <button id="close-automation" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <h3><i class="fas fa-robot"></i> <span data-i18n="automation-title">Automations</span></h3>
+                <button id="close-automation" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="automation-target">
-                <p class="eyebrow">Auto-buy Pokémon ciblé</p>
-                <button id="open-auto-buy" class="btn small"><i class="fas fa-bullseye"></i> Choisir la cible</button>
+                <p class="eyebrow" data-i18n="auto-target-title">Auto-buy Pok´┐¢mon cibl´┐¢</p>
+                <button id="open-auto-buy" class="btn small" data-i18n="btn-choose-target"><i class="fas fa-bullseye"></i> Choisir la cible</button>
                 <p class="muted" id="auto-buy-current"></p>
             </div>
             <div id="automation-items" class="pill-list"></div>
@@ -178,10 +178,10 @@
     <div id="talents-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
-                <h3><i class="fas fa-brain"></i> Talents</h3>
-                <button id="close-talents" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <h3><i class="fas fa-brain"></i> <span data-i18n="talents-title">Talents</span></h3>
+                <button id="close-talents" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
-            <p class="eyebrow">Points disponibles: <span id="talent-points-label"></span></p>
+            <p class="eyebrow"><span data-i18n="talent-points">Points disponibles:</span> <span id="talent-points-label"></span></p>
             <div id="talents-grid" class="pill-list"></div>
         </div>
     </div>
@@ -189,8 +189,8 @@
     <div id="owned-pokemon-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
-                <h3><i class="fas fa-box-open"></i> Collection complete</h3>
-                <button id="close-owned-pokemon" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <h3><i class="fas fa-box-open"></i> <span data-i18n="owned-title">Collection complete</span></h3>
+                <button id="close-owned-pokemon" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="owned-pokemon-grid" class="owned-modal-grid"></div>
         </div>
@@ -199,8 +199,8 @@
     <div id="leagues-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
-                <h3><i class="fas fa-trophy"></i> Leagues & Boss</h3>
-                <button id="close-leagues" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <h3><i class="fas fa-trophy"></i> <span data-i18n="leagues-title">Leagues & Boss</span></h3>
+                <button id="close-leagues" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="leagues-list" class="pill-list"></div>
         </div>
@@ -209,8 +209,8 @@
     <div id="challenges-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
-                <h3><i class="fas fa-flag-checkered"></i> Challenges</h3>
-                <button id="close-challenges" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <h3><i class="fas fa-flag-checkered"></i> <span data-i18n="challenges-title">Challenges</span></h3>
+                <button id="close-challenges" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="challenges-list" class="pill-list"></div>
         </div>
@@ -219,8 +219,8 @@
     <div id="inventory-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
-                <h3><i class="fas fa-boxes-stacked"></i> Inventaire & Consommables</h3>
-                <button id="close-inventory" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <h3><i class="fas fa-boxes-stacked"></i> <span data-i18n="inventory-title">Inventaire & Consommables</span></h3>
+                <button id="close-inventory" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="inventory-list" class="pill-list"></div>
         </div>
@@ -230,7 +230,7 @@
         <div class="modal-content card">
             <div class="modal-header">
                 <h3><i class="fas fa-book"></i> Pokédex</h3>
-                <button id="close-pokedex" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <button id="close-pokedex" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <p class="eyebrow" id="pokedex-summary"></p>
             <div id="pokedex-grid" class="achievements-grid"></div>
@@ -240,8 +240,8 @@
     <div id="auto-buy-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
-                <h3><i class="fas fa-bullseye"></i> Sélection auto-buy</h3>
-                <button id="close-auto-buy" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <h3><i class="fas fa-bullseye"></i> <span data-i18n="auto-buy-title">S´┐¢lection auto-buy</span></h3>
+                <button id="close-auto-buy" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="auto-buy-grid-modal" class="auto-buy-grid"></div>
         </div>
@@ -251,7 +251,7 @@
         <div class="modal-content card">
             <div class="modal-header">
                 <h3><i class="fas fa-calendar"></i> Calendrier des quêtes</h3>
-                <button id="close-calendar" class="btn ghost small"><i class="fas fa-times"></i> Fermer</button>
+                <button id="close-calendar" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="calendar-month"></div>
             <div id="calendar-grid" class="calendar-grid"></div>
@@ -260,29 +260,29 @@
 
     <footer id="footer-bar" class="card">
         <div class="footer-actions">
-            <button class="btn ghost small" id="expand-store">PokeStore plein ecran</button>
-            <button class="btn ghost small" id="expand-upgrades">Upgrades plein ecran</button>
+            <button class="btn ghost small" id="expand-store" data-i18n="btn-expand-store">PokeStore plein ecran</button>
+            <button class="btn ghost small" id="expand-upgrades" data-i18n="btn-expand-upgrades">Upgrades plein ecran</button>
         </div>
         <div class="footer-section store-section">
-            <div class="footer-header"><i class="fas fa-store"></i> PokeStore</div>
+            <div class="footer-header"><i class="fas fa-store"></i> <span data-i18n="store-title">PokeStore</span></div>
             <div class="pill-list">
-                <button class="btn small ghost" data-store-filter="all" id="store-filter-all">All</button>
-                <button class="btn small ghost" data-store-filter="1" id="store-filter-gen1">Gen1</button>
-                <button class="btn small ghost" data-store-filter="2" id="store-filter-gen2">Gen2</button>
-                <button class="btn small ghost" data-store-filter="3" id="store-filter-gen3">Gen3</button>
-                <button class="btn small ghost" data-store-filter="4" id="store-filter-gen4">Gen4</button>
-                <button class="btn small ghost" data-store-filter="5" id="store-filter-gen5">Gen5</button>
-                <button class="btn small ghost" data-store-filter="6" id="store-filter-gen6">Gen6</button>
-                <button class="btn small ghost" data-store-filter="7" id="store-filter-gen7">Gen7</button>
-                <button class="btn small ghost" data-store-filter="8" id="store-filter-gen8">Gen8</button>
-                <button class="btn small ghost" data-store-filter="9" id="store-filter-gen9">Gen9</button>
+                <button class="btn small ghost" data-store-filter="all" id="store-filter-all" data-i18n="filter-all">All</button>
+                <button class="btn small ghost" data-store-filter="1" id="store-filter-gen1" data-i18n="filter-gen1">Gen1</button>
+                <button class="btn small ghost" data-store-filter="2" id="store-filter-gen2" data-i18n="filter-gen2">Gen2</button>
+                <button class="btn small ghost" data-store-filter="3" id="store-filter-gen3" data-i18n="filter-gen3">Gen3</button>
+                <button class="btn small ghost" data-store-filter="4" id="store-filter-gen4" data-i18n="filter-gen4">Gen4</button>
+                <button class="btn small ghost" data-store-filter="5" id="store-filter-gen5" data-i18n="filter-gen5">Gen5</button>
+                <button class="btn small ghost" data-store-filter="6" id="store-filter-gen6" data-i18n="filter-gen6">Gen6</button>
+                <button class="btn small ghost" data-store-filter="7" id="store-filter-gen7" data-i18n="filter-gen7">Gen7</button>
+                <button class="btn small ghost" data-store-filter="8" id="store-filter-gen8" data-i18n="filter-gen8">Gen8</button>
+                <button class="btn small ghost" data-store-filter="9" id="store-filter-gen9" data-i18n="filter-gen9">Gen9</button>
             </div>
             <div id="store-items" class="horizontal-scroller">
                 <!-- Store items will be dynamically added here -->
             </div>
         </div>
         <div class="footer-section upgrades-section">
-            <div class="footer-header"><i class="fas fa-level-up-alt"></i> Upgrades</div>
+            <div class="footer-header"><i class="fas fa-level-up-alt"></i> <span data-i18n="upgrades-title">Upgrades</span></div>
             <div class="scroller-wrapper">
                 <button class="scroll-btn" data-target="upgrades-items" data-dir="-1" aria-label="Défiler vers la gauche"><i class="fas fa-chevron-left"></i></button>
                 <div id="upgrades-items" class="horizontal-scroller">
@@ -295,18 +295,105 @@
 
     <div id="settings-button">⚙️</div>
     <div id="settings-container" style="display: none;">
-        <h2>Settings</h2>
-        <label>
-            <input type="checkbox" id="toggle-floating-numbers" checked>
-            Floating Numbers
-        </label>
-        <label>
-            <input type="checkbox" id="toggle-dynamic-background" checked>
-            Dynamic Background
-        </label>
+        <div class="settings-panel card">
+            <div class="settings-header">
+                <div>
+                    <p class="eyebrow" data-i18n="settings-control">Centre de contrôle</p>
+                    <h3 data-i18n="settings-title">Paramètres</h3>
+                </div>
+                <button id="settings-close" class="btn ghost small"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="settings-grid">
+                <div class="setting-block">
+                    <p class="eyebrow" data-i18n="settings-general">Général</p>
+                    <label class="setting-row">
+                        <span data-i18n="settings-language">Langue</span>
+                        <select id="setting-language">
+                            <option value="" disabled selected data-i18n="settings-language-placeholder">Choisir...</option>
+                            <option value="fr" data-i18n="settings-lang-fr">Français</option>
+                            <option value="en" data-i18n="settings-lang-en">English</option>
+                            <option value="es" data-i18n="settings-lang-es">Español</option>
+                        </select>
+                    </label>
+                    <label class="setting-row">
+                        <span data-i18n="settings-toasts">Notifications toast</span>
+                        <input type="checkbox" id="toggle-toasts" checked>
+                    </label>
+                </div>
+                <div class="setting-block">
+                    <p class="eyebrow" data-i18n="settings-display">Affichage</p>
+                    <label class="setting-row">
+                        <span data-i18n="settings-floating">Nombres flottants</span>
+                        <input type="checkbox" id="toggle-floating-numbers" checked>
+                    </label>
+                    <label class="setting-row">
+                        <span data-i18n="settings-bg">Arrière-plan dynamique</span>
+                        <input type="checkbox" id="toggle-dynamic-background" checked>
+                    </label>
+                </div>
+                <div class="setting-block">
+                    <p class="eyebrow" data-i18n="settings-audio">Audio</p>
+                    <label class="setting-row">
+                        <span data-i18n="settings-music">Musique</span>
+                        <input type="range" id="setting-music-volume" min="0" max="100" value="70">
+                    </label>
+                    <label class="setting-row">
+                        <span data-i18n="settings-sfx">Effets</span>
+                        <input type="range" id="setting-sfx-volume" min="0" max="100" value="80">
+                    </label>
+                </div>
+            </div>
+        </div>
     </div>
     <div id="floating-numbers-container"></div>
     <div id="toast-container"></div>
+    <div id="tutorial-overlay" class="tutorial-hidden" aria-hidden="true">
+        <div id="tutorial-highlight"></div>
+        <div class="tutorial-dialog card">
+            <div class="tutorial-prof">
+                <img src="sprite/profchen.png" alt="Prof. Chen">
+                <div class="tutorial-copy">
+                    <p class="eyebrow">Prof. Chen</p>
+                    <h3 id="tutorial-title"></h3>
+                    <p id="tutorial-text"></p>
+                    <div class="tutorial-actions">
+                        <button id="tutorial-back" class="btn ghost small" data-i18n="tutorial-back">Retour</button>
+                        <button id="tutorial-skip" class="btn ghost small" data-i18n="tutorial-skip">Passer</button>
+                        <button id="tutorial-next" class="btn small" data-i18n="tutorial-next">Suivant</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="game.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

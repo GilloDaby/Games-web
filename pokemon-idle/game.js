@@ -16,7 +16,294 @@ document.addEventListener('DOMContentLoaded', () => {
     let settings = {
         floatingNumbers: true,
         dynamicBackground: true,
+        language: 'fr',
+        showToasts: true,
+        musicVolume: 0.7,
+        sfxVolume: 0.8,
     };
+    const translations = {
+        fr: {
+            tagline: 'Idle Clicker Edition',
+            'title-main': 'Pokémon Idle Trainer',
+            'btn-achievements': 'Succès',
+            'btn-save': 'Sauvegarder',
+            'btn-load': 'Charger',
+            'btn-prestige': 'Prestige',
+            'hero-event': 'Hoenn Plains - Événement en direct',
+            'hero-title': 'Clique sur la Poké Ball pour gagner et capturer.',
+            'hero-subtitle': 'Chaque clic te donne des Pokédollars, avec une faible chance de lâcher un Pokémon sauvage.',
+            'hero-hint': 'Clique au centre pour farmer.',
+            'trainer-level': 'Niveau dresseur :',
+            'automation-talents': 'Automation & Talents',
+            'stat-click-power': 'Puissance clic',
+            'stat-drop-chance': 'Chance de drop',
+            'stat-idle-boost': 'Boost idle',
+            'tab-capture': 'Capture',
+            'tab-xp-boost': 'Boost XP',
+            'tab-drop-hunt': 'Chasse aux drops',
+            'btn-automation': 'Gérer les automations',
+            'btn-talents': 'Gérer les talents',
+            'btn-challenges': 'Challenges',
+            'btn-inventory': 'Inventaire',
+            'btn-calendar': 'Calendrier',
+            'btn-pokedex': 'Pokédex',
+            favorite: 'Pokémon favori',
+            battle: 'Combat',
+            rival: 'Rival',
+            'btn-battle': 'Lancer un combat',
+            'btn-leagues': 'Ligues/Boss',
+            'battle-risk-text': 'Risque: perte 10% cash & -10 XP en cas de défaite',
+            'battle-power': 'Puissance',
+            'player-power': 'Ta puissance',
+            'achievements-title': 'Succès',
+            'btn-close': 'Fermer',
+            'automation-title': 'Automations',
+            'auto-target-title': 'Auto-buy Pokémon ciblé',
+            'btn-choose-target': 'Choisir la cible',
+            'talents-title': 'Talents',
+            'talent-points': 'Points disponibles :',
+            'owned-title': 'Collection complète',
+            'leagues-title': 'Ligues & Boss',
+            'challenges-title': 'Challenges',
+            'inventory-title': 'Inventaire & Consommables',
+            'pokedex-title': 'Pokédex',
+            'auto-buy-title': 'Sélection auto-buy',
+            'calendar-title': 'Calendrier des quêtes',
+            'btn-expand-store': 'PokeStore plein écran',
+            'btn-expand-upgrades': 'Upgrades plein écran',
+            'store-title': 'PokeStore',
+            'filter-all': 'Tous',
+            'filter-gen1': 'Gen1',
+            'filter-gen2': 'Gen2',
+            'filter-gen3': 'Gen3',
+            'filter-gen4': 'Gen4',
+            'filter-gen5': 'Gen5',
+            'filter-gen6': 'Gen6',
+            'filter-gen7': 'Gen7',
+            'filter-gen8': 'Gen8',
+            'filter-gen9': 'Gen9',
+            'upgrades-title': 'Upgrades',
+            'tutorial-click-title': 'Bienvenue !',
+            'tutorial-click-text': 'Je suis le Prof. Chen. Clique sur la Poké Ball pour gagner tes premiers Pokédollars et peut-être faire tomber un Pokémon sauvage. Essaie un clic maintenant.',
+            'tutorial-store-title': 'Acheter un Pokémon',
+            'tutorial-store-text': 'Dans le PokéStore (en bas), achète ton premier compagnon. Chaque achat augmente tes $/sec et débloque le suivant.',
+            'tutorial-upgrade-title': 'Upgrades',
+            'tutorial-upgrade-text': 'Ces cartes boostent tes clics et ton idle. Avance-les dans l’ordre pour débloquer des multiplicateurs et du shiny chance.',
+            'tutorial-battle-title': 'Combats et XP',
+            'tutorial-battle-text': 'Quand tu as une équipe, lance un combat ici. Les victoires donnent Pokédollars, XP et prestige.',
+            'tutorial-save-title': 'Sauvegarde',
+            'tutorial-save-text': 'Pense à sauvegarder ta partie avant de quitter. Retourne farmer, dresseur !',
+            'tutorial-back': 'Retour',
+            'tutorial-skip': 'Passer',
+            'tutorial-next': 'Suivant',
+            'settings-control': 'Centre de contrôle',
+            'settings-title': 'Paramètres',
+            'settings-general': 'Général',
+            'settings-language': 'Langue',
+            'settings-language-placeholder': 'Choisir...',
+            'settings-lang-fr': 'Français',
+            'settings-lang-en': 'English',
+            'settings-lang-es': 'Español',
+            'settings-toasts': 'Notifications toast',
+            'settings-display': 'Affichage',
+            'settings-floating': 'Nombres flottants',
+            'settings-bg': 'Arrière-plan dynamique',
+            'settings-audio': 'Audio',
+            'settings-music': 'Musique',
+            'settings-sfx': 'Effets',
+        },
+        en: {
+            tagline: 'Idle Clicker Edition',
+            'title-main': 'Pokémon Idle Trainer',
+            'btn-achievements': 'Achievements',
+            'btn-save': 'Save',
+            'btn-load': 'Load',
+            'btn-prestige': 'Prestige',
+            'hero-event': 'Hoenn Plains - Live Event',
+            'hero-title': 'Tap the Poké Ball to earn & catch.',
+            'hero-subtitle': 'Each tap grants Pokédollars with a small chance to drop a wild Pokémon.',
+            'hero-hint': 'Tap the center to farm.',
+            'trainer-level': 'Trainer Level:',
+            'automation-talents': 'Automation & Talents',
+            'stat-click-power': 'Click Power',
+            'stat-drop-chance': 'Drop Chance',
+            'stat-idle-boost': 'Idle Boost',
+            'tab-capture': 'Capture',
+            'tab-xp-boost': 'XP Boost',
+            'tab-drop-hunt': 'Drop Hunt',
+            'btn-automation': 'Manage automations',
+            'btn-talents': 'Manage talents',
+            'btn-challenges': 'Challenges',
+            'btn-inventory': 'Inventory',
+            'btn-calendar': 'Calendar',
+            'btn-pokedex': 'Pokédex',
+            favorite: 'Favorite Pokémon',
+            battle: 'Battle',
+            rival: 'Rival',
+            'btn-battle': 'Start Battle',
+            'btn-leagues': 'Leagues/Boss',
+            'battle-risk-text': 'Risk: lose 10% cash & -10 XP on defeat',
+            'battle-power': 'Power',
+            'player-power': 'Your power',
+            'achievements-title': 'Achievements',
+            'btn-close': 'Close',
+            'automation-title': 'Automations',
+            'auto-target-title': 'Target auto-buy',
+            'btn-choose-target': 'Choose target',
+            'talents-title': 'Talents',
+            'talent-points': 'Available points:',
+            'owned-title': 'Full collection',
+            'leagues-title': 'Leagues & Boss',
+            'challenges-title': 'Challenges',
+            'inventory-title': 'Inventory & Consumables',
+            'pokedex-title': 'Pokédex',
+            'auto-buy-title': 'Auto-buy selection',
+            'calendar-title': 'Quest calendar',
+            'btn-expand-store': 'PokeStore full screen',
+            'btn-expand-upgrades': 'Upgrades full screen',
+            'store-title': 'PokeStore',
+            'filter-all': 'All',
+            'filter-gen1': 'Gen1',
+            'filter-gen2': 'Gen2',
+            'filter-gen3': 'Gen3',
+            'filter-gen4': 'Gen4',
+            'filter-gen5': 'Gen5',
+            'filter-gen6': 'Gen6',
+            'filter-gen7': 'Gen7',
+            'filter-gen8': 'Gen8',
+            'filter-gen9': 'Gen9',
+            'upgrades-title': 'Upgrades',
+            'tutorial-click-title': 'Welcome!',
+            'tutorial-click-text': 'I am Prof. Oak. Tap the Poké Ball to earn your first Pokédollars and maybe drop a wild Pokémon. Try a tap now.',
+            'tutorial-store-title': 'Buy a Pokémon',
+            'tutorial-store-text': 'In the PokeStore (bottom), buy your first buddy. Each purchase boosts $/s and unlocks the next.',
+            'tutorial-upgrade-title': 'Upgrades',
+            'tutorial-upgrade-text': 'These cards boost your taps and idle. Buy them in order to unlock multipliers and shiny chance.',
+            'tutorial-battle-title': 'Battles & XP',
+            'tutorial-battle-text': 'When you have a team, start a battle here. Wins grant Pokédollars, XP, and prestige.',
+            'tutorial-save-title': 'Save',
+            'tutorial-save-text': 'Remember to save before quitting. Back to farming, trainer!',
+            'tutorial-back': 'Back',
+            'tutorial-skip': 'Skip',
+            'tutorial-next': 'Next',
+            'settings-control': 'Control Center',
+            'settings-title': 'Settings',
+            'settings-general': 'General',
+            'settings-language': 'Language',
+            'settings-language-placeholder': 'Choose...',
+            'settings-lang-fr': 'Français',
+            'settings-lang-en': 'English',
+            'settings-lang-es': 'Español',
+            'settings-toasts': 'Toast notifications',
+            'settings-display': 'Display',
+            'settings-floating': 'Floating numbers',
+            'settings-bg': 'Dynamic background',
+            'settings-audio': 'Audio',
+            'settings-music': 'Music',
+            'settings-sfx': 'SFX',
+        },
+        es: {
+            tagline: 'Edición Idle Clicker',
+            'title-main': 'Entrenador Pokémon Idle',
+            'btn-achievements': 'Logros',
+            'btn-save': 'Guardar',
+            'btn-load': 'Cargar',
+            'btn-prestige': 'Prestigio',
+            'hero-event': 'Llanuras Hoenn - Evento en vivo',
+            'hero-title': 'Toca la Poké Ball para ganar y capturar.',
+            'hero-subtitle': 'Cada toque da Pokédólares con una pequeña probabilidad de soltar un Pokémon salvaje.',
+            'hero-hint': 'Toca en el centro para farmear.',
+            'trainer-level': 'Nivel de entrenador:',
+            'automation-talents': 'Automatización y Talentos',
+            'stat-click-power': 'Poder de clic',
+            'stat-drop-chance': 'Prob. de drop',
+            'stat-idle-boost': 'Impulso idle',
+            'tab-capture': 'Captura',
+            'tab-xp-boost': 'Boost XP',
+            'tab-drop-hunt': 'Caza de drops',
+            'btn-automation': 'Gestionar automatizaciones',
+            'btn-talents': 'Gestionar talentos',
+            'btn-challenges': 'Desafíos',
+            'btn-inventory': 'Inventario',
+            'btn-calendar': 'Calendario',
+            'btn-pokedex': 'Pokédex',
+            favorite: 'Pokémon favorito',
+            battle: 'Combate',
+            rival: 'Rival',
+            'btn-battle': 'Iniciar combate',
+            'btn-leagues': 'Ligas/Jefes',
+            'battle-risk-text': 'Riesgo: pierdes 10% de dinero y -10 XP si pierdes',
+            'battle-power': 'Poder',
+            'player-power': 'Tu poder',
+            'achievements-title': 'Logros',
+            'btn-close': 'Cerrar',
+            'automation-title': 'Automatizaciones',
+            'auto-target-title': 'Auto-buy Pokémon objetivo',
+            'btn-choose-target': 'Elegir objetivo',
+            'talents-title': 'Talentos',
+            'talent-points': 'Puntos disponibles:',
+            'owned-title': 'Colección completa',
+            'leagues-title': 'Ligas y Jefe',
+            'challenges-title': 'Desafíos',
+            'inventory-title': 'Inventario y Consumibles',
+            'pokedex-title': 'Pokédex',
+            'auto-buy-title': 'Selección auto-buy',
+            'calendar-title': 'Calendario de misiones',
+            'btn-expand-store': 'PokeStore pantalla completa',
+            'btn-expand-upgrades': 'Upgrades pantalla completa',
+            'store-title': 'PokeStore',
+            'filter-all': 'Todos',
+            'filter-gen1': 'Gen1',
+            'filter-gen2': 'Gen2',
+            'filter-gen3': 'Gen3',
+            'filter-gen4': 'Gen4',
+            'filter-gen5': 'Gen5',
+            'filter-gen6': 'Gen6',
+            'filter-gen7': 'Gen7',
+            'filter-gen8': 'Gen8',
+            'filter-gen9': 'Gen9',
+            'upgrades-title': 'Mejoras',
+            'tutorial-click-title': '¡Bienvenido!',
+            'tutorial-click-text': 'Soy el Prof. Oak. Toca la Poké Ball para ganar tus primeros Pokédólares y quizá soltar un Pokémon salvaje. Prueba ahora.',
+            'tutorial-store-title': 'Compra un Pokémon',
+            'tutorial-store-text': 'En el PokeStore (abajo), compra tu primer compañero. Cada compra aumenta $/s y desbloquea el siguiente.',
+            'tutorial-upgrade-title': 'Mejoras',
+            'tutorial-upgrade-text': 'Estas cartas potencian tus clics e idle. Cómpralas en orden para desbloquear multiplicadores y probabilidad shiny.',
+            'tutorial-battle-title': 'Combates y XP',
+            'tutorial-battle-text': 'Cuando tengas equipo, inicia un combate aquí. Las victorias dan Pokédólares, XP y prestigio.',
+            'tutorial-save-title': 'Guardar',
+            'tutorial-save-text': 'Recuerda guardar antes de salir. ¡A farmear de nuevo, entrenador!',
+            'tutorial-back': 'Atrás',
+            'tutorial-skip': 'Saltar',
+            'tutorial-next': 'Siguiente',
+            'settings-control': 'Centro de control',
+            'settings-title': 'Parámetros',
+            'settings-general': 'General',
+            'settings-language': 'Idioma',
+            'settings-language-placeholder': 'Elegir...',
+            'settings-lang-fr': 'Francés',
+            'settings-lang-en': 'Inglés',
+            'settings-lang-es': 'Español',
+            'settings-toasts': 'Notificaciones toast',
+            'settings-display': 'Visualización',
+            'settings-floating': 'Números flotantes',
+            'settings-bg': 'Fondo dinámico',
+            'settings-audio': 'Audio',
+            'settings-music': 'Música',
+            'settings-sfx': 'Efectos',
+        },
+    };
+
+    function currentLanguage() {
+        return settings.language || 'fr';
+    }
+
+    function t(key) {
+        const lang = currentLanguage();
+        if (translations[lang] && translations[lang][key]) return translations[lang][key];
+        if (translations.fr && translations.fr[key]) return translations.fr[key];
+        return key;
+    }
     let battleState = null;
     let nextBattleAllowedAt = 0;
     let battleDataLoaded = false;
@@ -73,6 +360,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const pokedexSummary = document.getElementById('pokedex-summary');
     const settingsButton = document.getElementById('settings-button');
     const settingsContainer = document.getElementById('settings-container');
+    const settingsCloseButton = document.getElementById('settings-close');
+    const languageSelect = document.getElementById('setting-language');
+    const toggleToasts = document.getElementById('toggle-toasts');
+    const toggleFloatingNumbers = document.getElementById('toggle-floating-numbers');
+    const toggleDynamicBackground = document.getElementById('toggle-dynamic-background');
+    const musicSlider = document.getElementById('setting-music-volume');
+    const sfxSlider = document.getElementById('setting-sfx-volume');
     const openAutoBuyButton = document.getElementById('open-auto-buy');
     const closeAutoBuyButton = document.getElementById('close-auto-buy');
     const autoBuyModal = document.getElementById('auto-buy-modal');
@@ -113,6 +407,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const clickPowerDisplay = document.getElementById('click-power');
     const dropChanceDisplay = document.getElementById('drop-chance');
     const idleBoostDisplay = document.getElementById('idle-boost');
+    const tutorialOverlay = document.getElementById('tutorial-overlay');
+    const tutorialHighlight = document.getElementById('tutorial-highlight');
+    const tutorialTitle = document.getElementById('tutorial-title');
+    const tutorialText = document.getElementById('tutorial-text');
+    const tutorialNextButton = document.getElementById('tutorial-next');
+    const tutorialBackButton = document.getElementById('tutorial-back');
+    const tutorialSkipButton = document.getElementById('tutorial-skip');
+    const TUTORIAL_SEEN_KEY = 'pokemonIdleTutorialSeenV1';
+    let tutorialStepIndex = 0;
+    let tutorialActive = false;
+    let tutorialTargetListener = null;
+    let tutorialSteps = [];
 
     // --- Pokémon Data by generation ---
     const genRanges = [
@@ -836,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showToast(message, isHtml = false) {
-        if (!toastContainer) return;
+        if (!toastContainer || settings.showToasts === false) return;
         const el = document.createElement('div');
         el.className = 'toast';
         if (isHtml) {
@@ -848,15 +1154,232 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => el.remove(), 4000);
     }
 
+    function detachTutorialTargetListener() {
+        if (tutorialTargetListener && tutorialTargetListener.el) {
+            tutorialTargetListener.el.removeEventListener('click', tutorialTargetListener.handler);
+        }
+        tutorialTargetListener = null;
+    }
+
+    function positionTutorialHighlight(target, padding = 10) {
+        if (!tutorialHighlight) return;
+        if (!target) {
+            tutorialHighlight.style.display = 'none';
+            return;
+        }
+        const rect = target.getBoundingClientRect();
+        const pad = Math.max(6, padding);
+        tutorialHighlight.style.display = 'block';
+        tutorialHighlight.style.width = `${rect.width + pad * 2}px`;
+        tutorialHighlight.style.height = `${rect.height + pad * 2}px`;
+        tutorialHighlight.style.left = `${rect.left - pad}px`;
+        tutorialHighlight.style.top = `${rect.top - pad}px`;
+    }
+
+    function refreshTutorialHighlight() {
+        if (!tutorialActive) return;
+        const step = tutorialSteps[tutorialStepIndex];
+        if (!step) return;
+        const target = step.selector ? document.querySelector(step.selector) : null;
+        positionTutorialHighlight(target, step.padding || 10);
+    }
+
+    function showTutorialStep(index) {
+        if (!tutorialOverlay) return;
+        tutorialActive = true;
+        tutorialStepIndex = Math.min(Math.max(index, 0), tutorialSteps.length - 1);
+        const step = tutorialSteps[tutorialStepIndex];
+        tutorialOverlay.classList.add('active');
+        tutorialOverlay.classList.remove('tutorial-hidden');
+        tutorialOverlay.setAttribute('aria-hidden', 'false');
+
+        if (tutorialTitle) tutorialTitle.textContent = step.title;
+        if (tutorialText) tutorialText.textContent = step.text;
+        if (tutorialBackButton) tutorialBackButton.disabled = tutorialStepIndex === 0;
+        if (tutorialNextButton) {
+            const isLast = tutorialStepIndex === tutorialSteps.length - 1;
+            tutorialNextButton.textContent = isLast ? 'Jouer !' : (step.cta || 'Suivant');
+        }
+
+        const target = step.selector ? document.querySelector(step.selector) : null;
+        const shouldScroll = step.scrollIntoView !== false; // scroll by default unless explicitly disabled
+        if (target && shouldScroll) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+        positionTutorialHighlight(target, step.padding || 10);
+        detachTutorialTargetListener();
+        if (step.advanceOnClick && target) {
+            const handler = () => nextTutorialStep();
+            tutorialTargetListener = { el: target, handler };
+            target.addEventListener('click', handler, { once: true });
+        }
+    }
+
+    function nextTutorialStep() {
+        if (!tutorialActive) return;
+        if (tutorialStepIndex >= tutorialSteps.length - 1) {
+            endTutorial(true);
+            return;
+        }
+        showTutorialStep(tutorialStepIndex + 1);
+    }
+
+    function previousTutorialStep() {
+        if (!tutorialActive) return;
+        const prev = Math.max(0, tutorialStepIndex - 1);
+        showTutorialStep(prev);
+    }
+
+    function endTutorial(markSeen = true) {
+        tutorialActive = false;
+        detachTutorialTargetListener();
+        if (tutorialOverlay) {
+            tutorialOverlay.classList.remove('active');
+            tutorialOverlay.classList.add('tutorial-hidden');
+            tutorialOverlay.setAttribute('aria-hidden', 'true');
+        }
+        if (tutorialHighlight) {
+            tutorialHighlight.style.display = 'none';
+        }
+        if (markSeen) {
+            try {
+                localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+            } catch (e) {
+                console.warn('Unable to persist tutorial flag', e);
+            }
+        }
+    }
+
+    function startTutorial() {
+        showTutorialStep(0);
+    }
+
+    function startTutorialIfNeeded(lastSaveTime) {
+        try {
+            const hasSeen = localStorage.getItem(TUTORIAL_SEEN_KEY) === '1';
+            if (hasSeen) return;
+            const hasAnySave = !!localStorage.getItem('pokemonIdleSave');
+            if (lastSaveTime || hasAnySave) {
+                // Joueur de retour : on ne force pas le tutoriel.
+                localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+                return;
+            }
+            startTutorial();
+        } catch (e) {
+            console.warn('Unable to evaluate tutorial state', e);
+        }
+    }
+
+    function buildTutorialSteps() {
+        tutorialSteps = [
+            {
+                id: 'click-ball',
+                selector: '#pokeball-container',
+                title: t('tutorial-click-title'),
+                text: t('tutorial-click-text'),
+                advanceOnClick: true,
+                padding: 14
+            },
+            {
+                id: 'store',
+                selector: '#store-items',
+                title: t('tutorial-store-title'),
+                text: t('tutorial-store-text'),
+                padding: 12
+            },
+            {
+                id: 'upgrades',
+                selector: '#upgrades-items',
+                title: t('tutorial-upgrade-title'),
+                text: t('tutorial-upgrade-text'),
+                padding: 12
+            },
+            {
+                id: 'battle',
+                selector: '#battle-button',
+                title: t('tutorial-battle-title'),
+                text: t('tutorial-battle-text'),
+                padding: 10,
+                scrollIntoView: true
+            },
+            {
+                id: 'save',
+                selector: '#save-button',
+                title: t('tutorial-save-title'),
+                text: t('tutorial-save-text'),
+                padding: 10
+            }
+        ];
+    }
+
+    // --- Settings UI ---
+    function applySettingsUI() {
+        if (languageSelect) {
+            languageSelect.value = settings.language || 'fr';
+        }
+        if (toggleToasts) toggleToasts.checked = settings.showToasts !== false;
+        if (toggleFloatingNumbers) toggleFloatingNumbers.checked = settings.floatingNumbers !== false;
+        if (toggleDynamicBackground) toggleDynamicBackground.checked = settings.dynamicBackground !== false;
+        if (musicSlider && typeof settings.musicVolume === 'number') {
+            musicSlider.value = Math.round(settings.musicVolume * 100);
+        }
+        if (sfxSlider && typeof settings.sfxVolume === 'number') {
+            sfxSlider.value = Math.round(settings.sfxVolume * 100);
+        }
+    }
+
+    function openSettings() {
+        if (!settingsContainer) return;
+        const isOpen = settingsContainer.style.display === 'flex';
+        if (isOpen) {
+            closeSettings();
+            return;
+        }
+        applySettingsUI();
+        settingsContainer.style.display = 'flex';
+    }
+
+    function closeSettings() {
+        if (!settingsContainer) return;
+        settingsContainer.style.display = 'none';
+    }
+
+    function applyTranslations() {
+        const nodes = document.querySelectorAll('[data-i18n]');
+        nodes.forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            const value = t(key);
+            const icon = el.querySelector && el.querySelector('i');
+            if (icon && (el.tagName === 'BUTTON' || el.tagName === 'DIV' || el.tagName === 'H2' || el.tagName === 'H3')) {
+                el.innerHTML = `${icon.outerHTML} ${value}`;
+            } else {
+                el.textContent = value;
+            }
+        });
+        document.documentElement.lang = currentLanguage();
+        buildTutorialSteps();
+        if (tutorialActive) {
+            showTutorialStep(tutorialStepIndex);
+        }
+        refreshBattlePreview();
+        updateHeroStats();
+        if (languageSelect) {
+            const optFr = languageSelect.querySelector('option[value="fr"]');
+            const optEn = languageSelect.querySelector('option[value="en"]');
+            const optEs = languageSelect.querySelector('option[value="es"]');
+            const optPlaceholder = languageSelect.querySelector('option[value=""]');
+            if (optFr) optFr.textContent = t('settings-lang-fr');
+            if (optEn) optEn.textContent = t('settings-lang-en');
+            if (optEs) optEs.textContent = t('settings-lang-es');
+            if (optPlaceholder) optPlaceholder.textContent = t('settings-language-placeholder');
+        }
+    }
+
     function totalOwnedPokemon() {
         return Object.values(ownedPokemon).reduce((a, b) => a + b, 0);
     }
 
-    function primeKantoNames() {
-        kantoPokemonNames.forEach((name, idx) => {
-            nameCache[idx + 1] = name;
-        });
-    }
+    function primeKantoNames(lang) { if (lang !== "en") return; if (!nameCache[lang]) nameCache[lang] = {}; kantoPokemonNames.forEach((name, idx) => { nameCache[lang][idx + 1] = name; }); }
 
     function getShinyChance() {
         let chance = SHINY_CHANCE + talentBonuses.shinyBonus;
@@ -873,19 +1396,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return chance;
     }
 
-    function ensureName(dex) {
-        if (nameCache[dex]) return nameCache[dex];
-        // Try to fetch from PokeAPI asynchronously; fallback is placeholder
-        fetch(`https://pokeapi.co/api/v2/pokemon/${dex}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.name) {
-                    nameCache[dex] = data.name.charAt(0).toUpperCase() + data.name.slice(1);
-                }
-            })
-            .catch(() => {});
-        return `Pokemon #${dex}`;
-    }
+    function ensureName(dex, lang = currentLanguage()) { if (!nameCache[lang]) nameCache[lang] = {}; if (nameCache[lang][dex]) return nameCache[lang][dex]; const fallbackEn = (nameCache["en"] && nameCache["en"][dex]) ? nameCache["en"][dex] : null; const placeholder = fallbackEn || `Pokemon #${dex}`; nameCache[lang][dex] = placeholder; fetch(`https://pokeapi.co/api/v2/pokemon-species/${dex}`) .then(res => res.json()) .then(data => { if (data && data.names) { const localized = data.names.find(n => n.language.name === lang)?.name || data.names.find(n => n.language.name === "en")?.name || data.name; if (localized) { nameCache[lang][dex] = localized.charAt(0).toUpperCase() + localized.slice(1); if (typeof updateUI === "function") { updateUI(); } } } }) .catch(() => {}); return placeholder; }
 
     function buildPokemonData(gen) {
         const range = genRanges.find(r => r.gen === gen) || genRanges[0];
@@ -893,7 +1404,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = [];
         for (let dex = range.start; dex <= range.end; dex++) {
             const indexInGen = dex - range.start;
-            const name = ensureName(dex);
+            const name = ensureName(dex, currentLanguage());
             const safeId = `dex-${dex}`;
             const cost = Math.floor(25 * Math.pow(1.25, indexInGen) * difficultyFactor); // Pokémon plus chers
             const mps = parseFloat((1.2 * Math.pow(1.16, indexInGen) * difficultyFactor).toFixed(2));
@@ -963,7 +1474,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function refreshGenerationData() {
-        primeKantoNames();
+        primeKantoNames('en');
+        primeKantoNames(currentLanguage());
         pokemonData = [];
         for (let g = 1; g <= currentGeneration; g++) {
             pokemonData = pokemonData.concat(buildPokemonData(g));
@@ -1343,11 +1855,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentOpponent) currentOpponent = generateOpponent();
         battleOpponentName.textContent = `#${currentOpponent.dex} ${currentOpponent.name}`;
         battleOpponentSprite.src = currentOpponent.imageUrl;
-        battleOpponentPower.textContent = `Puissance: ${formatNumber(currentOpponent.power)}`;
+        battleOpponentPower.textContent = `${t('battle-power')}: ${formatNumber(currentOpponent.power)}`;
         if (battlePlayerPower) {
-            battlePlayerPower.textContent = `Ta puissance: ${formatNumber(moneyPerSecond || 1)}`;
+            battlePlayerPower.textContent = `${t('player-power')}: ${formatNumber(moneyPerSecond || 1)}`;
         }
-        battleRisk.textContent = `Risque: perte 10% cash & -10 XP en cas de défaite`;
+        battleRisk.textContent = t('battle-risk-text');
 
         // Preview sprites with favorite or best available
         const fav = favoritePokemon && pokemonData.find(p => p.id === favoritePokemon);
@@ -1950,14 +2462,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Dynamic Background ---
     function updateBackground() {
+        if (!settings.dynamicBackground) return;
         const hour = new Date().getHours();
-        if (hour >= 6 && hour < 18) {
-            document.body.className = 'day';
-        } else if (hour >= 18 && hour < 20) {
-            document.body.className = 'sunset';
-        } else {
-            document.body.className = 'night';
-        }
+        const mode = hour >= 6 && hour < 18 ? 'day' : (hour >= 18 && hour < 20 ? 'sunset' : 'night');
+        document.body.classList.remove('day', 'sunset', 'night');
+        document.body.classList.add(mode);
     }
 
     function maybeStartDynamicEvent() {
@@ -2091,6 +2600,7 @@ document.addEventListener('DOMContentLoaded', () => {
             inventoryItems: inventoryItems,
             autoBuyTargetId: autoBuyTargetId,
             autoBuyChainEnabled: autoBuyChainEnabled,
+            settings: settings,
             lastSave: Date.now() // Store the timestamp
         };
         localStorage.setItem('pokemonIdleSave', JSON.stringify(gameState));
@@ -2125,6 +2635,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 inventoryItems = gameState.inventoryItems || {};
                 autoBuyTargetId = gameState.autoBuyTargetId || null;
                 autoBuyChainEnabled = gameState.autoBuyChainEnabled !== undefined ? gameState.autoBuyChainEnabled : true;
+                settings = { ...settings, ...(gameState.settings || {}) };
 
                 return gameState.lastSave; // Return the last save time
             } else {
@@ -2180,13 +2691,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        applySettingsUI();
+        applyTranslations();
+        updateBackground();
+
         updateUI();
+        uiLoop();
         setInterval(gameLoop, 100); // Game loop runs every 100ms
         setInterval(uiLoop, 1000); // UI loop runs every second
 
         saveButton.addEventListener('click', saveGame);
         loadButton.addEventListener('click', () => {
             loadGame();
+            applySettingsUI();
+            applyTranslations();
+            updateBackground();
             recalculateClickValue();
             calculateMoneyPerSecond();
             updateUI();
@@ -2343,9 +2862,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (settingsButton && settingsContainer) {
-            settingsButton.addEventListener('click', () => {
-                const isOpen = settingsContainer.style.display === 'block';
-                settingsContainer.style.display = isOpen ? 'none' : 'block';
+            settingsButton.addEventListener('click', openSettings);
+            settingsContainer.addEventListener('click', (e) => {
+                if (e.target === settingsContainer) closeSettings();
+            });
+        }
+        if (settingsCloseButton) {
+            settingsCloseButton.addEventListener('click', closeSettings);
+        }
+        if (languageSelect) {
+            languageSelect.addEventListener('change', () => {
+                settings.language = languageSelect.value || 'fr';
+                refreshGenerationData();
+                updateUI();
+                applyTranslations();
+            });
+        }
+        if (toggleToasts) {
+            toggleToasts.addEventListener('change', () => {
+                settings.showToasts = toggleToasts.checked;
+            });
+        }
+        if (toggleFloatingNumbers) {
+            toggleFloatingNumbers.addEventListener('change', () => {
+                settings.floatingNumbers = toggleFloatingNumbers.checked;
+            });
+        }
+        if (toggleDynamicBackground) {
+            toggleDynamicBackground.addEventListener('change', () => {
+                settings.dynamicBackground = toggleDynamicBackground.checked;
+                if (!settings.dynamicBackground) {
+                    document.body.classList.remove('day', 'sunset', 'night');
+                } else {
+                    updateBackground();
+                }
+            });
+        }
+        if (musicSlider) {
+            musicSlider.addEventListener('input', () => {
+                settings.musicVolume = parseInt(musicSlider.value, 10) / 100;
+            });
+        }
+        if (sfxSlider) {
+            sfxSlider.addEventListener('input', () => {
+                settings.sfxVolume = parseInt(sfxSlider.value, 10) / 100;
             });
         }
 
@@ -2422,6 +2982,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         battleButton.addEventListener('click', startBattle);
+
+        if (tutorialOverlay && tutorialNextButton && tutorialBackButton && tutorialSkipButton) {
+            tutorialNextButton.addEventListener('click', nextTutorialStep);
+            tutorialBackButton.addEventListener('click', previousTutorialStep);
+            tutorialSkipButton.addEventListener('click', () => endTutorial(true));
+            window.addEventListener('resize', refreshTutorialHighlight);
+            document.addEventListener('scroll', refreshTutorialHighlight, true);
+        }
+
+        startTutorialIfNeeded(lastSaveTime);
     }
 
     async function startBattle() {
@@ -2450,6 +3020,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createFloatingNumber(x, y, value) {
+        if (settings.floatingNumbers === false) return;
         const numberElement = document.createElement('div');
         numberElement.className = 'floating-number';
         numberElement.textContent = `+${value}`;
@@ -2480,3 +3051,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return picked;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
