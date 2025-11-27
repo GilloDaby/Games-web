@@ -928,9 +928,7 @@ h2, h3 {
     border-radius: 999px;
 }
 
-.upgrades-section .horizontal-scroller {
-    align-items: flex-start;
-}
+
 
 .scroller-wrapper {
     display: grid;
