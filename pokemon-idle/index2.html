@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Idle Trainer - Dex OS</title>
+    <link rel="stylesheet" href="style2.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=vt323&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+    <div class="screen-scanlines"></div>
+    <div id="poke-menu-overlay" aria-hidden="true"></div>
+
+    <div id="app-shell">
+        
+        <div id="ticker-wrapper">
+            <div class="ticker-label">INFO</div>
+            <div id="ticker-bar">
+                <div id="ticker-track">
+                    <div id="ticker-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <header id="topbar" class="dex-panel">
+            <div class="brand">
+                <div class="pokedex-sensor"></div>
+                <div class="brand-text">
+                    <p class="eyebrow" data-i18n="tagline">OS v2.0</p>
+                    <h1 data-i18n="title-main">TRAINER IDLE</h1>
+                </div>
+            </div>
+            
+            <div class="stat-chips">
+                <button id="achievements-button" class="btn pixel-btn yellow" data-i18n="btn-achievements"><i class="fas fa-medal"></i> Succès</button>
+                <div class="chip money-chip"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/nugget.png" class="icon-pixel"><span id="money">0</span> <small>$</small></div>
+                <div class="chip mps-chip"><i class="fas fa-bolt"></i> <span id="money-per-second">0</span>/s</div>
+                <div class="chip prestige-chip"><i class="fas fa-star"></i> <span id="prestige-points">0</span></div>
+                <div class="chip multi-chip">x<span id="prestige-multiplier">1</span></div>
+            </div>
+
+            <div class="top-actions">
+                <button id="save-button" class="btn pixel-btn blue small" data-i18n="btn-save"><i class="fas fa-save"></i></button>
+                <button id="load-button" class="btn pixel-btn blue small" data-i18n="btn-load"><i class="fas fa-folder-open"></i></button>
+                <button id="prestige-button" class="btn pixel-btn purple" style="display: none;" data-i18n="btn-prestige">PRESTIGE</button>
+                <div id="settings-button" class="btn pixel-btn grey small"><i class="fas fa-cog"></i>  SETTINGS</div>
+            </div>
+        </header>
+
+        <main id="game-container">
+            <div id="main-column">
+                
+                <section id="hero-card" class="dex-card hero-section">
+                    <div class="hero-bg-pattern"></div>
+                    <div class="hero-content">
+                        <div class="hero-info">
+                            <span class="location-tag" data-i18n="hero-event">Route 101</span>
+                            <h2 data-i18n="hero-title">Aventure Commencée</h2>
+                            <p class="subtitle" data-i18n="hero-subtitle">Tapotez pour capturer et gagner.</p>
+                            
+                            <div class="mini-grid">
+                                <div class="stat-box"><i class="fas fa-hand-pointer"></i> <span id="click-power">+1</span></div>
+                                <div class="stat-box"><i class="fas fa-dice"></i> <span id="drop-chance">2%</span></div>
+                                <div class="stat-box"><i class="fas fa-clock"></i> <span id="idle-boost">x1</span></div>
+                            </div>
+
+                            <div class="menu-tabs">
+                                <div class="menu-tab active" data-i18n="tab-capture">Capture</div>
+                                <div class="menu-tab" data-i18n="tab-xp-boost">Train</div>
+                                <div class="menu-tab" data-i18n="tab-drop-hunt">Hunt</div>
+                            </div>
+                        </div>
+
+                        <div class="hero-ball-wrapper">
+                            <div id="pokeball-container">
+                                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Poké Ball">
+                            </div>
+                            <div class="platform-shadow"></div>
+                            <p class="click-hint" data-i18n="hero-hint">CLIQUEZ !</p>
+                        </div>
+                    </div>
+                </section>
+
+                <div id="trainer-container" class="dex-card trainer-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-id-card"></i> <span data-i18n="trainer-level">Dresseur</span></h2>
+                        <span class="level-badge">Lvl <span id="trainer-level">1</span></span>
+                    </div>
+                    <div class="xp-container">
+                        <div class="xp-bar-wrapper">
+                            <progress id="xp-bar" value="0" max="100"></progress>
+                        </div>
+                        <span id="xp-text">0 / 100 XP</span>
+                    </div>
+                </div>
+
+                <div id="automation-talents-card" class="dex-card menu-grid-card">
+                    <h2 class="section-title"><i class="fas fa-bars"></i> MENU</h2>
+                    <div class="pill-list menu-buttons">
+                        <button id="open-automation" class="btn menu-btn" data-i18n="btn-automation"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/porygon-z.png"> <span>Auto</span></button>
+                        <button id="open-talents" class="btn menu-btn" data-i18n="btn-talents"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tm-normal.png"> <span>Talents</span></button>
+                        <button id="open-challenges" class="btn menu-btn" data-i18n="btn-challenges"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/vs-seeker.png"> <span>Défis</span></button>
+                        <button id="open-inventory" class="btn menu-btn" data-i18n="btn-inventory"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/town-map.png"> <span>Sac</span></button>
+                        <button id="open-calendar" class="btn menu-btn" data-i18n="btn-calendar"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/notebook.png"> <span>Agenda</span></button>
+                        <button id="open-pokedex" class="btn menu-btn" data-i18n="btn-pokedex"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/pokedex.png"> <span>Dex</span></button>
+                    </div>
+                </div>
+
+                <div id="pokemon-container" class="dex-card pc-box">
+                    <div class="pc-header">
+                        <span><i class="fas fa-desktop"></i> PC de Léo</span>
+                        <div class="pc-lights">
+                            <div class="light red"></div>
+                            <div class="light yellow"></div>
+                            <div class="light green"></div>
+                        </div>
+                    </div>
+                    <div class="pc-screen">
+                        </div>
+                </div>
+            </div>
+
+            <div id="side-column">
+                
+                <div id="favorite-pokemon-container" class="dex-card fav-card">
+                    <h2><i class="fas fa-heart"></i> <span data-i18n="favorite">Partenaire</span></h2>
+                    <div id="favorite-pokemon-slot" class="fav-slot-bg">
+                        </div>
+                </div>
+
+                <div id="battle-container" class="dex-card battle-boy">
+                    <div class="gb-screen-bezel">
+                        <div class="power-led"></div>
+                        <h2 class="gb-title">BATTLE GEAR</h2>
+                    </div>
+                    
+                    <div class="gb-screen">
+                        <div id="battle-preview">
+                            <div class="opponent-info">
+                                <img id="battle-opponent-sprite" src="" alt="opponent">
+                                <div class="info-text">
+                                    <div class="wild-tag">SAUVAGE</div>
+                                    <div id="battle-opponent-name">???</div>
+                                    <div id="battle-opponent-power" class="power-text"></div>
+                                </div>
+                            </div>
+                            <div class="vs-divider">VS</div>
+                            <div class="player-stats-mini">
+                                <p id="battle-player-power" class="power-text"></p>
+                                <p id="battle-risk" class="risk-text"></p>
+                            </div>
+                        </div>
+
+                        <div id="battle-status" class="battle-status" style="display:none;"> <div class="battle-side player">
+                                <div class="hp-box">
+                                    <span id="battle-player-label">Player</span>
+                                    <div class="hp-bar-wrap"><div id="battle-player-hp-fill" class="hp-fill"></div></div>
+                                    <span id="battle-player-hp-text"></span>
+                                </div>
+                                <img id="battle-player-sprite" src="" alt="player">
+                            </div>
+                            <div class="battle-side foe">
+                                <div class="hp-box">
+                                    <span id="battle-foe-label">Rival</span>
+                                    <div class="hp-bar-wrap"><div id="battle-foe-hp-fill" class="hp-fill"></div></div>
+                                    <span id="battle-foe-hp-text"></span>
+                                </div>
+                                <img id="battle-foe-sprite" src="" alt="foe">
+                            </div>
+                        </div>
+                        
+                        <div id="battle-log"></div>
+                    </div>
+
+                    <div class="gb-controls">
+                         <div id="battle-actions" class="battle-actions-grid"></div>
+                         <div class="main-battle-btns">
+                            <button id="battle-button" class="btn pixel-btn red block" data-i18n="btn-battle">COMBATTRE</button>
+                            <button id="open-leagues" class="btn pixel-btn yellow block" data-i18n="btn-leagues">LIGUE</button>
+                         </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <footer id="footer-bar" class="mart-footer">
+        <div class="footer-handle"></div>
+        <div class="footer-actions">
+            <button class="btn tiny-btn" id="expand-store"><i class="fas fa-expand"></i> Store</button>
+            <button class="btn tiny-btn" id="expand-upgrades"><i class="fas fa-expand"></i> Upgrade</button>
+        </div>
+        
+        <div class="footer-section store-section">
+            <div class="footer-header blue-header">
+                <i class="fas fa-shopping-cart"></i> <span data-i18n="store-title">POKÉMART</span>
+                <div class="filter-bar">
+                    <button class="filter-btn active" data-store-filter="all">Tous</button>
+                    <button class="filter-btn" data-store-filter="1">G1</button>
+                    <button class="filter-btn" data-store-filter="2">G2</button>
+                    <button class="filter-btn" data-store-filter="3">G3</button>
+                    <button class="filter-btn" data-store-filter="4">G4</button>
+                    <button class="filter-btn" data-store-filter="5">G5</button>
+                    <button class="filter-btn" data-store-filter="9">G9</button>
+                </div>
+            </div>
+            <div id="store-items" class="horizontal-scroller mart-shelf">
+                </div>
+        </div>
+
+        <div class="footer-section upgrades-section">
+            <div class="footer-header orange-header">
+                <i class="fas fa-arrow-up"></i> <span data-i18n="upgrades-title">OBJETS</span>
+            </div>
+            <div id="upgrades-items" class="horizontal-scroller items-shelf">
+                </div>
+        </div>
+    </footer>
+
+    <div id="achievements-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>Succès</h3><button id="close-achievements" class="close-btn">×</button></div><div id="achievements-items" class="achievements-grid"></div></div></div>
+    
+    <div id="automation-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>Automation</h3><button id="close-automation" class="close-btn">×</button></div><div id="automation-target"></div><div id="automation-items" class="pill-list"></div></div></div>
+    
+    <div id="talents-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>Talents</h3><button id="close-talents" class="close-btn">×</button></div><p id="talent-points-label"></p><div id="talents-grid" class="pill-list"></div></div></div>
+    
+    <div id="owned-pokemon-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>PC Box</h3><button id="close-owned-pokemon" class="close-btn">×</button></div><div id="owned-pokemon-grid" class="owned-modal-grid"></div></div></div>
+    
+    <div id="leagues-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>Ligues</h3><button id="close-leagues" class="close-btn">×</button></div><div id="leagues-list" class="pill-list"></div></div></div>
+    
+    <div id="challenges-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>Challenges</h3><button id="close-challenges" class="close-btn">×</button></div><div id="challenges-list" class="pill-list"></div></div></div>
+    
+    <div id="inventory-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>Sac</h3><button id="close-inventory" class="close-btn">×</button></div><div id="inventory-list" class="pill-list"></div></div></div>
+    
+    <div id="pokedex-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>Pokédex</h3><button id="close-pokedex" class="close-btn">×</button></div><p id="pokedex-summary"></p><div id="pokedex-grid" class="achievements-grid"></div></div></div>
+    
+    <div id="auto-buy-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>Cible Auto</h3><button id="close-auto-buy" class="close-btn">×</button></div><div id="auto-buy-grid-modal" class="auto-buy-grid"></div></div></div>
+    
+    <div id="calendar-modal" class="modal" style="display:none;"><div class="modal-content dex-card"><div class="modal-header"><h3>Calendrier</h3><button id="close-calendar" class="close-btn">×</button></div><div id="calendar-month"></div><div id="calendar-grid" class="calendar-grid"></div></div></div>
+
+    <div id="settings-container" style="display: none;">
+        <div class="settings-panel dex-card">
+            <div class="settings-header">
+                <h3 data-i18n="settings-title">Options</h3>
+                <button id="settings-close" class="close-btn">×</button>
+            </div>
+            <div class="settings-grid">
+                <div class="setting-block">
+                     <label>Langue <select id="setting-language"><option value="fr">FR</option><option value="en">EN</option><option value="es">ES</option></select></label>
+                     <label>Toast <input type="checkbox" id="toggle-toasts" checked></label>
+                     <label>Flottants <input type="checkbox" id="toggle-floating-numbers" checked></label>
+                     <label>Fond Dynamique <input type="checkbox" id="toggle-dynamic-background" checked></label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="floating-numbers-container"></div>
+    <div id="toast-container"></div>
+    
+    <div id="tutorial-overlay" class="tutorial-hidden" aria-hidden="true">
+        <div id="tutorial-highlight"></div>
+        <div class="tutorial-dialog dex-card">
+            <div class="tutorial-prof">
+                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/oak.png" alt="Prof">
+                <div class="tutorial-copy">
+                    <h3 id="tutorial-title"></h3>
+                    <div class="dialog-box"><p id="tutorial-text"></p></div>
+                    <div class="tutorial-actions">
+                        <button id="tutorial-back" class="btn small">Retour</button>
+                        <button id="tutorial-skip" class="btn small">Passer</button>
+                        <button id="tutorial-next" class="btn pixel-btn blue">Suivant &#9654;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
