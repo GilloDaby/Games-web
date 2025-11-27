@@ -943,8 +943,8 @@ h2, h3 {
     grid-auto-flow: column;
     grid-auto-columns: 150px;
     gap: 4px;
-    overflow-x: auto;
-    padding: 4px;
+    overflow-x: scroll;
+    padding: 2px 4px 4px;
     scrollbar-width: thin;
     border-radius: 12px;
     background: rgba(255,255,255,0.02);

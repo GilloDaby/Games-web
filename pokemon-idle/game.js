@@ -3019,7 +3019,7 @@ consumablesData.forEach(c => {
                 <p>${displayName}</p>
                 <p>${translateWithParams('price-label', { cost: formatNumber(cost) }, `Prix: ${formatNumber(cost)}`)}</p>
                 <p>${description}</p>
-                ${!unlocked && !isPurchased ? '<p style="color:#ccc;">Acheter l\'upgrade précédente</p>' : ''}
+                ${!unlocked && !isPurchased ? '<p style="color:#ccc;">Upgrade Manquant</p>' : ''}
             `;
             if (!isPurchased && unlocked) {
                 upgradeItemElement.onclick = () => buyUpgrade(upgrade.id);
