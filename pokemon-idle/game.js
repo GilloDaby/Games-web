@@ -1876,7 +1876,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     : 'Boost MPS';
             const iconUrl = getItemSprite(upgrade.icon);
 
-            upgradeItemElement.className = `upgrade-item ${isPurchased ? 'purchased' : ''} ${!unlocked ? 'locked' : ''} ${!canAfford && !isPurchased && unlocked ? 'unaffordable' : ''}`;
+            upgradeItemElement.className = `store-item upgrade-item ${isPurchased ? 'purchased' : ''} ${!unlocked ? 'locked' : ''} ${!canAfford && !isPurchased && unlocked ? 'unaffordable' : ''}`;
             upgradeItemElement.innerHTML = `
                 <img src="${iconUrl}" alt="${upgrade.name}">
                 <p>${upgrade.name}</p>

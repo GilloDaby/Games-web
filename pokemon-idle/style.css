@@ -569,7 +569,7 @@ h2, h3 {
     background: linear-gradient(180deg, rgba(9,15,30,0.94), rgba(3,5,12,0.96));
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 12px;
-    padding: 8px 8px 10px;
+    padding: 8px 8px 8px;
     text-align: center;
     cursor: pointer;
     transition: transform 0.12s ease, border-color 0.12s ease;
@@ -679,20 +679,18 @@ h2, h3 {
     filter: grayscale(1) opacity(0.75);
 }
 
-#upgrades-items {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: 150px;
-    gap: 4px;
-    align-items: stretch;
-    padding: 2px 4px 4px;
-}
-
 .horizontal-scroller > * {
-    height: 100%;
+    height: auto;
+    align-self: flex-start;
 }
 
-.upgrade-item.purchased, .achievement-item.unlocked {
+.upgrade-item.purchased {
+    background: linear-gradient(180deg, rgba(9,15,30,0.94), rgba(3,5,12,0.96));
+    border-color: rgba(255,255,255,0.18);
+    cursor: default;
+}
+
+.achievement-item.unlocked {
     background: linear-gradient(135deg, rgba(38, 102, 255, 0.3), rgba(38, 102, 255, 0.1));
     cursor: default;
     opacity: 0.8;
@@ -918,7 +916,7 @@ h2, h3 {
     border-radius: 12px;
     background: rgba(255,255,255,0.02);
     cursor: grab;
-    align-items: stretch;
+    align-items: center;
 }
 
 .horizontal-scroller::-webkit-scrollbar {
@@ -928,6 +926,10 @@ h2, h3 {
 .horizontal-scroller::-webkit-scrollbar-thumb {
     background: rgba(255,255,255,0.2);
     border-radius: 999px;
+}
+
+.upgrades-section .horizontal-scroller {
+    align-items: flex-start;
 }
 
 .scroller-wrapper {
