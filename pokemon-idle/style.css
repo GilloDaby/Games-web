@@ -559,7 +559,7 @@ h2, h3 {
     text-shadow: 1px 1px 0 #0b102c;
 }
 
-#store-items, #upgrades-items, #achievements-items {
+#store-items, #achievements-items {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 8px;
@@ -652,7 +652,7 @@ h2, h3 {
     border-color: rgba(255,255,255,0.35);
 }
 
-.store-item p {
+.store-item p, .upgrade-item p {
     margin: 0;
     line-height: 1.35;
 }
@@ -667,7 +667,7 @@ h2, h3 {
     opacity: 0.65;
 }
 
-.store-item img {
+.store-item img, .upgrade-item img {
     width: 48px;
     height: 48px;
     image-rendering: pixelated;
@@ -677,6 +677,15 @@ h2, h3 {
 
 .store-item.locked img {
     filter: grayscale(1) opacity(0.75);
+}
+
+#upgrades-items {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 150px;
+    gap: 4px;
+    align-items: stretch;
+    padding: 2px 4px 4px;
 }
 
 .horizontal-scroller > * {

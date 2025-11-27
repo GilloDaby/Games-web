@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const baseStatsByPokemon = {};
     const learnsetByPokemon = {};
     const POKEAPI_CSV_BASE = 'https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv';
+    const ITEM_SPRITE_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/';
     const TYPE_ID_MAP = {
         1: 'normal', 2: 'fighting', 3: 'flying', 4: 'poison', 5: 'ground',
         6: 'rock', 7: 'bug', 8: 'ghost', 9: 'steel', 10: 'fire', 11: 'water',
@@ -944,6 +945,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return url;
     }
 
+    function getItemSprite(iconName) {
+        if (!iconName) return `${ITEM_SPRITE_BASE}poke-ball.png`;
+        if (iconName.startsWith('http')) return iconName;
+        return `${ITEM_SPRITE_BASE}${iconName}`;
+    }
+
     function recalculateClickValue() {
         clickValue = 1;
         purchasedUpgrades.forEach(upgId => {
@@ -1859,18 +1866,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const isPurchased = purchasedUpgrades.includes(upgrade.id);
             const previousId = upgradesData[index - 1]?.id;
             const unlocked = index === 0 || purchasedUpgrades.includes(previousId);
-            const canAfford = money >= upgrade.cost;
+            const cost = discountedCost(upgrade.cost, 'upgrade');
+            const canAfford = money >= cost;
             const upgradeItemElement = document.createElement('div');
             const description = upgrade.clickBonus
                 ? `Clique +${upgrade.clickBonus}`
                 : upgrade.target === 'all'
                     ? `Tous MPS x${upgrade.multiplier}`
                     : 'Boost MPS';
+            const iconUrl = getItemSprite(upgrade.icon);
 
             upgradeItemElement.className = `upgrade-item ${isPurchased ? 'purchased' : ''} ${!unlocked ? 'locked' : ''} ${!canAfford && !isPurchased && unlocked ? 'unaffordable' : ''}`;
             upgradeItemElement.innerHTML = `
+                <img src="${iconUrl}" alt="${upgrade.name}">
                 <p>${upgrade.name}</p>
-                <p>Prix: ${formatNumber(upgrade.cost)}</p>
+                <p>Prix: ${formatNumber(cost)}</p>
                 <p>${description}</p>
                 ${!unlocked && !isPurchased ? '<p style="color:#ccc;">Acheter l\'upgrade précédente</p>' : ''}
             `;
