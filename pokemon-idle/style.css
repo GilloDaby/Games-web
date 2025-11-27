@@ -669,7 +669,7 @@ h2, h3 {
 
 .horizontal-scroller > * {
     height: auto;
-    align-self: flex-start;
+    align-self: center;
 }
 
 .upgrade-item.purchased {
