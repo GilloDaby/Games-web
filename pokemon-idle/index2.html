@@ -132,58 +132,72 @@
                         </div>
                 </div>
 
-                <div id="battle-container" class="dex-card battle-boy">
-                    <div class="gb-screen-bezel">
-                        <div class="power-led"></div>
-                        <h2 class="gb-title">BATTLE GEAR</h2>
-                    </div>
-                    
-                    <div class="gb-screen">
-                        <div id="battle-preview">
-                            <div class="opponent-info">
-                                <img id="battle-opponent-sprite" src="" alt="opponent">
-                                <div class="info-text">
-                                    <div class="wild-tag">SAUVAGE</div>
-                                    <div id="battle-opponent-name">???</div>
-                                    <div id="battle-opponent-power" class="power-text"></div>
-                                </div>
-                            </div>
-                            <div class="vs-divider">VS</div>
-                            <div class="player-stats-mini">
-                                <p id="battle-player-power" class="power-text"></p>
-                                <p id="battle-risk" class="risk-text"></p>
-                            </div>
-                        </div>
+<div id="battle-container" class="dex-card battle-boy">
+    <div class="gb-screen-bezel">
+        <div class="power-led"></div>
+        <h2 class="gb-title">BATTLE GEAR</h2>
+    </div>
+    
+    <div class="gb-screen">
+        <div id="battle-preview">
+            <p class="eyebrow" style="color:#555;">PROCHAIN DUEL</p>
+            <div class="preview-vs">
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <img id="preview-player-sprite" src="" alt="Player">
+                    <small id="preview-player-name" style="font-size:0.7rem; font-weight:bold;">Toi</small>
+                </div>
+                
+                <div class="vs-badge">VS</div>
+                
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <img id="battle-opponent-sprite" src="" alt="Rival">
+                    <small id="battle-opponent-name" style="font-size:0.7rem; font-weight:bold;">???</small>
+                </div>
+            </div>
+            
+            <div class="info-text" style="width:90%; font-size:0.7rem;">
+                <div id="battle-opponent-power">Puissance: ???</div>
+                <div id="battle-player-power" style="color:blue;">Ta team: ???</div>
+                <div id="battle-risk" style="color:red; margin-top:4px;"></div>
+            </div>
+        </div>
 
-                        <div id="battle-status" class="battle-status" style="display:none;"> <div class="battle-side player">
-                                <div class="hp-box">
-                                    <span id="battle-player-label">Player</span>
-                                    <div class="hp-bar-wrap"><div id="battle-player-hp-fill" class="hp-fill"></div></div>
-                                    <span id="battle-player-hp-text"></span>
-                                </div>
-                                <img id="battle-player-sprite" src="" alt="player">
-                            </div>
-                            <div class="battle-side foe">
-                                <div class="hp-box">
-                                    <span id="battle-foe-label">Rival</span>
-                                    <div class="hp-bar-wrap"><div id="battle-foe-hp-fill" class="hp-fill"></div></div>
-                                    <span id="battle-foe-hp-text"></span>
-                                </div>
-                                <img id="battle-foe-sprite" src="" alt="foe">
-                            </div>
-                        </div>
-                        
-                        <div id="battle-log"></div>
-                    </div>
-
-                    <div class="gb-controls">
-                         <div id="battle-actions" class="battle-actions-grid"></div>
-                         <div class="main-battle-btns">
-                            <button id="battle-button" class="btn pixel-btn red block" data-i18n="btn-battle">COMBATTRE</button>
-                            <button id="open-leagues" class="btn pixel-btn yellow block" data-i18n="btn-leagues">LIGUE</button>
-                         </div>
+        <div id="battle-status" class="battle-status" style="display:none;">
+            <div class="battle-side foe">
+                <div class="hp-box">
+                    <strong id="battle-foe-label">Rival Lv.5</strong>
+                    <div class="hp-line">
+                        <span>HP</span>
+                        <div class="hp-bar-wrap"><div id="battle-foe-hp-fill" class="hp-fill"></div></div>
                     </div>
                 </div>
+                <img id="battle-foe-sprite" src="" alt="foe">
+            </div>
+
+            <div class="battle-side player">
+                <img id="battle-player-sprite" src="" alt="player">
+                <div class="hp-box">
+                    <strong id="battle-player-label">Toi Lv.5</strong>
+                    <div class="hp-line">
+                        <span>HP</span>
+                        <div class="hp-bar-wrap"><div id="battle-player-hp-fill" class="hp-fill"></div></div>
+                    </div>
+                    <div id="battle-player-hp-text" style="text-align:right; font-size:0.6rem;">100/100</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="battle-log"></div>
+    </div>
+
+    <div class="gb-controls">
+         <div id="battle-actions" class="battle-actions-grid"></div>
+         <div class="main-battle-btns">
+            <button id="battle-button" class="btn pixel-btn red block" data-i18n="btn-battle">COMBATTRE</button>
+            <button id="open-leagues" class="btn pixel-btn yellow block" data-i18n="btn-leagues">LIGUE</button>
+         </div>
+    </div>
+</div>
 
             </div>
         </main>

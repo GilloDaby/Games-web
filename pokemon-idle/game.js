@@ -1262,16 +1262,19 @@ consumablesData.forEach(c => {
             typeChart[atk][def] = (factor || 100) / 100;
         });
 
-        movesCsv.slice(1).forEach(line => {
+movesCsv.slice(1).forEach(line => {
             const cols = parseCsvRow(line);
             const id = Number(cols[0]);
             const identifier = cols[1];
-            const typeId = Number(cols[2]);
+            
+            const typeId = Number(cols[3]); // C'est la bonne colonne pour le Type
+
             const power = cols[4] ? Number(cols[4]) : 0;
             const pp = cols[5] ? Number(cols[5]) : 10;
             const accuracy = cols[6] ? Number(cols[6]) : 100;
             const damageClassId = Number(cols[9]); // 2 phys, 3 special, 1 status
             const type = typeNameById[typeId] || TYPE_ID_MAP[typeId] || 'normal';
+            
             movesById[id] = {
                 id,
                 name: identifier.replace(/-/g, ' '),
@@ -2474,25 +2477,40 @@ consumablesData.forEach(c => {
         }
     }
 
-    function refreshBattlePreview() {
+function refreshBattlePreview() {
+        // Elements du DOM (assure-toi qu'ils existent dans le HTML modifié)
+        const previewPlayerImg = document.getElementById('preview-player-sprite');
+        const previewPlayerName = document.getElementById('preview-player-name');
+        
         if (!battleOpponentName || !battleOpponentSprite || !battleOpponentPower || !battleRisk) return;
+        
+        // Génère un adversaire si besoin
         if (!currentOpponent) currentOpponent = generateOpponent();
+        
+        // Mise à jour Adversaire
         battleOpponentName.textContent = `#${currentOpponent.dex} ${currentOpponent.name}`;
         battleOpponentSprite.src = currentOpponent.imageUrl;
         battleOpponentPower.textContent = `${t('battle-power')}: ${formatNumber(currentOpponent.power)}`;
+        
+        // Mise à jour Joueur (Toi)
+        const fav = favoritePokemon && pokemonData.find(p => p.id === favoritePokemon);
+        const best = pickPlayerPokemonForBattle();
+        const previewMon = fav || best; // Priorité au favori, sinon le meilleur
+
         if (battlePlayerPower) {
             battlePlayerPower.textContent = `${t('player-power')}: ${formatNumber(moneyPerSecond || 1)}`;
         }
-        battleRisk.textContent = t('battle-risk-text');
+        
+        if (previewMon) {
+            if(previewPlayerImg) previewPlayerImg.src = previewMon.imageUrl;
+            if(previewPlayerName) previewPlayerName.textContent = previewMon.name;
+        } else {
+            // Si pas de pokemon (début de partie)
+            if(previewPlayerImg) previewPlayerImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png";
+            if(previewPlayerName) previewPlayerName.textContent = "Aucun";
+        }
 
-        // Preview sprites with favorite or best available
-        const fav = favoritePokemon && pokemonData.find(p => p.id === favoritePokemon);
-        const best = pickPlayerPokemonForBattle();
-        const previewMon = fav || best;
-        if (previewMon && battlePlayerSprite) battlePlayerSprite.src = previewMon.imageUrl;
-        if (previewMon && battlePlayerLabel) battlePlayerLabel.textContent = `${previewMon.name}`;
-        if (battleFoeSprite) battleFoeSprite.src = currentOpponent.imageUrl;
-        if (battleFoeLabel) battleFoeLabel.textContent = `${currentOpponent.name}`;
+        battleRisk.textContent = t('battle-risk-text');
     }
 
     function enableDragScroll(el) {
