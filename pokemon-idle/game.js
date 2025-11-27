@@ -29,6 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
             'btn-save': 'Sauvegarder',
             'btn-load': 'Charger',
             'btn-prestige': 'Prestige',
+            'btn-challenges': 'Challenges',
+            'btn-inventory': 'Inventaire',
+            'btn-calendar': 'Calendrier',
+            'btn-pokedex': 'Pokédex',
+            'btn-automation': 'Gérer les automations',
+            'btn-talents': 'Gérer les talents',
+            'battle': 'Combat',
+            'favorite': 'Pokémon favori',
+            'leagues-title': 'Ligues & Boss',
             'hero-event': 'Hoenn Plains - Événement en direct',
             'hero-title': 'Clique sur la Poké Ball pour gagner et capturer.',
             'hero-subtitle': 'Chaque clic te donne des Pokédollars, avec une faible chance de lâcher un Pokémon sauvage.',
@@ -111,6 +120,70 @@ document.addEventListener('DOMContentLoaded', () => {
             'settings-audio': 'Audio',
             'settings-music': 'Musique',
             'settings-sfx': 'Effets',
+            'toast-rush': 'Rush Pokédollars ! +1 000 cash.',
+            'toast-rush': 'Rush Pokédollars ! +1 000 cash.',
+            'toast-training-boost': "Boost d'entraînement ! MPS doublé pendant 30s.",
+            'toast-boost-end': "Le boost s'est dissipé.",
+            'toast-team-rocket': 'Team Rocket a volé 10% de ta banque.',
+            'toast-victory': 'Victoire ! +{reward} Pokédollars, +80 XP',
+            'toast-defeat': 'Défaite... -{loss} Pokédollars, -10 XP',
+            'toast-buy-prev': 'Achète le Pokémon précédent pour débloquer celui-ci.',
+            'toast-shiny-found': 'Shiny trouvé ! {name} rejoint léquipe (bonus x{mult}).',
+            'toast-no-money': 'Pas assez de Pokédollars !',
+            'toast-upgrade-prev': "Achète l'upgrade précédente pour débloquer celle-ci.",
+            'toast-upgrade-fail': 'Amélioration impossible !',
+            'toast-auto-activated': '{name} activé',
+            'toast-no-money-auto': 'Pas assez de Pokédollars pour cet auto-bot.',
+            'toast-auto-chain-on': 'Auto Buy Progressif ON',
+            'toast-auto-chain-off': 'Auto Buy Progressif OFF',
+            'toast-no-league-money': 'Pas assez pour le ticket de ligue.',
+            'toast-league-start': '{name}: combat lancé (difficulté {difficulty}x)',
+            'toast-challenge-start': 'Challenge actif: {name}',
+            'toast-no-item': "Aucun exemplaire dans l'inventaire.",
+            'toast-item-used': '{name} activé.',
+            'toast-talent-req': 'Débloque les talents requis dabord.',
+            'toast-talent-unlock': 'Talent débloqué : {name}',
+            'toast-talent-no-points': 'Pas assez de points talent.',
+            'toast-challenge-stop': 'Challenge désactivé.',
+            'toast-level-up': 'Niveau {level} atteint ! GG !',
+            'toast-event-start': 'Event: {name} — {description}',
+            'toast-event-end': 'Event terminé.',
+            'toast-achievement': 'Succès débloqué : {name}',
+            'toast-quest-done': 'Quête terminée : {name} (+{reward} point talent)',
+            'toast-gen-unlock': 'Nouvelle génération débloquée : Gen {gen}!',
+            'toast-prestige': 'Prestige +{points} ! Nouveau multiplicateur : {mult}x (Gen {gen})',
+            'toast-save-ok': 'Sauvegarde réussie !',
+            'toast-load-fail': 'Echec de chargement. Nouvelle partie lancée.',
+            'toast-offline': 'De retour ! +{amount} Pokédollars gagnés en offline.',
+            'toast-load-ok': 'Partie chargée !',
+            'toast-challenges-soon': 'Bientôt des challenges seront là.',
+            'toast-shiny-drop': 'Shiny trouvé ! {name} (bonus x{mult}).',
+            'toast-pokeball-drop': 'Chance ! La Poké Ball a lâché un {name}.',
+            'toast-item-drop': '{name} obtenu !',
+            'toast-wait-battle': 'Attends {seconds}s avant de relancer un combat.',
+            'toast-no-battle-team': 'Pas de Pokémon pour combattre ! Achète ou drop un Pokémon.',
+            'toast-battle-load-fail': 'Impossible de charger les données de combat.',
+            'toast-no-battle-pokemon': 'Aucun Pokémon disponible pour le combat.',
+            'see-all': 'Voir tout',
+            'btn-unlock': 'Débloquer',
+            'badge-active': 'Actif',
+            'quest-reward': 'Récompense: +{reward} pt talent',
+            'league-ticket': 'Ticket: {cost}',
+            'league-reward': 'Récompense x{mult}',
+            'fight-btn': 'Combattre',
+            'boss-fight-btn': 'Boss Fight',
+            'challenges-title-label': 'Challenges',
+            'calendar-title': 'Calendrier des quêtes',
+            'inventory-title': 'Inventaire & Consommables',
+            'auto-buy-title': 'Sélection auto-buy',
+            'auto-target-title': 'Auto-buy Pokémon ciblé',
+            'challenges-title': 'Challenges',
+            'upgrade-desc-click': 'Clique +{bonus}',
+            'upgrade-desc-all': 'Tous MPS x{mult}',
+            'upgrade-desc-mps': 'Boost MPS',
+            'price-label': 'Prix: {cost}',
+            'upgrade-hyper-tap': 'Hyper Tap {n}',
+            'upgrade-synergy': 'Synergie {n}',
         },
         en: {
             tagline: 'Idle Clicker Edition',
@@ -119,6 +192,15 @@ document.addEventListener('DOMContentLoaded', () => {
             'btn-save': 'Save',
             'btn-load': 'Load',
             'btn-prestige': 'Prestige',
+            'btn-challenges': 'Challenges',
+            'btn-inventory': 'Inventory',
+            'btn-calendar': 'Calendar',
+            'btn-pokedex': 'Pokédex',
+            'btn-automation': 'Manage automations',
+            'btn-talents': 'Manage talents',
+            'battle': 'Battle',
+            'favorite': 'Favorite Pokémon',
+            'leagues-title': 'Leagues & Boss',
             'hero-event': 'Hoenn Plains - Live Event',
             'hero-title': 'Tap the Poké Ball to earn & catch.',
             'hero-subtitle': 'Each tap grants Pokédollars with a small chance to drop a wild Pokémon.',
@@ -201,6 +283,69 @@ document.addEventListener('DOMContentLoaded', () => {
             'settings-audio': 'Audio',
             'settings-music': 'Music',
             'settings-sfx': 'SFX',
+            'toast-rush': 'Pokédollars rush! +1,000 cash.',
+            'toast-training-boost': 'Training boost! MPS doubled for 30s.',
+            'toast-boost-end': 'The boost faded.',
+            'toast-team-rocket': 'Team Rocket stole 10% of your bank.',
+            'toast-victory': 'Victory! +{reward} Pokédollars, +80 XP',
+            'toast-defeat': 'Defeat... -{loss} Pokédollars, -10 XP',
+            'toast-buy-prev': 'Buy the previous Pokémon to unlock this one.',
+            'toast-shiny-found': 'Shiny found! {name} joins (bonus x{mult}).',
+            'toast-no-money': 'Not enough Pokédollars!',
+            'toast-upgrade-prev': 'Buy the previous upgrade to unlock this one.',
+            'toast-upgrade-fail': 'Upgrade failed!',
+            'toast-auto-activated': '{name} activated',
+            'toast-no-money-auto': 'Not enough Pokédollars for this autobot.',
+            'toast-auto-chain-on': 'Auto Buy Chain ON',
+            'toast-auto-chain-off': 'Auto Buy Chain OFF',
+            'toast-no-league-money': 'Not enough for the league ticket.',
+            'toast-league-start': '{name}: battle started (difficulty {difficulty}x)',
+            'toast-challenge-start': 'Active challenge: {name}',
+            'toast-no-item': 'No copy in inventory.',
+            'toast-item-used': '{name} used.',
+            'toast-talent-req': 'Unlock required talents first.',
+            'toast-talent-unlock': 'Talent unlocked: {name}',
+            'toast-talent-no-points': 'Not enough talent points.',
+            'toast-challenge-stop': 'Challenge disabled.',
+            'toast-level-up': 'Level {level} reached! GG!',
+            'toast-event-start': 'Event: {name} — {description}',
+            'toast-event-end': 'Event ended.',
+            'toast-achievement': 'Achievement unlocked: {name}',
+            'toast-quest-done': 'Quest complete: {name} (+{reward} talent point)',
+            'toast-gen-unlock': 'New generation unlocked: Gen {gen}!',
+            'toast-prestige': 'Prestige +{points}! New multiplier: {mult}x (Gen {gen})',
+            'toast-save-ok': 'Save successful!',
+            'toast-load-fail': 'Load failed. New game started.',
+            'toast-offline': 'Welcome back! +{amount} Pokédollars earned offline.',
+            'toast-load-ok': 'Game loaded!',
+            'toast-challenges-soon': 'Challenges coming soon.',
+            'toast-shiny-drop': 'Shiny found! {name} (bonus x{mult}).',
+            'toast-pokeball-drop': 'Lucky! The Poké Ball dropped a {name}.',
+            'toast-item-drop': '{name} obtained!',
+            'toast-wait-battle': 'Wait {seconds}s before starting another battle.',
+            'toast-no-battle-team': 'No Pokémon to fight! Buy or drop one.',
+            'toast-battle-load-fail': 'Unable to load battle data.',
+            'toast-no-battle-pokemon': 'No Pokémon available for battle.',
+            'see-all': 'See all',
+            'btn-unlock': 'Unlock',
+            'badge-active': 'Active',
+            'quest-reward': 'Reward: +{reward} talent pt',
+            'league-ticket': 'Ticket: {cost}',
+            'league-reward': 'Reward x{mult}',
+            'fight-btn': 'Fight',
+            'boss-fight-btn': 'Boss Fight',
+            'challenges-title-label': 'Challenges',
+            'calendar-title': 'Quest Calendar',
+            'inventory-title': 'Inventory & Consumables',
+            'auto-buy-title': 'Auto-buy selection',
+            'auto-target-title': 'Target auto-buy',
+            'challenges-title': 'Challenges',
+            'upgrade-desc-click': 'Click +{bonus}',
+            'upgrade-desc-all': 'All MPS x{mult}',
+            'upgrade-desc-mps': 'MPS boost',
+            'price-label': 'Price: {cost}',
+            'upgrade-hyper-tap': 'Hyper Tap {n}',
+            'upgrade-synergy': 'Synergy {n}',
         },
         es: {
             tagline: 'Edición Idle Clicker',
@@ -209,6 +354,15 @@ document.addEventListener('DOMContentLoaded', () => {
             'btn-save': 'Guardar',
             'btn-load': 'Cargar',
             'btn-prestige': 'Prestigio',
+            'btn-challenges': 'Desafíos',
+            'btn-inventory': 'Inventario',
+            'btn-calendar': 'Calendario',
+            'btn-pokedex': 'Pokédex',
+            'btn-automation': 'Gestionar automatizaciones',
+            'btn-talents': 'Gestionar talentos',
+            'battle': 'Combate',
+            'favorite': 'Pokémon favorito',
+            'leagues-title': 'Ligas & Jefes',
             'hero-event': 'Llanuras Hoenn - Evento en vivo',
             'hero-title': 'Toca la Poké Ball para ganar y capturar.',
             'hero-subtitle': 'Cada toque da Pokédólares con una pequeña probabilidad de soltar un Pokémon salvaje.',
@@ -291,6 +445,69 @@ document.addEventListener('DOMContentLoaded', () => {
             'settings-audio': 'Audio',
             'settings-music': 'Música',
             'settings-sfx': 'Efectos',
+            'toast-rush': '¡Rush de Pokédólares! +1 000 cash.',
+            'toast-training-boost': '¡Impulso de entrenamiento! MPS x2 por 30s.',
+            'toast-boost-end': 'El impulso terminó.',
+            'toast-team-rocket': 'El Team Rocket robó 10% de tu banco.',
+            'toast-victory': '¡Victoria! +{reward} Pokédólares, +80 XP',
+            'toast-defeat': 'Derrota... -{loss} Pokédólares, -10 XP',
+            'toast-buy-prev': 'Compra el Pokémon anterior para desbloquear éste.',
+            'toast-shiny-found': '¡Shiny encontrado! {name} se une (bonus x{mult}).',
+            'toast-no-money': 'No tienes suficientes Pokédólares.',
+            'toast-upgrade-prev': 'Compra la mejora previa para desbloquear ésta.',
+            'toast-upgrade-fail': '¡Mejora imposible!',
+            'toast-auto-activated': '{name} activado',
+            'toast-no-money-auto': 'No hay suficientes Pokédólares para este autobot.',
+            'toast-auto-chain-on': 'Auto Buy Progresivo ON',
+            'toast-auto-chain-off': 'Auto Buy Progresivo OFF',
+            'toast-no-league-money': 'No alcanza para el ticket de liga.',
+            'toast-league-start': '{name}: combate iniciado (dificultad {difficulty}x)',
+            'toast-challenge-start': 'Desafío activo: {name}',
+            'toast-no-item': 'No hay ejemplares en el inventario.',
+            'toast-item-used': '{name} activado.',
+            'toast-talent-req': 'Desbloquea primero los talentos requeridos.',
+            'toast-talent-unlock': 'Talento desbloqueado: {name}',
+            'toast-talent-no-points': 'No hay suficientes puntos de talento.',
+            'toast-challenge-stop': 'Desafío desactivado.',
+            'toast-level-up': '¡Nivel {level} alcanzado! GG!',
+            'toast-event-start': 'Evento: {name} — {description}',
+            'toast-event-end': 'Evento terminado.',
+            'toast-achievement': 'Logro desbloqueado: {name}',
+            'toast-quest-done': 'Misión completada: {name} (+{reward} punto talento)',
+            'toast-gen-unlock': 'Nueva generación desbloqueada: Gen {gen}!',
+            'toast-prestige': 'Prestigio +{points}! Nuevo multiplicador: {mult}x (Gen {gen})',
+            'toast-save-ok': '¡Guardado exitoso!',
+            'toast-load-fail': 'Error al cargar. Nueva partida iniciada.',
+            'toast-offline': '¡De vuelta! +{amount} Pokédólares ganados offline.',
+            'toast-load-ok': 'Partida cargada.',
+            'toast-challenges-soon': 'Pronto llegarán desafíos.',
+            'toast-shiny-drop': '¡Shiny encontrado! {name} (bonus x{mult}).',
+            'toast-pokeball-drop': '¡Suerte! La Poké Ball soltó un {name}.',
+            'toast-item-drop': '¡{name} obtenido!',
+            'toast-wait-battle': 'Espera {seconds}s antes de relanzar un combate.',
+            'toast-no-battle-team': 'No hay Pokémon para combatir. Compra o consigue uno.',
+            'toast-battle-load-fail': 'No se pueden cargar los datos de combate.',
+            'toast-no-battle-pokemon': 'No hay Pokémon disponible para el combate.',
+            'see-all': 'Ver todo',
+            'btn-unlock': 'Desbloquear',
+            'badge-active': 'Activo',
+            'quest-reward': 'Recompensa: +{reward} pt talento',
+            'league-ticket': 'Ticket: {cost}',
+            'league-reward': 'Recompensa x{mult}',
+            'fight-btn': 'Combatir',
+            'boss-fight-btn': 'Boss Fight',
+            'challenges-title-label': 'Desafíos',
+            'calendar-title': 'Calendario de misiones',
+            'inventory-title': 'Inventario y consumibles',
+            'auto-buy-title': 'Selección auto-buy',
+            'auto-target-title': 'Auto-buy Pokémon objetivo',
+            'challenges-title': 'Desafíos',
+            'upgrade-desc-click': 'Clic +{bonus}',
+            'upgrade-desc-all': 'Todos MPS x{mult}',
+            'upgrade-desc-mps': 'Impulso MPS',
+            'price-label': 'Precio: {cost}',
+            'upgrade-hyper-tap': 'Hyper Tap {n}',
+            'upgrade-synergy': 'Sinergia {n}',
         },
     };
 
@@ -844,7 +1061,7 @@ document.addEventListener('DOMContentLoaded', () => {
             message: "Un sac de 1 000 Pokédollars apparaît !",
             action: () => {
                 money += 1000;
-                showToast("Rush Pokédollars ! +1 000 cash.");
+                toast('toast-rush');
             }
         },
         {
@@ -853,11 +1070,11 @@ document.addEventListener('DOMContentLoaded', () => {
             action: () => {
                 temporaryMultiplier = 2;
                 calculateMoneyPerSecond();
-                showToast("Boost d'entraînement ! MPS doublé pendant 30s.");
+                toast('toast-training-boost');
                 setTimeout(() => {
                     temporaryMultiplier = 1;
                     calculateMoneyPerSecond();
-                    showToast("Le boost s'est dissipé.");
+                    toast('toast-boost-end');
                 }, 30000);
             }
         },
@@ -866,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
             message: "Team Rocket vole 10% de tes Pokédollars !",
             action: () => {
                 money *= 0.9;
-                showToast("Team Rocket a volé 10% de ta banque.");
+                toast('toast-team-rocket');
             }
         }
     ];
@@ -1075,12 +1292,12 @@ document.addEventListener('DOMContentLoaded', () => {
             gainXp(80);
             questProgress.money += reward;
             questProgress.battles += 1;
-            showToast(`Victoire ! +${formatNumber(reward)} Pokédollars, +80 XP`);
+            toast('toast-victory', { reward: formatNumber(reward) });
         } else {
             const lossMoney = Math.floor(money * 0.08);
             money = Math.max(0, money - lossMoney);
             trainerXp = Math.max(0, trainerXp - 10);
-            showToast(`Défaite... -${formatNumber(lossMoney)} Pokédollars, -10 XP`);
+            toast('toast-defeat', { loss: formatNumber(lossMoney) });
             nextBattleAllowedAt = Date.now() + 10000;
         }
         battlesFought += 1;
@@ -1141,14 +1358,89 @@ document.addEventListener('DOMContentLoaded', () => {
         return top;
     }
 
+    function formatTemplate(str, params = {}) {
+        return str.replace(/\{(\w+)\}/g, (_, key) => params[key] !== undefined ? params[key] : `{${key}}`);
+    }
+
+    function translateWithParams(key, params = {}, fallback) {
+        const base = t(key) || fallback || key;
+        return formatTemplate(base, params);
+    }
+
+    function toast(key, params = {}, html = false) {
+        showToast({ key, params, html });
+    }
+
     function showToast(message, isHtml = false) {
         if (!toastContainer || settings.showToasts === false) return;
+        const mapStringToToast = (msg) => {
+            const patterns = [
+                { regex: /Ach.?te le Pok.?mon pr.?c.?dent/, map: () => ({ key: 'toast-buy-prev' }) },
+                { regex: /Shiny trouv.? ! (.+) rejoint l.?quipe \(bonus x([\d.]+)\)/, map: (m) => ({ key: 'toast-shiny-found', params: { name: m[1], mult: m[2] } }) },
+                { regex: /Pas assez de Pok.?dollars/, map: () => ({ key: 'toast-no-money' }) },
+                { regex: /upgrade pr.?c.?dente/, map: () => ({ key: 'toast-upgrade-prev' }) },
+                { regex: /Am.?lioration impossible/, map: () => ({ key: 'toast-upgrade-fail' }) },
+                { regex: /^(.+) activé\.$/, map: (m) => ({ key: 'toast-item-used', params: { name: m[1] } }) },
+                { regex: /^(.+) activé$/, map: (m) => ({ key: 'toast-auto-activated', params: { name: m[1] } }) },
+                { regex: /auto-bot/, map: () => ({ key: 'toast-no-money-auto' }) },
+                { regex: /Auto Buy Progressif ON/, map: () => ({ key: 'toast-auto-chain-on' }) },
+                { regex: /Auto Buy Progressif OFF/, map: () => ({ key: 'toast-auto-chain-off' }) },
+                { regex: /Pas assez pour le ticket de ligue/, map: () => ({ key: 'toast-no-league-money' }) },
+                { regex: /(.*): combat lancé \(difficulté ([0-9.]+)x\)/, map: (m) => ({ key: 'toast-league-start', params: { name: m[1], difficulty: m[2] } }) },
+                { regex: /Challenge actif: (.+)/, map: (m) => ({ key: 'toast-challenge-start', params: { name: m[1] } }) },
+                { regex: /Aucun exemplaire dans l'inventaire/, map: () => ({ key: 'toast-no-item' }) },
+                { regex: /Débloque les talents requis/, map: () => ({ key: 'toast-talent-req' }) },
+                { regex: /Talent débloqué : (.+)/, map: (m) => ({ key: 'toast-talent-unlock', params: { name: m[1] } }) },
+                { regex: /Pas assez de points talent/, map: () => ({ key: 'toast-talent-no-points' }) },
+                { regex: /Challenge désactivé/, map: () => ({ key: 'toast-challenge-stop' }) },
+                { regex: /Niveau (\d+) atteint/, map: (m) => ({ key: 'toast-level-up', params: { level: m[1] } }) },
+                { regex: /Event: (.+) — (.+)/, map: (m) => ({ key: 'toast-event-start', params: { name: m[1], description: m[2] } }) },
+                { regex: /Event terminé/, map: () => ({ key: 'toast-event-end' }) },
+                { regex: /Succès débloqué : (.+)/, map: (m) => ({ key: 'toast-achievement', params: { name: m[1] } }) },
+                { regex: /Quête terminée : (.+) \(\+(\d+) point talent\)/, map: (m) => ({ key: 'toast-quest-done', params: { name: m[1], reward: m[2] } }) },
+                { regex: /Nouvelle génération débloquée : Gen (\d+)/, map: (m) => ({ key: 'toast-gen-unlock', params: { gen: m[1] } }) },
+                { regex: /Prestige \+(\d+) ! Nouveau multiplicateur : ([0-9.]+)x \(Gen (\d+)\)/, map: (m) => ({ key: 'toast-prestige', params: { points: m[1], mult: m[2], gen: m[3] } }) },
+                { regex: /Sauvegarde r.*ussie/, map: () => ({ key: 'toast-save-ok' }) },
+                { regex: /Echec de chargement/, map: () => ({ key: 'toast-load-fail' }) },
+                { regex: /De retour ! \+(\d+) Pok.*dollars gagnés en offline/, map: (m) => ({ key: 'toast-offline', params: { amount: m[1] } }) },
+                { regex: /Partie charg.*e/, map: () => ({ key: 'toast-load-ok' }) },
+                { regex: /Bient.*t des challenges/, map: () => ({ key: 'toast-challenges-soon' }) },
+                { regex: /Shiny trouv.* ! (.+) \(bonus x([0-9.]+)\)/, map: (m) => ({ key: 'toast-shiny-drop', params: { name: m[1], mult: m[2] } }) },
+                { regex: /La Pok.* Ball a lâché un (.+)/, map: (m) => ({ key: 'toast-pokeball-drop', params: { name: m[1] } }) },
+                { regex: /Attends (\d+)s avant/, map: (m) => ({ key: 'toast-wait-battle', params: { seconds: m[1] } }) },
+                { regex: /Pas de Pok.*mon pour combattre/, map: () => ({ key: 'toast-no-battle-team' }) },
+                { regex: /Impossible de charger les donn.*es de combat/, map: () => ({ key: 'toast-battle-load-fail' }) },
+                { regex: /Aucun Pok.*mon disponible pour le combat/, map: () => ({ key: 'toast-no-battle-pokemon' }) },
+            ];
+            for (const { regex, map } of patterns) {
+                const m = regex.exec(msg);
+                if (m) return typeof map === 'function' ? map(m) : map;
+            }
+            return null;
+        };
+
+        let content = message;
+        let htmlFlag = isHtml;
+        if (typeof message === 'object' && message !== null) {
+            const { key, params = {}, html = false, fallback } = message;
+            content = translateWithParams(key, params, fallback);
+            htmlFlag = html;
+        } else if (typeof message === 'string') {
+            const mapped = mapStringToToast(message);
+            if (mapped) {
+                content = translateWithParams(mapped.key, mapped.params || {}, message);
+            } else if (translations[currentLanguage()] && translations[currentLanguage()][message]) {
+                content = t(message);
+            } else {
+                content = message;
+            }
+        }
         const el = document.createElement('div');
         el.className = 'toast';
-        if (isHtml) {
-            el.innerHTML = message;
+        if (htmlFlag) {
+            el.innerHTML = content;
         } else {
-            el.textContent = message;
+            el.textContent = content;
         }
         toastContainer.appendChild(el);
         setTimeout(() => el.remove(), 4000);
@@ -1482,6 +1774,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         upgradesData = buildUpgrades(currentGeneration);
         ensureDailyQuests();
+    }
+
+    function localizedUpgradeName(upgrade) {
+        const key = `upgrade-${upgrade.id}`;
+        const translated = t(key);
+        if (translated && translated !== key) return translated;
+        const hyper = /^Hyper Tap (\d+)/i.exec(upgrade.name);
+        if (hyper) {
+            return translateWithParams('upgrade-hyper-tap', { n: hyper[1] }, upgrade.name);
+        }
+        const sy = /^Synergie (\d+)/i.exec(upgrade.name);
+        if (sy) {
+            return translateWithParams('upgrade-synergy', { n: sy[1] }, upgrade.name);
+        }
+        return upgrade.name;
     }
 
     function recalcAutomation() {
@@ -1866,7 +2173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const best = pickPlayerPokemonForBattle();
         const previewMon = fav || best;
         if (previewMon && battlePlayerSprite) battlePlayerSprite.src = previewMon.imageUrl;
-        if (previewMon && battlePlayerLabel) battlePlayerLabel.textContent = `${previewMon.name} (preview)`;
+        if (previewMon && battlePlayerLabel) battlePlayerLabel.textContent = `${previewMon.name}`;
         if (battleFoeSprite) battleFoeSprite.src = currentOpponent.imageUrl;
         if (battleFoeLabel) battleFoeLabel.textContent = `${currentOpponent.name}`;
     }
@@ -1955,7 +2262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (overflow > 0) {
             const moreBtn = document.createElement('button');
             moreBtn.className = 'btn ghost small show-more-owned';
-            moreBtn.textContent = `Voir tout (+${overflow})`;
+            moreBtn.textContent = `${t('see-all')} (+${overflow})`;
             moreBtn.onclick = () => openOwnedPokemonModal();
             header.appendChild(moreBtn);
         }
@@ -2081,28 +2388,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
         container.innerHTML = '';
         if (label) label.textContent = `${talentPoints} pts`;
-        talentsData.forEach(t => {
-            const unlocked = unlockedTalents.includes(t.id);
-            const canAfford = talentPoints >= t.cost;
-            const depsMet = !t.requires || t.requires.every(r => unlockedTalents.includes(r));
+        talentsData.forEach(talent => {
+            const unlocked = unlockedTalents.includes(talent.id);
+            const canAfford = talentPoints >= talent.cost;
+            const depsMet = !talent.requires || talent.requires.every(r => unlockedTalents.includes(r));
             const pill = document.createElement('div');
             pill.className = `pill ${unlocked ? 'purchased' : ''} ${!depsMet ? 'locked' : ''}`;
             pill.innerHTML = `
-                <strong>${t.name}</strong>
-                <span>${t.desc}</span>
-                <small>Coût: ${t.cost} pt</small>
+                <strong>${talent.name}</strong>
+                <span>${talent.desc}</span>
+                <small>${translateWithParams('talent-cost', { cost: talent.cost }, `Coût: ${talent.cost} pt`)}</small>
             `;
             if (!unlocked) {
                 const btn = document.createElement('button');
                 btn.className = 'btn small';
-                btn.textContent = 'Débloquer';
+                btn.textContent = t('btn-unlock');
                 btn.disabled = !canAfford || !depsMet;
-                btn.onclick = () => unlockTalent(t.id);
+                btn.onclick = () => unlockTalent(talent.id);
                 pill.appendChild(btn);
             } else {
                 const badge = document.createElement('span');
                 badge.className = 'muted';
-                badge.textContent = 'Actif';
+                badge.textContent = t('badge-active');
                 pill.appendChild(badge);
             }
             container.appendChild(pill);
@@ -2125,7 +2432,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pill.innerHTML = `
                     <strong>${q.name}</strong>
                     <span>${Math.min(value, q.target)} / ${q.target}</span>
-                    <small>Récompense: +${q.reward} pt talent</small>
+                    <small>${translateWithParams('quest-reward', { reward: q.reward })}</small>
                 `;
                 container.appendChild(pill);
             });
@@ -2141,12 +2448,12 @@ document.addEventListener('DOMContentLoaded', () => {
             pill.className = 'pill';
             pill.innerHTML = `
                 <strong>${league.name}</strong>
-                <span>Ticket: ${formatNumber(league.entry)}</span>
-                <span>Récompense x${league.rewardMult.toFixed(2)}</span>
+                <span>${translateWithParams('league-ticket', { cost: formatNumber(league.entry) })}</span>
+                <span>${translateWithParams('league-reward', { mult: league.rewardMult.toFixed(2) })}</span>
             `;
             const btn = document.createElement('button');
             btn.className = 'btn small';
-            btn.textContent = 'Combattre';
+            btn.textContent = t('fight-btn');
             btn.onclick = () => startLeagueBattle(league);
             pill.appendChild(btn);
             leaguesList.appendChild(pill);
@@ -2156,12 +2463,12 @@ document.addEventListener('DOMContentLoaded', () => {
         bossPill.className = 'pill';
         bossPill.innerHTML = `
             <strong>${bossData.name}</strong>
-            <span>Ticket: ${formatNumber(bossData.entry)}</span>
-            <span>Récompense x${bossData.rewardMult.toFixed(2)}</span>
+            <span>${translateWithParams('league-ticket', { cost: formatNumber(bossData.entry) })}</span>
+            <span>${translateWithParams('league-reward', { mult: bossData.rewardMult.toFixed(2) })}</span>
         `;
         const bossBtn = document.createElement('button');
         bossBtn.className = 'btn small';
-        bossBtn.textContent = 'Boss Fight';
+        bossBtn.textContent = t('boss-fight-btn');
         bossBtn.onclick = () => startLeagueBattle(bossData, true);
         bossPill.appendChild(bossBtn);
         leaguesList.appendChild(bossPill);
@@ -2181,7 +2488,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             const btn = document.createElement('button');
             btn.className = 'btn small';
-            btn.textContent = active ? 'Actif' : 'Activer';
+            btn.textContent = active ? t('badge-active') : t('btn-unlock');
             btn.disabled = active;
             btn.onclick = () => activateChallenge(ch);
             pill.appendChild(btn);
@@ -2382,17 +2689,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const canAfford = money >= cost;
             const upgradeItemElement = document.createElement('div');
             const description = upgrade.clickBonus
-                ? `Clique +${upgrade.clickBonus}`
+                ? translateWithParams('upgrade-desc-click', { bonus: upgrade.clickBonus }, `Clique +${upgrade.clickBonus}`)
                 : upgrade.target === 'all'
-                    ? `Tous MPS x${upgrade.multiplier}`
-                    : 'Boost MPS';
+                    ? translateWithParams('upgrade-desc-all', { mult: upgrade.multiplier }, `Tous MPS x${upgrade.multiplier}`)
+                    : translateWithParams('upgrade-desc-mps', {}, 'Boost MPS');
             const iconUrl = getItemSprite(upgrade.icon);
+            const displayName = localizedUpgradeName(upgrade);
 
             upgradeItemElement.className = `store-item upgrade-item ${isPurchased ? 'purchased' : ''} ${!unlocked ? 'locked' : ''} ${!canAfford && !isPurchased && unlocked ? 'unaffordable' : ''}`;
             upgradeItemElement.innerHTML = `
                 <img src="${iconUrl}" alt="${upgrade.name}">
-                <p>${upgrade.name}</p>
-                <p>Prix: ${formatNumber(cost)}</p>
+                <p>${displayName}</p>
+                <p>${translateWithParams('price-label', { cost: formatNumber(cost) }, `Prix: ${formatNumber(cost)}`)}</p>
                 <p>${description}</p>
                 ${!unlocked && !isPurchased ? '<p style="color:#ccc;">Acheter l\'upgrade précédente</p>' : ''}
             `;
@@ -2474,7 +2782,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Math.random() < 0.01) { // ~1% chance per second
             activeEvent = dynamicEventsPool[Math.floor(Math.random() * dynamicEventsPool.length)];
             activeEventEndsAt = Date.now() + activeEvent.duration;
-            showToast(`Event: ${activeEvent.name} — ${activeEvent.description}`);
+            toast('toast-event-start', { name: activeEvent.name, description: activeEvent.description });
             updateEventBanner();
             calculateMoneyPerSecond();
         }
@@ -2484,7 +2792,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeEvent && Date.now() >= activeEventEndsAt) {
             activeEvent = null;
             activeEventEndsAt = 0;
-            showToast('Event terminé.');
+            toast('toast-event-end');
             calculateMoneyPerSecond();
             updateEventBanner();
         } else {
@@ -2973,12 +3281,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkQuests();
             }
             // Item drop
-            if (Math.random() < 0.01) {
-                const item = itemDrops[Math.floor(Math.random() * itemDrops.length)];
-                inventoryItems[item.id] = (inventoryItems[item.id] || 0) + 1;
-                showToast(`<img src="${item.sprite}" style="width:24px;height:24px;vertical-align:middle;"> ${item.name} obtenu !`, true);
-                renderInventory();
-            }
+        if (Math.random() < 0.01) {
+            const item = itemDrops[Math.floor(Math.random() * itemDrops.length)];
+            inventoryItems[item.id] = (inventoryItems[item.id] || 0) + 1;
+            const label = translateWithParams('toast-item-drop', { name: item.name }, `${item.name} obtenu !`);
+            showToast(`<img src="${item.sprite}" style="width:24px;height:24px;vertical-align:middle;"> ${label}`, true);
+            renderInventory();
+        }
         });
 
         battleButton.addEventListener('click', startBattle);
@@ -3051,6 +3360,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return picked;
     }
+
+
+
+
+
 
 
 
