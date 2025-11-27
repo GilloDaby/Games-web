@@ -569,6 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let dailyQuestDay = null;
     let questsHistory = {};
     let autoBuyTargetId = null;
+    let autoBuyChainEnabled = true;
     let inventoryItems = {};
     let activeEvent = null;
     let activeEventEndsAt = 0;
@@ -961,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (a && a.autoBuyPokemon) automationState.autoBuyPokemon = true;
             if (a && a.autoBuyUpgrade) automationState.autoBuyUpgrade = true;
-            if (a && a.autoBuyChain) automationState.autoBuyChain = true;
+            if (a && a.autoBuyChain && autoBuyChainEnabled) automationState.autoBuyChain = true;
         });
     }
 
@@ -1146,6 +1147,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function toggleAutoBuyChain() {
+        if (!purchasedAutomation.includes('auto-buy-chain')) return;
+        autoBuyChainEnabled = !autoBuyChainEnabled;
+        recalcAutomation();
+        renderAutomation();
+        showToast(autoBuyChainEnabled ? 'Auto Buy Progressif ON' : 'Auto Buy Progressif OFF');
+    }
+
     function autoBuyNextPokemon() {
         const target = autoBuyTargetId ? pokemonData.find(p => p.id === autoBuyTargetId) : null;
         if (target) {
@@ -1156,14 +1165,31 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         if (automationState.autoBuyChain) {
+            let lastUnlockedIndex = -1;
             for (let i = 0; i < pokemonData.length; i++) {
-                const p = pokemonData[i];
-                const cost = discountedCost(p.cost, 'store');
-                if (money >= cost) {
-                    buyPokemon(p.id);
-                    break;
+                const prevOwned = i === 0 || (ownedPokemon[pokemonData[i - 1].id] || 0) > 0;
+                if (!prevOwned) break;
+                lastUnlockedIndex = i;
+            }
+            if (lastUnlockedIndex >= 0) {
+                for (let i = lastUnlockedIndex; i >= 0; i--) {
+                    const p = pokemonData[i];
+                    if ((ownedPokemon[p.id] || 0) === 0) {
+                        const cost = discountedCost(p.cost, 'store');
+                        if (money >= cost) {
+                            buyPokemon(p.id);
+                        }
+                        return;
+                    }
                 }
-                if ((ownedPokemon[p.id] || 0) === 0) break;
+                for (let i = lastUnlockedIndex; i >= 0; i--) {
+                    const p = pokemonData[i];
+                    const cost = discountedCost(p.cost, 'store');
+                    if (money >= cost) {
+                        buyPokemon(p.id);
+                        return;
+                    }
+                }
             }
         }
     }
@@ -1398,11 +1424,13 @@ document.addEventListener('DOMContentLoaded', () => {
         automationUpgradesData.forEach(upg => {
             const purchased = purchasedAutomation.includes(upg.id);
             const canAfford = money >= upg.cost;
+            const isAutoChain = upg.autoBuyChain;
             const pill = document.createElement('div');
             pill.className = `pill ${purchased ? 'purchased' : ''} ${!canAfford && !purchased ? 'locked' : ''}`;
+            const statusText = purchased && isAutoChain ? ` | Etat: ${autoBuyChainEnabled ? 'ON' : 'OFF'}` : '';
             pill.innerHTML = `
                 <strong>${upg.name}</strong>
-                <span>${upg.autoClick ? `Auto-clic: +${upg.autoClick}/s` : ''} ${upg.autoBuyPokemon ? 'Auto-buy Pokémon' : ''} ${upg.autoBuyUpgrade ? 'Auto-buy Upgrades' : ''}</span>
+                <span>${upg.autoClick ? `Auto-clic: +${upg.autoClick}/s` : ''} ${upg.autoBuyPokemon ? 'Auto-buy Pokemon' : ''} ${upg.autoBuyUpgrade ? 'Auto-buy Upgrades' : ''}${statusText}</span>
                 <small>Prix: ${formatNumber(upg.cost)}</small>
             `;
             if (!purchased) {
@@ -1417,6 +1445,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 badge.className = 'muted';
                 badge.textContent = 'Pris';
                 pill.appendChild(badge);
+                if (isAutoChain) {
+                    const toggleBtn = document.createElement('button');
+                    toggleBtn.className = 'btn small';
+                    toggleBtn.textContent = autoBuyChainEnabled ? 'Desactiver' : 'Activer';
+                    toggleBtn.onclick = () => toggleAutoBuyChain();
+                    pill.appendChild(toggleBtn);
+                }
             }
             container.appendChild(pill);
         });
@@ -1944,6 +1979,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dailyQuestDay: dailyQuestDay,
             inventoryItems: inventoryItems,
             autoBuyTargetId: autoBuyTargetId,
+            autoBuyChainEnabled: autoBuyChainEnabled,
             lastSave: Date.now() // Store the timestamp
         };
         localStorage.setItem('pokemonIdleSave', JSON.stringify(gameState));
@@ -1977,6 +2013,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dailyQuestDay = gameState.dailyQuestDay || null;
                 inventoryItems = gameState.inventoryItems || {};
                 autoBuyTargetId = gameState.autoBuyTargetId || null;
+                autoBuyChainEnabled = gameState.autoBuyChainEnabled !== undefined ? gameState.autoBuyChainEnabled : true;
 
                 return gameState.lastSave; // Return the last save time
             } else {
@@ -2001,6 +2038,8 @@ document.addEventListener('DOMContentLoaded', () => {
             questProgress = { money: 0, clicks: 0, battles: 0, catches: 0 };
             completedQuests = [];
             purchasedAutomation = [];
+            autoBuyTargetId = null;
+            autoBuyChainEnabled = true;
             talentPoints = 0;
             unlockedTalents = [];
             showToast('Echec de chargement. Nouvelle partie lancée.');
