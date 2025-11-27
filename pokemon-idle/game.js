@@ -77,6 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const autoBuyModal = document.getElementById('auto-buy-modal');
     const autoBuyGridModal = document.getElementById('auto-buy-grid-modal');
     const autoBuyCurrentLabel = document.getElementById('auto-buy-current');
+    const ownedPokemonModal = document.getElementById('owned-pokemon-modal');
+    const ownedPokemonModalGrid = document.getElementById('owned-pokemon-grid');
+    const closeOwnedPokemonModalButton = document.getElementById('close-owned-pokemon');
     const saveButton = document.getElementById('save-button');
     const loadButton = document.getElementById('load-button');
     const prestigeButton = document.getElementById('prestige-button');
@@ -142,20 +145,21 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'legend-151', name: 'Aura Mew', target: 'all', multiplier: 1.6, clickBonus: 10 }
     ];
     const generatedUpgrades = [];
-    for (let i = 1; i <= 90; i++) {
-        if (i % 3 === 0) {
+    // Plus d'upgrades clic intercalées pour rendre le tap rentable
+    for (let i = 1; i <= 140; i++) {
+        if (i % 2 === 0) {
             generatedUpgrades.push({
                 id: `gen-click-${i}`,
-                name: `Clique Boost ${i}`,
+                name: `Hyper Tap ${i}`,
                 target: 'click',
-                clickBonus: 2 + Math.floor(i / 3)
+                clickBonus: 3 + Math.ceil(i * 1.5)
             });
         } else {
             generatedUpgrades.push({
                 id: `gen-mps-${i}`,
                 name: `Synergie ${i}`,
                 target: 'all',
-                multiplier: 1.02 + (i % 5 === 0 ? 0.01 : 0)
+                multiplier: 1.02 + (i % 7 === 0 ? 0.015 : 0)
             });
         }
     }
@@ -168,11 +172,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let upgradesData = [];
     const automationUpgradesData = [
-        { id: 'auto-click-1', name: 'PokéBot v1', cost: 5000, autoClick: 1 },
-        { id: 'auto-click-2', name: 'PokéBot v2', cost: 55000, autoClick: 4 },
-        { id: 'auto-click-3', name: 'PokéBot v3', cost: 220000, autoClick: 12 },
-        { id: 'auto-click-4', name: 'PokéBot v4', cost: 900000, autoClick: 30 },
-        { id: 'auto-click-5', name: 'PokéBot v5', cost: 2600000, autoClick: 70 },
+        { id: 'auto-click-1', name: 'PokeBot v1', cost: 5000, autoClick: 1 },
+        { id: 'auto-click-2', name: 'PokeBot v2', cost: 55000, autoClick: 4 },
+        { id: 'auto-click-3', name: 'PokeBot v3', cost: 220000, autoClick: 12 },
+        { id: 'auto-click-4', name: 'PokeBot v4', cost: 900000, autoClick: 30 },
+        { id: 'auto-click-5', name: 'PokeBot v5', cost: 2600000, autoClick: 70 },
+        { id: 'auto-click-6', name: 'PokeBot v6', cost: 7200000, autoClick: 150 },
+        { id: 'auto-click-7', name: 'PokeBot v7', cost: 18000000, autoClick: 320 },
+        { id: 'auto-click-8', name: 'PokeBot v8', cost: 42000000, autoClick: 650 },
+        { id: 'auto-click-9', name: 'PokeBot v9', cost: 105000000, autoClick: 1300 },
+        { id: 'auto-click-10', name: 'PokeBot v10', cost: 260000000, autoClick: 2600 },
         { id: 'auto-buy-store', name: 'Auto Buy Store', cost: 1200000, autoBuyPokemon: true },
         { id: 'auto-buy-upgrades', name: 'Auto Buy Upgrades', cost: 2200000, autoBuyUpgrade: true },
         { id: 'auto-buy-chain', name: 'Auto Buy Progressif', cost: 3500000, autoBuyChain: true }
@@ -553,6 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let clickValue = 1;
     let currentOpponent = null;
     let battlesFought = 0;
+    const POKEMON_COST_GROWTH = 1.15;
     let automationState = {
         autoClickPower: 0,
         autoClickRate: 0, // clicks per second equivalent
@@ -896,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildUpgrades(gen) {
         const difficultyFactor = 1 + (gen - 1) * 1.0; // Difficulté des améliorations accrue par génération
         return baseUpgradeConfig.map((upg, idx) => {
-            const cost = Math.floor(250 * Math.pow(2.8, idx) * difficultyFactor); // Améliorations plus chères
+            const cost = Math.floor(220 * Math.pow(2.4, idx) * difficultyFactor); // courbe plus douce pour permettre plus d'upgrades clic
             return { ...upg, cost };
         });
     }
@@ -1009,6 +1019,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return baseCost;
     }
 
+    function pokemonCurrentCost(pokemonOrId) {
+        const pokemon = typeof pokemonOrId === 'string'
+            ? pokemonData.find(p => p.id === pokemonOrId)
+            : pokemonOrId;
+        if (!pokemon) return Infinity;
+        const ownedCount = ownedPokemon[pokemon.id] || 0;
+        const scaled = pokemon.cost * Math.pow(POKEMON_COST_GROWTH, ownedCount);
+        return discountedCost(scaled, 'store');
+    }
+
     function highestOwnedDexIndex() {
         let maxIndex = 0;
         Object.keys(ownedPokemon).forEach(id => {
@@ -1082,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const cost = discountedCost(pokemon.cost, 'store');
+        const cost = pokemonCurrentCost(pokemon);
         if (money >= cost) {
             money -= cost;
             ownedPokemon[pokemonId] = (ownedPokemon[pokemonId] || 0) + 1;
@@ -1156,14 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function autoBuyNextPokemon() {
-        const target = autoBuyTargetId ? pokemonData.find(p => p.id === autoBuyTargetId) : null;
-        if (target) {
-            const cost = discountedCost(target.cost, 'store');
-            if (money >= cost) {
-                buyPokemon(target.id);
-                return;
-            }
-        }
+        // Priorité au mode progressif pour avancer le Pokédex
         if (automationState.autoBuyChain) {
             let lastUnlockedIndex = -1;
             for (let i = 0; i < pokemonData.length; i++) {
@@ -1175,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (let i = lastUnlockedIndex; i >= 0; i--) {
                     const p = pokemonData[i];
                     if ((ownedPokemon[p.id] || 0) === 0) {
-                        const cost = discountedCost(p.cost, 'store');
+                        const cost = pokemonCurrentCost(p);
                         if (money >= cost) {
                             buyPokemon(p.id);
                         }
@@ -1184,12 +1197,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 for (let i = lastUnlockedIndex; i >= 0; i--) {
                     const p = pokemonData[i];
-                    const cost = discountedCost(p.cost, 'store');
+                    const cost = pokemonCurrentCost(p);
                     if (money >= cost) {
                         buyPokemon(p.id);
                         return;
                     }
                 }
+            }
+        }
+
+        // Sinon, on suit la cible manuelle
+        const target = autoBuyTargetId ? pokemonData.find(p => p.id === autoBuyTargetId) : null;
+        if (target) {
+            const cost = pokemonCurrentCost(target);
+            if (money >= cost) {
+                buyPokemon(target.id);
+                return;
             }
         }
     }
@@ -1358,30 +1381,101 @@ document.addEventListener('DOMContentLoaded', () => {
         xpText.textContent = `${trainerXp} / ${xpToNextLevel} XP`;
     }
 
-    function renderOwnedPokemon() {
-        pokemonContainer.innerHTML = '';
-        for (const id in ownedPokemon) {
-            const pokemon = pokemonData.find(p => p.id === id);
-            if (pokemon) { // Check if the pokemon exists in the current data
-                const count = ownedPokemon[id];
-                if (count > 0) {
-                    const pokemonElement = document.createElement('div');
-                    pokemonElement.className = 'pokemon-instance';
-                    if (id === favoritePokemon) {
-                        pokemonElement.classList.add('favorite');
-                    }
-                    if (shinyPokemon.includes(id)) {
-                        pokemonElement.classList.add('shiny');
-                    }
-                    pokemonElement.innerHTML = `
-                        <img src="${getSpriteUrl(pokemon)}" alt="${pokemon.name}">
-                        <span>${pokemon.name} (x${formatNumber(count)})</span>
-                    `;
-                    pokemonElement.addEventListener('click', () => setFavoritePokemon(id));
-                    pokemonContainer.appendChild(pokemonElement);
-                }
-            }
+    function ownedPokemonList(sortDir = 'desc') {
+        const list = Object.keys(ownedPokemon)
+            .filter(id => ownedPokemon[id] > 0)
+            .map(id => {
+                const pokemon = pokemonData.find(p => p.id === id);
+                if (!pokemon) return null;
+                return { pokemon, count: ownedPokemon[id] };
+            })
+            .filter(Boolean);
+        list.sort((a, b) => sortDir === 'asc' ? a.pokemon.dex - b.pokemon.dex : b.pokemon.dex - a.pokemon.dex);
+        return list;
+    }
+
+    function buildPokemonCard(pokemon, count, allowFavorite = true) {
+        const pokemonElement = document.createElement('div');
+        pokemonElement.className = 'pokemon-instance';
+        if (pokemon.id === favoritePokemon) {
+            pokemonElement.classList.add('favorite');
         }
+        if (shinyPokemon.includes(pokemon.id)) {
+            pokemonElement.classList.add('shiny');
+        }
+        pokemonElement.innerHTML = `
+            <img src="${getSpriteUrl(pokemon)}" alt="${pokemon.name}">
+            <span>${pokemon.name} (x${formatNumber(count)})</span>
+        `;
+        if (allowFavorite) {
+            pokemonElement.addEventListener('click', () => setFavoritePokemon(pokemon.id));
+        }
+        return pokemonElement;
+    }
+
+    function renderOwnedPokemon() {
+        if (!pokemonContainer) return;
+        pokemonContainer.innerHTML = '';
+        const ownedList = ownedPokemonList('desc');
+        const approxCols = Math.max(1, Math.floor((pokemonContainer.clientWidth || 0) / 150));
+        const maxVisible = Math.max(4, approxCols * 2); // cap to ~2 rows
+        const visible = ownedList.slice(0, maxVisible);
+        const overflow = ownedList.length - visible.length;
+
+        const header = document.createElement('div');
+        header.className = 'pokemon-list-header';
+        const title = document.createElement('div');
+        title.className = 'muted';
+        title.textContent = `Collection: ${ownedList.length} Pokemon`;
+        header.appendChild(title);
+        if (overflow > 0) {
+            const moreBtn = document.createElement('button');
+            moreBtn.className = 'btn ghost small show-more-owned';
+            moreBtn.textContent = `Voir tout (+${overflow})`;
+            moreBtn.onclick = () => openOwnedPokemonModal();
+            header.appendChild(moreBtn);
+        }
+        pokemonContainer.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.className = 'pokemon-grid';
+        if (!visible.length) {
+            const empty = document.createElement('div');
+            empty.className = 'muted';
+            empty.textContent = 'Pas encore de Pokemon achetes.';
+            grid.appendChild(empty);
+        } else {
+            visible.forEach(({ pokemon, count }) => {
+                grid.appendChild(buildPokemonCard(pokemon, count, true));
+            });
+        }
+        pokemonContainer.appendChild(grid);
+    }
+
+    function renderOwnedPokemonModal() {
+        if (!ownedPokemonModalGrid) return;
+        ownedPokemonModalGrid.innerHTML = '';
+        const list = ownedPokemonList('asc');
+        if (!list.length) {
+            const empty = document.createElement('p');
+            empty.className = 'muted';
+            empty.textContent = 'Aucun Pokemon dans ta collection.';
+            ownedPokemonModalGrid.appendChild(empty);
+            return;
+        }
+        list.forEach(({ pokemon, count }) => {
+            ownedPokemonModalGrid.appendChild(buildPokemonCard(pokemon, count, true));
+        });
+    }
+
+    function openOwnedPokemonModal() {
+        if (!ownedPokemonModal) return;
+        renderOwnedPokemonModal();
+        ownedPokemonModal.style.display = 'flex';
+    }
+
+    function closeOwnedModal() {
+        if (ownedPokemonModal) ownedPokemonModal.style.display = 'none';
     }
 
     function setFavoritePokemon(pokemonId) {
@@ -1735,14 +1829,16 @@ document.addEventListener('DOMContentLoaded', () => {
         filtered.forEach((pokemon, index) => {
             const unlocked = index === 0 || (ownedPokemon[filtered[index - 1]?.id] || 0) > 0;
             const isLocked = !unlocked;
-            const canAfford = money >= pokemon.cost;
+            const dynamicCost = pokemonCurrentCost(pokemon);
+            const canAfford = money >= dynamicCost;
             const storeItemElement = document.createElement('div');
             storeItemElement.className = `store-item ${isLocked ? 'locked' : ''} ${!canAfford && !isLocked ? 'unaffordable' : ''}`;
             const prevDex = Math.max(1, pokemon.dex - 1);
+            const priceLabel = isLocked ? `Debloque apres #${prevDex}` : `Prix: ${formatNumber(dynamicCost)}`;
             storeItemElement.innerHTML = `
                 <img src="${pokemon.imageUrl}" alt="${pokemon.name}">
                 <p>#${pokemon.dex} ${pokemon.name}</p>
-                <p>${isLocked ? `Débloque après #${prevDex}` : `Prix: ${formatNumber(pokemon.cost)}`}</p>
+                <p>${priceLabel}</p>
                 <p>${isLocked ? 'Locked' : `MPS: ${formatNumber(pokemon.mps)}`}</p>
             `;
             if (!isLocked) {
@@ -2187,6 +2283,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             pokedexModal.addEventListener('click', (e) => {
                 if (e.target === pokedexModal) pokedexModal.style.display = 'none';
+            });
+        }
+
+        if (ownedPokemonModal && closeOwnedPokemonModalButton) {
+            closeOwnedPokemonModalButton.addEventListener('click', () => closeOwnedModal());
+            ownedPokemonModal.addEventListener('click', (e) => {
+                if (e.target === ownedPokemonModal) closeOwnedModal();
             });
         }
 
