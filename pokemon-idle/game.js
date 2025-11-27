@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let settings = {
         floatingNumbers: true,
         dynamicBackground: true,
-        language: 'fr',
+        language: 'en',
         showToasts: true,
         musicVolume: 0.7,
         sfxVolume: 0.8,
@@ -121,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
             'settings-music': 'Musique',
             'settings-sfx': 'Effets',
             'toast-rush': 'Rush Pokédollars ! +1 000 cash.',
-            'toast-rush': 'Rush Pokédollars ! +1 000 cash.',
             'toast-training-boost': "Boost d'entraînement ! MPS doublé pendant 30s.",
             'toast-boost-end': "Le boost s'est dissipé.",
             'toast-team-rocket': 'Team Rocket a volé 10% de ta banque.',
@@ -184,6 +183,109 @@ document.addEventListener('DOMContentLoaded', () => {
             'price-label': 'Prix: {cost}',
             'upgrade-hyper-tap': 'Hyper Tap {n}',
             'upgrade-synergy': 'Synergie {n}',
+			'tutorial-play': 'Jouer !',
+'berry-shiny-desc': '+2% taux shiny pendant 60s',
+'berry-attack-name': 'Baie Attaque',
+'berry-attack-desc': '+10% MPS pendant 60s',
+'berry-defense-name': 'Baie Défense',
+'berry-defense-desc': '-10% pertes en combat pendant 60s',
+'berry-speed-name': 'Baie Vitesse',
+'berry-speed-desc': '+25% clics pendant 45s',
+'berry-focus-name': 'Baie Focus',
+'berry-focus-desc': '+5% chance de critique pendant 45s',
+'berry-odor-name': 'Baie Odor',
+'berry-odor-desc': '+1% taux shiny pendant 60s',
+'berry-stamina-name': 'Baie Stamina',
+'berry-stamina-desc': '+5% MPS pendant 120s',
+'berry-luck-name': 'Baie Chance',
+'berry-luck-desc': '+5% taux de drop objets pendant 60s',
+'berry-chill-name': 'Baie Glace',
+'berry-chill-desc': '+5% boost de combat pendant 60s',
+'berry-blaze-name': 'Baie Feu',
+'berry-blaze-desc': '+8% boost de combat pendant 45s',
+'berry-mind-name': 'Baie Esprit',
+'berry-mind-desc': '+5% gain d’XP pendant 60s',
+'berry-charge-name': 'Baie Charge',
+'berry-charge-desc': '+15% clics pendant 30s',
+'incense-click-name': 'Encens Turbo',
+'incense-click-desc': 'Clics x2 pendant 45s',
+'incense-mps-name': 'Encens Profit',
+'incense-mps-desc': 'MPS x1.3 pendant 45s',
+'incense-shiny-name': 'Encens Brillant',
+'incense-shiny-desc': '+2% taux shiny pendant 45s',
+'incense-calm-name': 'Encens Calme',
+'incense-calm-desc': '-15% coûts d’upgrade pendant 45s',
+'incense-shop-name': 'Encens Marchand',
+'incense-shop-desc': '-15% coûts du store pendant 45s',
+'incense-crit-name': 'Encens Critique',
+'incense-crit-desc': '+3% chance de critique pendant 60s',
+'incense-rally-name': 'Encens Rallye',
+'incense-rally-desc': '+10% MPS pendant 90s',
+'incense-guard-name': 'Encens Gardien',
+'incense-guard-desc': '-20% pertes en combat pendant 45s',
+'potion-mini-name': 'Potion Mini',
+'potion-mini-desc': '+3% MPS pendant 60s',
+'potion-plus-name': 'Potion Plus',
+'potion-plus-desc': '+8% MPS pendant 45s',
+'potion-crit-name': 'Potion Critique',
+'potion-crit-desc': '+2% chance de critique pendant 30s',
+'potion-click-name': 'Potion Clic',
+'potion-click-desc': 'Clics x1.5 pendant 30s',
+'potion-xp-name': 'Potion XP',
+'potion-xp-desc': '+10% gain d’XP pendant 60s',
+'potion-guard-name': 'Potion Gardien',
+'potion-guard-desc': '-10% pertes en combat pendant 60s',
+'potion-marchand-name': 'Potion Marchand',
+'potion-marchand-desc': '-10% coûts du store pendant 60s',
+'potion-ingenieur-name': 'Potion Ingé',
+'potion-ingenieur-desc': '-10% coûts d’upgrade pendant 60s',
+'potion-rally-name': 'Potion Rallye',
+'potion-rally-desc': '+12% MPS pendant 60s',
+'potion-dynamo-name': 'Potion Dynamo',
+'potion-dynamo-desc': 'Clics x1.8 pendant 20s',
+'potion-brio-name': 'Potion Brio',
+'potion-brio-desc': '+1% taux shiny pendant 45s',
+'potion-omega-name': 'Potion Omega',
+'potion-omega-desc': '+15% MPS pendant 45s',
+'stone-dawn-name': 'Pierre Aube',
+'stone-dawn-desc': '+5% MPS pendant 90s',
+'stone-dusk-name': 'Pierre Nuit',
+'stone-dusk-desc': '+7% taux shiny pendant 20s',
+'stone-water-name': 'Pierre Eau',
+'stone-water-desc': '-5% coûts du store pendant 120s',
+'stone-fire-name': 'Pierre Feu',
+'stone-fire-desc': '+2% chance de critique pendant 60s',
+'stone-thunder-name': 'Pierre Foudre',
+'stone-thunder-desc': 'Clics x2 pendant 25s',
+'stone-leaf-name': 'Pierre Plante',
+'stone-leaf-desc': '+10% MPS pendant 50s',
+'stone-ice-name': 'Pierre Glace',
+'stone-ice-desc': '+5% récompenses de combat pendant 60s',
+'stone-dragon-name': 'Pierre Dragon',
+'stone-dragon-desc': '+15% MPS pendant 30s',
+'stone-dark-name': 'Pierre Obscur',
+'stone-dark-desc': '+2% taux shiny pendant 30s',
+'stone-light-name': 'Pierre Lumière',
+'stone-light-desc': '-15% coûts du store pendant 45s',
+'stone-metal-name': 'Pierre Métal',
+'stone-metal-desc': '-15% coûts d’upgrade pendant 45s',
+'stone-sky-name': 'Pierre Ciel',
+'stone-sky-desc': '+5% gain d’XP pendant 90s',
+'stone-mind-name': 'Pierre Esprit',
+'stone-mind-desc': '+3% chance de critique pendant 40s',
+'stone-spirit-name': 'Pierre Esprit+',
+'stone-spirit-desc': '+20% MPS pendant 25s',
+'coupon-store-name': 'Coupon Shop',
+'coupon-store-desc': '-20% coûts du store pendant 60s',
+'coupon-upgrade-name': 'Coupon Upgrade',
+'coupon-upgrade-desc': '-20% coûts d’upgrade pendant 60s',
+'coupon-battle-name': 'Ticket Combat',
+'coupon-battle-desc': '+20% récompenses de combat pendant 45s',
+'coupon-shiny-name': 'Ticket Shiny',
+'coupon-shiny-desc': '+3% taux shiny pendant 30s',
+'coupon-event-name': 'Ticket Event',
+'coupon-event-desc': '+15% durée des events',
+
         },
         en: {
             tagline: 'Idle Clicker Edition',
@@ -346,8 +448,114 @@ document.addEventListener('DOMContentLoaded', () => {
             'price-label': 'Price: {cost}',
             'upgrade-hyper-tap': 'Hyper Tap {n}',
             'upgrade-synergy': 'Synergy {n}',
+			'tutorial-play': 'Play!',
+			'berry-shiny-name': 'Lum Berry',
+'berry-shiny-desc': '+2% shiny rate for 60s',
+'berry-attack-name': 'Liechi Berry',
+'berry-attack-desc': '+10% MPS for 60s',
+'berry-defense-name': 'Ganlon Berry',
+'berry-defense-desc': '-10% combat losses for 60s',
+'berry-speed-name': 'Salac Berry',
+'berry-speed-desc': '+25% clicks for 45s',
+'berry-focus-name': 'Petaya Berry',
+'berry-focus-desc': '+5% crit chance for 45s',
+'berry-odor-name': 'Apicot Berry',
+'berry-odor-desc': '+1% shiny rate for 60s',
+'berry-stamina-name': 'Apicot Berry',
+'berry-stamina-desc': '+5% MPS for 120s',
+'berry-luck-name': 'Starf Berry',
+'berry-luck-desc': '+5% item drop rate for 60s',
+'berry-chill-name': 'Icy Gem',
+'berry-chill-desc': '+5% battle boost for 60s',
+'berry-blaze-name': 'Fire Gem',
+'berry-blaze-desc': '+8% battle boost for 45s',
+'berry-mind-name': 'Psychic Gem',
+'berry-mind-desc': '+5% XP gain for 60s',
+'berry-charge-name': 'Quick Claw',
+'berry-charge-desc': '+15% clicks for 30s',
+'incense-click-name': 'Turbo Incense',
+'incense-click-desc': 'Clicks x2 for 45s',
+'incense-mps-name': 'Luck Incense',
+'incense-mps-desc': 'MPS x1.3 for 45s',
+'incense-shiny-name': 'Shiny Incense',
+'incense-shiny-desc': '+2% shiny rate for 45s',
+'incense-calm-name': 'Pure Incense',
+'incense-calm-desc': '-15% upgrade costs for 45s',
+'incense-shop-name': 'Merchant Incense',
+'incense-shop-desc': '-15% store costs for 45s',
+'incense-crit-name': 'Critical Incense',
+'incense-crit-desc': '+3% crit chance for 60s',
+'incense-rally-name': 'Rally Incense',
+'incense-rally-desc': '+10% MPS for 90s',
+'incense-guard-name': 'Guardian Incense',
+'incense-guard-desc': '-20% combat losses for 45s',
+'potion-mini-name': 'Potion',
+'potion-mini-desc': '+3% MPS for 60s',
+'potion-plus-name': 'Super Potion',
+'potion-plus-desc': '+8% MPS for 45s',
+'potion-crit-name': 'Zoom Lens Potion',
+'potion-crit-desc': '+2% crit chance for 30s',
+'potion-click-name': 'Click Potion',
+'potion-click-desc': 'Clicks x1.5 for 30s',
+'potion-xp-name': 'XP Potion',
+'potion-xp-desc': '+10% XP gain for 60s',
+'potion-guard-name': 'Guardian Potion',
+'potion-guard-desc': '-10% combat losses for 60s',
+'potion-marchand-name': 'Merchant Potion',
+'potion-marchand-desc': '-10% store costs for 60s',
+'potion-ingenieur-name': 'Engineer Potion',
+'potion-ingenieur-desc': '-10% upgrade costs for 60s',
+'potion-rally-name': 'Rally Potion',
+'potion-rally-desc': '+12% MPS for 60s',
+'potion-dynamo-name': 'Dynamo Potion',
+'potion-dynamo-desc': 'Clicks x1.8 for 20s',
+'potion-brio-name': 'Brio Potion',
+'potion-brio-desc': '+1% shiny rate for 45s',
+'potion-omega-name': 'Omega Potion',
+'potion-omega-desc': '+15% MPS for 45s',
+'stone-dawn-name': 'Dawn Stone',
+'stone-dawn-desc': '+5% MPS for 90s',
+'stone-dusk-name': 'Dusk Stone',
+'stone-dusk-desc': '+7% shiny rate for 20s',
+'stone-water-name': 'Water Stone',
+'stone-water-desc': '-5% store costs for 120s',
+'stone-fire-name': 'Fire Stone',
+'stone-fire-desc': '+2% crit chance for 60s',
+'stone-thunder-name': 'Thunder Stone',
+'stone-thunder-desc': 'Clicks x2 for 25s',
+'stone-leaf-name': 'Leaf Stone',
+'stone-leaf-desc': '+10% MPS for 50s',
+'stone-ice-name': 'Ice Stone',
+'stone-ice-desc': '+5% battle rewards for 60s',
+'stone-dragon-name': 'Dragon Scale',
+'stone-dragon-desc': '+15% MPS for 30s',
+'stone-dark-name': 'Dark Stone',
+'stone-dark-desc': '+2% shiny rate for 30s',
+'stone-light-name': 'Shiny Stone',
+'stone-light-desc': '-15% store costs for 45s',
+'stone-metal-name': 'Metal Coat',
+'stone-metal-desc': '-15% upgrade costs for 45s',
+'stone-sky-name': 'Sky Plate',
+'stone-sky-desc': '+5% XP gain for 90s',
+'stone-mind-name': 'Mind Plate',
+'stone-mind-desc': '+3% crit chance for 40s',
+'stone-spirit-name': 'Spirit Stone',
+'stone-spirit-desc': '+20% MPS for 25s',
+'coupon-store-name': 'Shop Coupon',
+'coupon-store-desc': '-20% store costs for 60s',
+'coupon-upgrade-name': 'Upgrade Coupon',
+'coupon-upgrade-desc': '-20% upgrade costs for 60s',
+'coupon-battle-name': 'Battle Ticket',
+'coupon-battle-desc': '+20% battle rewards for 45s',
+'coupon-shiny-name': 'Shiny Ticket',
+'coupon-shiny-desc': '+3% shiny rate for 30s',
+'coupon-event-name': 'Event Ticket',
+'coupon-event-desc': '+15% event duration',
+
+
         },
         es: {
+			'tutorial-play': '¡Jugar!',
             tagline: 'Edición Idle Clicker',
             'title-main': 'Entrenador Pokémon Idle',
             'btn-achievements': 'Logros',
@@ -508,6 +716,109 @@ document.addEventListener('DOMContentLoaded', () => {
             'price-label': 'Precio: {cost}',
             'upgrade-hyper-tap': 'Hyper Tap {n}',
             'upgrade-synergy': 'Sinergia {n}',
+			'berry-shiny-name': 'Baya Ziu',
+'berry-shiny-desc': '+2% probabilidad shiny durante 60s',
+'berry-attack-name': 'Baya Lichi',
+'berry-attack-desc': '+10% MPS durante 60s',
+'berry-defense-name': 'Baya Gonlan',
+'berry-defense-desc': '-10% pérdidas de combate durante 60s',
+'berry-speed-name': 'Baya Aslac',
+'berry-speed-desc': '+25% clics durante 45s',
+'berry-focus-name': 'Baya Yapati',
+'berry-focus-desc': '+5% probabilidad crítico durante 45s',
+'berry-odor-name': 'Baya Arippa',
+'berry-odor-desc': '+1% probabilidad shiny durante 60s',
+'berry-stamina-name': 'Baya Arippa',
+'berry-stamina-desc': '+5% MPS durante 120s',
+'berry-luck-name': 'Baya Arabol',
+'berry-luck-desc': '+5% probabilidad de objetos durante 60s',
+'berry-chill-name': 'Gema Hielo',
+'berry-chill-desc': '+5% bonus de combate durante 60s',
+'berry-blaze-name': 'Gema Fuego',
+'berry-blaze-desc': '+8% bonus de combate durante 45s',
+'berry-mind-name': 'Gema Psíquica',
+'berry-mind-desc': '+5% XP durante 60s',
+'berry-charge-name': 'Garra Rápida',
+'berry-charge-desc': '+15% clics durante 30s',
+'incense-click-name': 'Incienso Turbo',
+'incense-click-desc': 'Clics x2 durante 45s',
+'incense-mps-name': 'Incienso Suerte',
+'incense-mps-desc': 'MPS x1.3 durante 45s',
+'incense-shiny-name': 'Incienso Brillante',
+'incense-shiny-desc': '+2% shiny durante 45s',
+'incense-calm-name': 'Incienso Puro',
+'incense-calm-desc': '-15% coste de mejoras durante 45s',
+'incense-shop-name': 'Incienso Mercante',
+'incense-shop-desc': '-15% coste tienda durante 45s',
+'incense-crit-name': 'Incienso Crítico',
+'incense-crit-desc': '+3% crítico durante 60s',
+'incense-rally-name': 'Incienso Rally',
+'incense-rally-desc': '+10% MPS durante 90s',
+'incense-guard-name': 'Incienso Guardián',
+'incense-guard-desc': '-20% pérdidas de combate durante 45s',
+'potion-mini-name': 'Poción',
+'potion-mini-desc': '+3% MPS durante 60s',
+'potion-plus-name': 'Superpoción',
+'potion-plus-desc': '+8% MPS durante 45s',
+'potion-crit-name': 'Poción Crítica',
+'potion-crit-desc': '+2% crítico durante 30s',
+'potion-click-name': 'Poción Clic',
+'potion-click-desc': 'Clics x1.5 durante 30s',
+'potion-xp-name': 'Poción XP',
+'potion-xp-desc': '+10% XP durante 60s',
+'potion-guard-name': 'Poción Guardián',
+'potion-guard-desc': '-10% pérdidas combate durante 60s',
+'potion-marchand-name': 'Poción Mercante',
+'potion-marchand-desc': '-10% coste tienda durante 60s',
+'potion-ingenieur-name': 'Poción Ingeniero',
+'potion-ingenieur-desc': '-10% coste mejoras durante 60s',
+'potion-rally-name': 'Poción Rally',
+'potion-rally-desc': '+12% MPS durante 60s',
+'potion-dynamo-name': 'Poción Dinamo',
+'potion-dynamo-desc': 'Clics x1.8 durante 20s',
+'potion-brio-name': 'Poción Brío',
+'potion-brio-desc': '+1% shiny durante 45s',
+'potion-omega-name': 'Poción Omega',
+'potion-omega-desc': '+15% MPS durante 45s',
+'stone-dawn-name': 'Piedra Alba',
+'stone-dawn-desc': '+5% MPS durante 90s',
+'stone-dusk-name': 'Piedra Ocaso',
+'stone-dusk-desc': '+7% shiny durante 20s',
+'stone-water-name': 'Piedra Agua',
+'stone-water-desc': '-5% coste tienda durante 120s',
+'stone-fire-name': 'Piedra Fuego',
+'stone-fire-desc': '+2% crítico durante 60s',
+'stone-thunder-name': 'Piedra Trueno',
+'stone-thunder-desc': 'Clics x2 durante 25s',
+'stone-leaf-name': 'Piedra Hoja',
+'stone-leaf-desc': '+10% MPS durante 50s',
+'stone-ice-name': 'Piedra Hielo',
+'stone-ice-desc': '+5% recompensas de combate durante 60s',
+'stone-dragon-name': 'Escama Dragón',
+'stone-dragon-desc': '+15% MPS durante 30s',
+'stone-dark-name': 'Piedra Oscura',
+'stone-dark-desc': '+2% shiny durante 30s',
+'stone-light-name': 'Piedra Brillante',
+'stone-light-desc': '-15% coste tienda durante 45s',
+'stone-metal-name': 'Revestimiento Metálico',
+'stone-metal-desc': '-15% coste mejoras durante 45s',
+'stone-sky-name': 'Tabla Cielo',
+'stone-sky-desc': '+5% XP durante 90s',
+'stone-mind-name': 'Tabla Mental',
+'stone-mind-desc': '+3% crítico durante 40s',
+'stone-spirit-name': 'Piedra Espíritu',
+'stone-spirit-desc': '+20% MPS durante 25s',
+'coupon-store-name': 'Cupón Tienda',
+'coupon-store-desc': '-20% coste tienda durante 60s',
+'coupon-upgrade-name': 'Cupón Mejora',
+'coupon-upgrade-desc': '-20% coste mejoras durante 60s',
+'coupon-battle-name': 'Ticket Combate',
+'coupon-battle-desc': '+20% recompensas combate durante 45s',
+'coupon-shiny-name': 'Ticket Shiny',
+'coupon-shiny-desc': '+3% shiny durante 30s',
+'coupon-event-name': 'Ticket Evento',
+'coupon-event-desc': '+15% duración de eventos',
+
         },
     };
 
@@ -900,6 +1211,11 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'stone-mind', name: 'Pierre Esprit', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mind-plate.png' },
         { id: 'stone-spirit', name: 'Pierre Esprit+', sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/spiritomb.png' }
     ];
+	
+consumablesData.forEach(c => {
+    c.name = t(c.id + '-name');
+    c.desc = t(c.id + '-desc');
+});
 
     const PRESTIGE_REQUIREMENT = 5000000000; // base requirement
     const SHINY_CHANCE = 1 / 4096; // align closer to main games
@@ -1490,7 +1806,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tutorialBackButton) tutorialBackButton.disabled = tutorialStepIndex === 0;
         if (tutorialNextButton) {
             const isLast = tutorialStepIndex === tutorialSteps.length - 1;
-            tutorialNextButton.textContent = isLast ? 'Jouer !' : (step.cta || 'Suivant');
+            tutorialNextButton.textContent = isLast ? t('tutorial-play') : t('tutorial-next');
+
         }
 
         const target = step.selector ? document.querySelector(step.selector) : null;
@@ -3341,6 +3658,142 @@ document.addEventListener('DOMContentLoaded', () => {
             numberElement.remove();
         });
     }
+
+    /* -----------------------------------------
+   CHEAT MENU — Ouvre avec F9
+------------------------------------------ */
+
+// Ajout d'un conteneur HTML pour le menu
+const cheatMenu = document.createElement('div');
+cheatMenu.id = "cheat-menu";
+cheatMenu.style = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    width: 260px;
+    background: rgba(0,0,0,0.85);
+    padding: 15px;
+    border-radius: 10px;
+    z-index: 999999;
+    color: white;
+    font-family: Arial;
+    display: none;
+    backdrop-filter: blur(6px);
+`;
+cheatMenu.innerHTML = `
+    <h3 style="margin-top:0; font-size:18px; text-align:center;">⚡ Cheat Menu</h3>
+
+    <button class="cheat-btn" data-cmd="add10k">+ 10 000$</button>
+    <button class="cheat-btn" data-cmd="add1m">+ 1 000 000$</button>
+    <button class="cheat-btn" data-cmd="add1b">+ 1 000 000 000$</button>
+
+    <hr style="margin:10px 0; border-color:#444;">
+
+    <input id="cheat-set-money-input" type="number" placeholder="Set money" style="width:100%; margin-bottom:5px;">
+    <button class="cheat-btn" data-cmd="setMoney">Définir l'argent</button>
+
+    <br><br>
+    <input id="cheat-set-mps-input" type="number" placeholder="Set MPS" style="width:100%; margin-bottom:5px;">
+    <button class="cheat-btn" data-cmd="setMPS">Définir MPS</button>
+
+    <hr style="margin:10px 0; border-color:#444;">
+
+    <button class="cheat-btn" data-cmd="unlockAllUpg">Unlock Upgrades</button>
+    <button class="cheat-btn" data-cmd="unlockAllPkm">Unlock Pokémon</button>
+    <button class="cheat-btn" data-cmd="skipBattle">Skip cooldown Battle</button>
+    <button class="cheat-btn" data-cmd="shiny100">Mode Shiny 100%</button>
+
+    <hr style="margin:10px 0; border-color:#444;">
+
+    <button class="cheat-btn" data-cmd="resetSave" style="background:#922;">Reset Save</button>
+`;
+
+document.body.appendChild(cheatMenu);
+
+// Style des boutons
+const style = document.createElement('style');
+style.innerHTML = `
+    #cheat-menu .cheat-btn {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 6px;
+        border: none;
+        border-radius: 6px;
+        background: #2c82c9;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.15s;
+    }
+    #cheat-menu .cheat-btn:hover {
+        background: #51a8ff;
+    }
+`;
+document.head.appendChild(style);
+
+// Toggle F9
+document.addEventListener('keydown', (e) => {
+    if (e.key === "F9") {
+        cheatMenu.style.display = cheatMenu.style.display === "none" ? "block" : "none";
+    }
+});
+
+// Commandes cheat
+cheatMenu.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('cheat-btn')) return;
+
+    const cmd = e.target.dataset.cmd;
+
+    switch (cmd) {
+
+        case "add10k":
+            money += 10_000;
+            break;
+
+        case "add1m":
+            money += 1_000_000;
+            break;
+
+        case "add1b":
+            money += 1_000_000_000;
+            break;
+
+        case "setMoney":
+            const val = Number(document.getElementById('cheat-set-money-input').value);
+            if (!isNaN(val)) money = val;
+            break;
+
+        case "setMPS":
+            const mps = Number(document.getElementById('cheat-set-mps-input').value);
+            if (!isNaN(mps)) moneyPerSecond = mps;
+            break;
+
+        case "unlockAllUpg":
+            purchasedUpgrades = upgradesData.map(u => u.id);
+            applyAllUpgrades();
+            break;
+
+        case "unlockAllPkm":
+            Object.keys(ownedPokemon).forEach(k => ownedPokemon[k] = 1);
+            break;
+
+        case "skipBattle":
+            nextBattleAllowedAt = 0;
+            break;
+
+        case "shiny100":
+            window.cheatShinyBoost = true;
+            break;
+
+        case "resetSave":
+            localStorage.clear();
+            location.reload();
+            break;
+    }
+
+    if (typeof updateDisplays === "function") updateDisplays();
+});
+
 
     init();
 });
