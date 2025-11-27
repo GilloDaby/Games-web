@@ -569,16 +569,16 @@ h2, h3 {
     background: linear-gradient(180deg, rgba(9,15,30,0.94), rgba(3,5,12,0.96));
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 12px;
-    padding: 6px 6px 8px;
+    padding: 8px 8px 10px;
     text-align: center;
     cursor: pointer;
     transition: transform 0.12s ease, border-color 0.12s ease;
     min-height: 70px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
-    gap: 2px;
+    gap: 4px;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 18px rgba(0,0,0,0.32);
     text-shadow: 1px 1px 0 #0b102c;
     font-size: 0.9rem;
@@ -652,6 +652,11 @@ h2, h3 {
     border-color: rgba(255,255,255,0.35);
 }
 
+.store-item p {
+    margin: 0;
+    line-height: 1.35;
+}
+
 .store-item.locked, .upgrade-item.locked {
     opacity: 0.45;
     cursor: not-allowed;
@@ -663,8 +668,8 @@ h2, h3 {
 }
 
 .store-item img {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     image-rendering: pixelated;
     filter: drop-shadow(0 6px 10px rgba(0,0,0,0.35));
     flex-shrink: 0;
@@ -842,7 +847,7 @@ h2, h3 {
     position: fixed;
     left: 22px;
     right: 22px;
-    bottom: 16px;
+    bottom: 8px;
     display: grid;
     grid-template-columns: 1.2fr 1fr;
     gap: 6px;
@@ -856,6 +861,21 @@ h2, h3 {
     backdrop-filter: blur(12px);
     border-radius: 16px;
     overflow: hidden;
+}
+
+.footer-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    padding: 4px 6px;
+}
+
+.footer-actions .btn.active {
+    background: linear-gradient(135deg, #ff3b30, #ffd95a);
+    color: #0c1228;
+    border-color: rgba(255,255,255,0.5);
 }
 
 .footer-section {
@@ -906,6 +926,34 @@ h2, h3 {
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 10px;
+}
+
+#footer-bar.expanded-store,
+#footer-bar.expanded-upgrades {
+    grid-template-columns: 1fr;
+}
+
+#footer-bar.expanded-store .upgrades-section,
+#footer-bar.expanded-upgrades .store-section {
+    display: none;
+}
+
+#footer-bar.expanded-store .store-section,
+#footer-bar.expanded-upgrades .upgrades-section {
+    grid-column: 1 / -1;
+}
+
+#footer-bar.expanded-store .store-section .horizontal-scroller,
+#footer-bar.expanded-upgrades .upgrades-section .horizontal-scroller {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(180px, 1fr);
+    grid-template-columns: none;
+    gap: 10px;
+    max-height: 35vh;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px;
+    cursor: grab;
 }
 
 .scroll-btn {

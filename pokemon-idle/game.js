@@ -77,6 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const autoBuyModal = document.getElementById('auto-buy-modal');
     const autoBuyGridModal = document.getElementById('auto-buy-grid-modal');
     const autoBuyCurrentLabel = document.getElementById('auto-buy-current');
+    const footerBar = document.getElementById('footer-bar');
+    const expandStoreButton = document.getElementById('expand-store');
+    const expandUpgradesButton = document.getElementById('expand-upgrades');
     const ownedPokemonModal = document.getElementById('owned-pokemon-modal');
     const ownedPokemonModalGrid = document.getElementById('owned-pokemon-grid');
     const closeOwnedPokemonModalButton = document.getElementById('close-owned-pokemon');
@@ -132,17 +135,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const nameCache = {};
 
     const baseUpgradeConfigSeed = [
-        { id: 'click-1', name: 'Gants de Dresseur', target: 'click', clickBonus: 1 },
-        { id: 'click-2', name: 'Scope Pro', target: 'click', clickBonus: 3 },
-        { id: 'click-3', name: 'Turbo Tap', target: 'click', clickBonus: 8 },
-        { id: 'all-1', name: 'Multi Exp', target: 'all', multiplier: 1.15 },
-        { id: 'all-2', name: 'Encens Max', target: 'all', multiplier: 1.18 },
-        { id: 'all-3', name: 'Hyper Potion', target: 'all', multiplier: 1.22 },
-        { id: 'legend-144', name: 'Plume Articuno', target: 'all', multiplier: 1.25 },
+        { id: 'click-1', name: 'Muscle Band', target: 'click', clickBonus: 1, icon: 'muscle-band.png' },
+        { id: 'click-2', name: 'Scope Lens', target: 'click', clickBonus: 3, icon: 'scope-lens.png' },
+        { id: 'click-3', name: 'Quick Claw', target: 'click', clickBonus: 8, icon: 'quick-claw.png' },
+        { id: 'all-1', name: 'Lucky Egg', target: 'all', multiplier: 1.15, icon: 'lucky-egg.png' },
+        { id: 'all-2', name: 'Exp Share', target: 'all', multiplier: 1.18, icon: 'exp-share.png' },
+        { id: 'all-3', name: 'Amulet Coin', target: 'all', multiplier: 1.22, icon: 'amulet-coin.png' },
+        { id: 'legend-144', name: 'Plume Articuno', target: 'all', multiplier: 1.25, icon: 'sharp-beak.png' },
         { id: 'legend-145', name: 'Éclair Zapdos', target: 'all', multiplier: 1.28 },
-        { id: 'legend-146', name: 'Brasier Moltres', target: 'all', multiplier: 1.32 },
-        { id: 'legend-150', name: 'Clone Mewtwo', target: 'all', multiplier: 1.4, clickBonus: 5 },
-        { id: 'legend-151', name: 'Aura Mew', target: 'all', multiplier: 1.6, clickBonus: 10 }
+        { id: 'legend-146', name: 'Brasier Moltres', target: 'all', multiplier: 1.32, icon: 'charcoal.png' },
+        { id: 'legend-150', name: 'Clone Mewtwo', target: 'all', multiplier: 1.4, clickBonus: 5, icon: 'upgrade.png' },
+        { id: 'legend-151', name: 'Aura Mew', target: 'all', multiplier: 1.6, clickBonus: 10, icon: 'light-ball.png' }
     ];
     const generatedUpgrades = [];
     // Plus d'upgrades clic intercalées pour rendre le tap rentable
@@ -152,23 +155,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: `gen-click-${i}`,
                 name: `Hyper Tap ${i}`,
                 target: 'click',
-                clickBonus: 3 + Math.ceil(i * 1.5)
+                clickBonus: 3 + Math.ceil(i * 1.5),
+                icon: 'wide-lens.png'
             });
         } else {
             generatedUpgrades.push({
                 id: `gen-mps-${i}`,
                 name: `Synergie ${i}`,
                 target: 'all',
-                multiplier: 1.02 + (i % 7 === 0 ? 0.015 : 0)
+                multiplier: 1.02 + (i % 7 === 0 ? 0.015 : 0),
+                icon: 'rare-candy.png'
             });
         }
     }
     generatedUpgrades.push(
-        { id: 'shiny-boost-1', name: 'Charme Shiny I', target: 'all', shinyBonus: 0.001 },
-        { id: 'shiny-boost-2', name: 'Charme Shiny II', target: 'all', shinyBonus: 0.0015 },
-        { id: 'shiny-boost-3', name: 'Charme Shiny III', target: 'all', shinyBonus: 0.002 }
+        { id: 'shiny-boost-1', name: 'Charme Shiny I', target: 'all', shinyBonus: 0.001, icon: 'shiny-stone.png' },
+        { id: 'shiny-boost-2', name: 'Charme Shiny II', target: 'all', shinyBonus: 0.0015, icon: 'shiny-stone.png' },
+        { id: 'shiny-boost-3', name: 'Charme Shiny III', target: 'all', shinyBonus: 0.002, icon: 'shiny-stone.png' }
     );
-    const baseUpgradeConfig = [...baseUpgradeConfigSeed, ...generatedUpgrades, { id: 'auto-buy-chain-shiny', name: 'Auto Buy Progressif Shiny', target: 'all', multiplier: 1.05, shinyBonus: 0.002 }];
+    const baseUpgradeConfig = [...baseUpgradeConfigSeed, ...generatedUpgrades, { id: 'auto-buy-chain-shiny', name: 'Auto Buy Progressif Shiny', target: 'all', multiplier: 1.05, shinyBonus: 0.002, icon: 'dusk-stone.png' }];
 
     let upgradesData = [];
     const automationUpgradesData = [
@@ -2303,6 +2308,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             autoBuyModal.addEventListener('click', (e) => {
                 if (e.target === autoBuyModal) autoBuyModal.style.display = 'none';
+            });
+        }
+
+        function setFooterExpansion(mode) {
+            if (!footerBar) return;
+            footerBar.classList.remove('expanded-store', 'expanded-upgrades');
+            if (mode) footerBar.classList.add(mode);
+            if (expandStoreButton) expandStoreButton.classList.toggle('active', mode === 'expanded-store');
+            if (expandUpgradesButton) expandUpgradesButton.classList.toggle('active', mode === 'expanded-upgrades');
+        }
+
+        if (expandStoreButton) {
+            expandStoreButton.addEventListener('click', () => {
+                const isActive = footerBar && footerBar.classList.contains('expanded-store');
+                setFooterExpansion(isActive ? null : 'expanded-store');
+            });
+        }
+        if (expandUpgradesButton) {
+            expandUpgradesButton.addEventListener('click', () => {
+                const isActive = footerBar && footerBar.classList.contains('expanded-upgrades');
+                setFooterExpansion(isActive ? null : 'expanded-upgrades');
             });
         }
 
