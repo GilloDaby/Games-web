@@ -2,8 +2,12 @@ import { translations } from './i18n/translations.js';
 import { formatNumber, getLevelForXp, getCurrentXpForLevel, getXpToLevelUp, calcStat } from './utils/math.js';
 import { createToastController } from './ui/uiToasts.js';
 import {
+    primeKantoNames,
+    setNameUpdateCallback,
+    getLocalizedPokemonName
+} from './utils/pokemonNames.js';
+import {
     genRanges,
-    kantoPokemonNames,
     baseUpgradeConfig,
     automationUpgradesData,
     talentsData,
@@ -47,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let upgradesData = [];
 
-    const nameCache = {};
     let currentGeneration = 1;
     let pokemonData = [];
 
@@ -65,6 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let battleState = null;
     let nextBattleAllowedAt = 0;
     let battleDataLoaded = false;
+
+    function localizedPokemonName(pokemon) {
+        return getLocalizedPokemonName(pokemon, currentLanguage());
+    }
     const movesById = {};
     const pokemonTypesMap = {};
     const typeChart = {};
@@ -191,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let tutorialTargetListener = null;
     let tutorialSteps = [];
 
-        // --- Pok�mon Data by generation (external data) ---
+        // --- Pok�mon Data by generation (external data) ---
     const PRESTIGE_REQUIREMENT = 5000000000; // base requirement
     const SHINY_CHANCE = 1 / 4096; // align closer to main games
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
@@ -457,9 +464,10 @@ movesCsv.slice(1).forEach(line => {
             spd: calcStat(bases.spd, level),
             spe: calcStat(bases.spe, level),
         };
+        const localizedName = pokemon ? getLocalizedPokemonName(pokemon, currentLanguage()) : `Pokemon #${pokemonId}`;
         return {
             id: pokemonId,
-            name: pokemon ? pokemon.name : `Pokemon #${pokemonId}`,
+            name: localizedName,
             sprite: pokemon ? pokemon.imageUrl : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`,
             types,
             level,
@@ -903,8 +911,6 @@ movesCsv.slice(1).forEach(line => {
         return Object.values(ownedPokemon).reduce((a, b) => a + b, 0);
     }
 
-    function primeKantoNames(lang) { if (lang !== "en") return; if (!nameCache[lang]) nameCache[lang] = {}; kantoPokemonNames.forEach((name, idx) => { nameCache[lang][idx + 1] = name; }); }
-
     function getShinyChance() {
         let chance = SHINY_CHANCE + talentBonuses.shinyBonus;
         if (activeEvent && activeEvent.shinyBonus) {
@@ -920,17 +926,15 @@ movesCsv.slice(1).forEach(line => {
         return chance;
     }
 
-    function ensureName(dex, lang = currentLanguage()) { if (!nameCache[lang]) nameCache[lang] = {}; if (nameCache[lang][dex]) return nameCache[lang][dex]; const fallbackEn = (nameCache["en"] && nameCache["en"][dex]) ? nameCache["en"][dex] : null; const placeholder = fallbackEn || `Pokemon #${dex}`; nameCache[lang][dex] = placeholder; fetch(`https://pokeapi.co/api/v2/pokemon-species/${dex}`) .then(res => res.json()) .then(data => { if (data && data.names) { const localized = data.names.find(n => n.language.name === lang)?.name || data.names.find(n => n.language.name === "en")?.name || data.name; if (localized) { nameCache[lang][dex] = localized.charAt(0).toUpperCase() + localized.slice(1); if (typeof updateUI === "function") { updateUI(); } } } }) .catch(() => {}); return placeholder; }
-
     function buildPokemonData(gen) {
         const range = genRanges.find(r => r.gen === gen) || genRanges[0];
-        const difficultyFactor = 1 + (gen - 1) * 1.5; // Augmentation de la difficulté par génération
+        const difficultyFactor = 1 + (gen - 1) * 1.5;
         const list = [];
         for (let dex = range.start; dex <= range.end; dex++) {
             const indexInGen = dex - range.start;
-            const name = ensureName(dex, currentLanguage());
+            const name = getLocalizedPokemonName({ id: `dex-${dex}`, dex }, currentLanguage());
             const safeId = `dex-${dex}`;
-            const cost = Math.floor(25 * Math.pow(1.25, indexInGen) * difficultyFactor); // Pokémon plus chers
+            const cost = Math.floor(25 * Math.pow(1.25, indexInGen) * difficultyFactor);
             const mps = parseFloat((1.2 * Math.pow(1.16, indexInGen) * difficultyFactor).toFixed(2));
             list.push({
                 id: safeId,
@@ -1191,7 +1195,7 @@ movesCsv.slice(1).forEach(line => {
             if (Math.random() < getShinyChance()) {
                 if (!shinyPokemon.includes(pokemon.id)) {
                     shinyPokemon.push(pokemon.id);
-                    toast('toast-shiny-found', { name: pokemon.name, mult: SHINY_MULTIPLIER });
+                    toast('toast-shiny-found', { name: localizedPokemonName(pokemon), mult: SHINY_MULTIPLIER });
                     gainXp(100);
                 }
             }
@@ -1394,6 +1398,10 @@ movesCsv.slice(1).forEach(line => {
         refreshBattlePreview();
     }
 
+    setNameUpdateCallback(() => {
+        if (typeof updateUI === 'function') updateUI();
+    });
+
     function updateHeroStats() {
         if (clickPowerDisplay) {
             clickPowerDisplay.textContent = `+${clickValue}`;
@@ -1504,9 +1512,10 @@ function refreshBattlePreview() {
         if (shinyPokemon.includes(pokemon.id)) {
             pokemonElement.classList.add('shiny');
         }
+        const localizedName = localizedPokemonName(pokemon);
         pokemonElement.innerHTML = `
-            <img src="${getSpriteUrl(pokemon)}" alt="${pokemon.name}">
-            <span>${pokemon.name} (x${formatNumber(count)})</span>
+            <img src="${getSpriteUrl(pokemon)}" alt="${localizedName}">
+            <span>${localizedName} (x${formatNumber(count)})</span>
         `;
         if (isSelectable) {
             pokemonElement.addEventListener('click', () => setBattlePokemon(pokemon.id));
@@ -1622,9 +1631,10 @@ function refreshBattlePreview() {
                  if (shinyPokemon.includes(battlePokemonId)) {
                     pokemonElement.classList.add('shiny');
                 }
+                const localizedName = localizedPokemonName(pokemon);
                 pokemonElement.innerHTML = `
-                    <img src="${getSpriteUrl(pokemon)}" alt="${pokemon.name}">
-                    <span>${pokemon.name} <small>(Lvl ${level})</small></span>
+                    <img src="${getSpriteUrl(pokemon)}" alt="${localizedName}">
+                    <span>${localizedName} <small>(Lvl ${level})</small></span>
                 `;
                 battlePokemonIdSlot.appendChild(pokemonElement);
 
@@ -1646,7 +1656,8 @@ function refreshBattlePreview() {
         container.innerHTML = '';
         if (autoBuyCurrentLabel) {
             const target = pokemonData.find(p => p.id === autoBuyTargetId);
-            autoBuyCurrentLabel.textContent = target ? `Cible: #${target.dex} ${target.name}` : 'Aucune cible';
+            const targetName = target ? localizedPokemonName(target) : null;
+            autoBuyCurrentLabel.textContent = target ? `Cible: #${target.dex} ${targetName}` : 'Aucune cible';
         }
         automationUpgradesData.forEach(upg => {
             const purchased = purchasedAutomation.includes(upg.id);
@@ -2027,9 +2038,10 @@ function refreshBattlePreview() {
             storeItemElement.className = `store-item ${isLocked ? 'locked' : ''} ${!canAfford && !isLocked ? 'unaffordable' : ''}`;
             const prevDex = Math.max(1, pokemon.dex - 1);
             const priceLabel = isLocked ? `Debloque apres #${prevDex}` : `Prix: ${formatNumber(dynamicCost)}`;
+            const localizedName = localizedPokemonName(pokemon);
             storeItemElement.innerHTML = `
-                <img src="${pokemon.imageUrl}" alt="${pokemon.name}">
-                <p>#${pokemon.dex} ${pokemon.name}</p>
+                <img src="${pokemon.imageUrl}" alt="${localizedName}">
+                <p>#${pokemon.dex} ${localizedName}</p>
                 <p>${priceLabel}</p>
                 <p>${isLocked ? 'Locked' : `MPS: ${formatNumber(pokemon.mps)}`}</p>
             `;
@@ -2674,12 +2686,12 @@ function refreshBattlePreview() {
 
                 if (Math.random() < getShinyChance() && !shinyPokemon.includes(randomPokemon.id)) {
                     shinyPokemon.push(randomPokemon.id);
-                    toast('toast-shiny-drop', { name: randomPokemon.name, mult: SHINY_MULTIPLIER });
+                    toast('toast-shiny-drop', { name: localizedPokemonName(randomPokemon), mult: SHINY_MULTIPLIER });
                 }
                 questProgress.catches += 1;
                 calculateMoneyPerSecond();
                 updateUI();
-                toast('toast-pokeball-drop', { name: randomPokemon.name });
+                toast('toast-pokeball-drop', { name: localizedPokemonName(randomPokemon) });
                 checkQuests();
             }
             // Item drop
