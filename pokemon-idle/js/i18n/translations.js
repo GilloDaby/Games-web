@@ -590,6 +590,7 @@ export const translations = {
             'pokedex-title': 'Pokédex',
             'auto-buy-title': 'Selección auto-buy',
             'calendar-title': 'Calendario de misiones',
+            'battle-pokemon-title': 'Pokémon de combate',
             'btn-expand-store': 'PokeStore pantalla completa',
             'btn-expand-upgrades': 'Upgrades pantalla completa',
             'store-title': 'PokeStore',
