@@ -1178,7 +1178,7 @@ movesCsv.slice(1).forEach(line => {
         if (pokemonIndex > 0) {
             const previousId = pokemonData[pokemonIndex - 1].id;
             if (!(ownedPokemon[previousId] > 0)) {
-                showToast('Achète le Pokémon précédent pour débloquer celui-ci.');
+                toast('toast-buy-prev');
                 return;
             }
         }
@@ -1191,7 +1191,7 @@ movesCsv.slice(1).forEach(line => {
             if (Math.random() < getShinyChance()) {
                 if (!shinyPokemon.includes(pokemon.id)) {
                     shinyPokemon.push(pokemon.id);
-                    showToast(`Shiny trouvé ! ${pokemon.name} rejoint l'équipe (bonus x${SHINY_MULTIPLIER}).`);
+                    toast('toast-shiny-found', { name: pokemon.name, mult: SHINY_MULTIPLIER });
                     gainXp(100);
                 }
             }
@@ -1199,7 +1199,7 @@ movesCsv.slice(1).forEach(line => {
             calculateMoneyPerSecond();
             updateUI();
         } else {
-            showToast('Pas assez de Pokédollars !');
+            toast('toast-no-money');
         }
     }
 
@@ -1211,7 +1211,7 @@ movesCsv.slice(1).forEach(line => {
         if (upgradeIndex > 0) {
             const prevId = upgradesData[upgradeIndex - 1].id;
             if (!purchasedUpgrades.includes(prevId)) {
-                showToast('Achète l\'upgrade précédente pour débloquer celle-ci.');
+                toast('toast-upgrade-prev');
                 return;
             }
         }
@@ -1225,7 +1225,7 @@ movesCsv.slice(1).forEach(line => {
             calculateMoneyPerSecond();
             updateUI();
         } else {
-            showToast('Amélioration impossible !');
+            toast('toast-upgrade-fail');
         }
     }
 
@@ -1237,13 +1237,13 @@ movesCsv.slice(1).forEach(line => {
             purchasedAutomation.push(autoId);
             recalcAutomation();
             updateUI();
-            showToast(`${auto.name} activé`);
+            toast('toast-auto-activated', { name: auto.name });
             if (auto.autoBuyPokemon) {
                 autoBuyTargetId = autoBuyTargetId || pokemonData[0]?.id || null;
                 renderAutomation();
             }
         } else {
-            showToast('Pas assez de Pokédollars pour cet auto-bot.');
+            toast('toast-no-money-auto');
         }
     }
 
@@ -1252,7 +1252,7 @@ movesCsv.slice(1).forEach(line => {
         autoBuyChainEnabled = !autoBuyChainEnabled;
         recalcAutomation();
         renderAutomation();
-        showToast(autoBuyChainEnabled ? 'Auto Buy Progressif ON' : 'Auto Buy Progressif OFF');
+        toast(autoBuyChainEnabled ? 'toast-auto-chain-on' : 'toast-auto-chain-off');
     }
 
     function autoBuyNextPokemon() {
@@ -1314,31 +1314,31 @@ movesCsv.slice(1).forEach(line => {
     async function startLeagueBattle(league, isBoss = false) {
         const entry = league.entry;
         if (money < entry) {
-            showToast('Pas assez pour le ticket de ligue.');
+            toast('toast-no-league-money');
             return;
         }
         money -= entry;
-        showToast(`${league.name}: combat lancé (difficulté ${league.difficulty || 1}x)`);
+        toast('toast-league-start', { name: league.name, difficulty: league.difficulty || 1 });
         await startBattle();
         if (isBoss) battlesFought += 2;
     }
 
     function activateChallenge(challenge) {
         activeChallenge = challenge;
-        showToast(`Challenge actif: ${challenge.name}`);
+        toast('toast-challenge-start', { name: challenge.name });
         calculateMoneyPerSecond();
         renderChallenges();
     }
 
     function useConsumable(item) {
         if (!inventoryItems[item.id] || inventoryItems[item.id] <= 0) {
-            showToast('Aucun exemplaire dans l\'inventaire.');
+            toast('toast-no-item');
             return;
         }
         inventoryItems[item.id] -= 1;
         const expiresAt = Date.now() + item.duration;
         activeConsumables.push({ ...item, expiresAt });
-        showToast(`${item.name} activé.`);
+        toast('toast-item-used', { name: item.name });
         calculateMoneyPerSecond();
         recalculateClickValue();
         renderInventory();
@@ -1354,7 +1354,7 @@ movesCsv.slice(1).forEach(line => {
         if (!talent || unlockedTalents.includes(talentId)) return;
         const depsMet = !talent.requires || talent.requires.every(r => unlockedTalents.includes(r));
         if (!depsMet) {
-            showToast('Débloque les talents requis d\'abord.');
+            toast('toast-talent-req');
             return;
         }
         if (talentPoints >= talent.cost) {
@@ -1363,9 +1363,9 @@ movesCsv.slice(1).forEach(line => {
             recalcTalents();
             renderTalents();
             updateStats();
-            showToast(`Talent débloqué : ${talent.name}`);
+            toast('toast-talent-unlock', { name: talent.name });
         } else {
-            showToast('Pas assez de points talent.');
+            toast('toast-talent-no-points');
         }
     }
 
@@ -1866,7 +1866,7 @@ function refreshBattlePreview() {
             calculateMoneyPerSecond();
             updateStats();
             renderChallenges();
-            showToast('Challenge désactivé.');
+            toast('toast-challenge-stop');
         };
         resetPill.appendChild(resetBtn);
         challengesList.appendChild(resetPill);
@@ -2079,7 +2079,7 @@ function refreshBattlePreview() {
             trainerLevel++;
             trainerXp -= xpToNextLevel;
             xpToNextLevel = Math.floor(xpToNextLevel * 1.5);
-            showToast(`Niveau ${trainerLevel} atteint ! GG !`);
+            toast('toast-level-up', { level: trainerLevel });
             // Apply level up bonus
             moneyPerSecond *= 1.1;
         }
@@ -2171,7 +2171,7 @@ function refreshBattlePreview() {
         achievementsData.forEach(achievement => {
             if (!unlockedAchievements.includes(achievement.id) && achievement.condition()) {
                 unlockedAchievements.push(achievement.id);
-                showToast(`Succès débloqué : ${achievement.name}`);
+                toast('toast-achievement', { name: achievement.name });
             }
         });
     }
@@ -2190,7 +2190,7 @@ function refreshBattlePreview() {
                     questsHistory[dailyQuestDay].completed = [...completedQuests];
                 }
                 talentPoints += q.reward;
-                showToast(`Quête terminée : ${q.name} (+${q.reward} point talent)`);
+                toast('toast-quest-done', { name: q.name, reward: q.reward });
                 recalcTalents();
                 renderTalents();
                 renderQuests();
@@ -2227,7 +2227,7 @@ function refreshBattlePreview() {
             // Advance to the next generation if possible
             if (currentGeneration < genRanges.length) {
                 currentGeneration += 1;
-                showToast(`Nouvelle génération débloquée : Gen ${currentGeneration}!`);
+                toast('toast-gen-unlock', { gen: currentGeneration });
             }
 
             // Reset progress
@@ -2249,7 +2249,7 @@ function refreshBattlePreview() {
             refreshGenerationData();
             calculateMoneyPerSecond();
             updateUI();
-            showToast(`Prestige +${newPrestigePoints} ! Nouveau multiplicateur : ${prestigeMultiplier.toFixed(2)}x (Gen ${currentGeneration})`);
+            toast('toast-prestige', { points: newPrestigePoints, mult: prestigeMultiplier.toFixed(2), gen: currentGeneration });
         }
     }
 
@@ -2284,7 +2284,7 @@ function refreshBattlePreview() {
             lastSave: Date.now() // Store the timestamp
         };
         persistGameState(gameState);
-        showToast('Sauvegarde réussie !');
+        toast('toast-save-ok');
     }
 
 
@@ -2346,7 +2346,7 @@ function refreshBattlePreview() {
             autoBuyChainEnabled = true;
             talentPoints = 0;
             unlockedTalents = [];
-            showToast('Echec de chargement. Nouvelle partie lanc�e.');
+            toast('toast-load-fail');
             return null;
         }
     }
@@ -2367,9 +2367,9 @@ function refreshBattlePreview() {
             const offlineEarnings = offlineTime * moneyPerSecond;
             if (offlineEarnings > 0) {
                 money += offlineEarnings;
-                showToast(`De retour ! +${Math.floor(offlineEarnings)} Pokédollars gagnés en offline.`);
+                toast('toast-offline', { amount: Math.floor(offlineEarnings) });
             } else {
-                showToast('Partie chargée !');
+                toast('toast-load-ok');
             }
         }
 
@@ -2391,7 +2391,7 @@ function refreshBattlePreview() {
             recalculateClickValue();
             calculateMoneyPerSecond();
             updateUI();
-            showToast('Partie chargée !');
+            toast('toast-load-ok');
         });
         prestigeButton.addEventListener('click', prestige);
         if (achievementsButton && achievementsModal && closeAchievementsButton) {
@@ -2463,7 +2463,7 @@ function refreshBattlePreview() {
 
         if (openChallengesButton && challengesModal && closeChallengesButton) {
             openChallengesButton.addEventListener('click', () => {
-                showToast('Bientôt des challenges seront là.');
+                toast('toast-challenges-soon');
             });
             closeChallengesButton.addEventListener('click', () => {
                 challengesModal.style.display = 'none';
@@ -2674,12 +2674,12 @@ function refreshBattlePreview() {
 
                 if (Math.random() < getShinyChance() && !shinyPokemon.includes(randomPokemon.id)) {
                     shinyPokemon.push(randomPokemon.id);
-                    showToast(`Shiny trouvé ! ${randomPokemon.name} (bonus x${SHINY_MULTIPLIER}).`);
+                    toast('toast-shiny-drop', { name: randomPokemon.name, mult: SHINY_MULTIPLIER });
                 }
                 questProgress.catches += 1;
                 calculateMoneyPerSecond();
                 updateUI();
-                showToast(`Chance ! La Poké Ball a lâché un ${randomPokemon.name}.`);
+                toast('toast-pokeball-drop', { name: randomPokemon.name });
                 checkQuests();
             }
             // Item drop
@@ -2709,17 +2709,17 @@ function refreshBattlePreview() {
         const now = Date.now();
         if (!isContinuation && now < nextBattleAllowedAt) {
             const wait = Math.ceil((nextBattleAllowedAt - now) / 1000);
-            showToast(`Attends ${wait}s avant de relancer un combat.`);
+            toast('toast-wait-battle', { seconds: wait });
             return;
         }
         if (!Object.keys(ownedPokemon).length) {
-            showToast("Pas de Pokémon pour combattre ! Achète ou drop un Pokémon.");
+            toast('toast-no-battle-team');
             return;
         }
-        await loadBattleData().catch(() => showToast("Impossible de charger les données de combat."));
+        await loadBattleData().catch(() => toast('toast-battle-load-fail'));
         const playerMon = pickPlayerPokemonForBattle();
         if (!playerMon) {
-            showToast("Aucun Pokémon disponible pour le combat.");
+            toast('toast-no-battle-pokemon');
             return;
         }
 
