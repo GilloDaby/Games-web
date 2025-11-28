@@ -21,6 +21,7 @@ import {
     consumablesData,
     itemDrops
 } from './features/gameData.js';
+import { createBattleSystem } from './battle/battleSystem.js';
 import { persistGameState, readGameState } from './save/saveGame.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -33,9 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let prestigeMultiplier = 1;
     let unlockedAchievements = [];
     let temporaryMultiplier = 1;
-    let battlePokemonId = null;
     let shinyPokemon = [];
-    let defeatedGyms = {};
     let defeatedEliteFour = {};
     let trainerLevel = 1;
     let trainerXp = 0;
@@ -53,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentGeneration = 1;
     let pokemonData = [];
+    let battleSystem = null;
 
 
     function currentLanguage() {
@@ -65,26 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (translations.fr && translations.fr[key]) return translations.fr[key];
         return key;
     }
-    let battleState = null;
-    let nextBattleAllowedAt = 0;
-    let battleDataLoaded = false;
-
     function localizedPokemonName(pokemon) {
         return getLocalizedPokemonName(pokemon, currentLanguage());
     }
-    const movesById = {};
-    const pokemonTypesMap = {};
-    const typeChart = {};
-    const baseStatsByPokemon = {};
-    const learnsetByPokemon = {};
-    const POKEAPI_CSV_BASE = 'https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv';
     const ITEM_SPRITE_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/';
-    const TYPE_ID_MAP = {
-        1: 'normal', 2: 'fighting', 3: 'flying', 4: 'poison', 5: 'ground',
-        6: 'rock', 7: 'bug', 8: 'ghost', 9: 'steel', 10: 'fire', 11: 'water',
-        12: 'grass', 13: 'electric', 14: 'psychic', 15: 'ice', 16: 'dragon',
-        17: 'dark', 18: 'fairy'
-    };
 
     // --- DOM Elements ---
     const moneyDisplay = document.getElementById('money');
@@ -95,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const storeItemsContainer = document.getElementById('store-items');
     const upgradesItemsContainer = document.getElementById('upgrades-items');
     const achievementsItemsContainer = document.getElementById('achievements-items');
-    const battlePokemonIdSlot = document.getElementById('favorite-pokemon-slot');
     const floatingNumbersContainer = document.getElementById('floating-numbers-container');
     const achievementsModal = document.getElementById('achievements-modal');
     const achievementsButton = document.getElementById('achievements-button');
@@ -156,24 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const prestigeButton = document.getElementById('prestige-button');
     const pokeballContainer = document.getElementById('pokeball-container');
     const battleButton = document.getElementById('battle-button');
-    const battleLog = document.getElementById('battle-log');
-    const battleOpponentSprite = document.getElementById('battle-opponent-sprite');
-    const battleOpponentName = document.getElementById('battle-opponent-name');
-    const battleOpponentPower = document.getElementById('battle-opponent-power');
-    const battlePlayerPower = document.getElementById('battle-player-power');
-    const battleRisk = document.getElementById('battle-risk');
-    const battlePlayerLabel = document.getElementById('battle-player-label');
-    const battlePlayerHpFill = document.getElementById('battle-player-hp-fill');
-    const battlePlayerHpText = document.getElementById('battle-player-hp-text');
-    const battlePlayerSprite = document.getElementById('battle-player-sprite');
-    const battlePokemonXpContainer = document.getElementById('battle-pokemon-xp-container');
-    const battlePokemonXpBar = document.getElementById('battle-pokemon-xp-bar');
-    const battlePokemonXpText = document.getElementById('battle-pokemon-xp-text');
-    const battleFoeLabel = document.getElementById('battle-foe-label');
-    const battleFoeHpFill = document.getElementById('battle-foe-hp-fill');
-    const battleFoeHpText = document.getElementById('battle-foe-hp-text');
-    const battleFoeSprite = document.getElementById('battle-foe-sprite');
-    const battleActions = document.getElementById('battle-actions');
     const horizontalScrollers = Array.from(document.querySelectorAll('.horizontal-scroller'));
     const toastContainer = document.getElementById('toast-container');
     const { toast, showToast, translateWithParams } = createToastController({ translate: t, settings, toastContainer });
@@ -203,107 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const SHINY_CHANCE = 1 / 4096; // align closer to main games
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
     const SHINY_MULTIPLIER = 2; // 2x bonus for shiny
-    const BATTLE_LEVEL_BASE = 30;
-
-    // --- Battle data loading (PokeAPI official CSV on GitHub) ---
-    async function fetchCsv(url) {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`CSV fetch failed: ${url}`);
-        const text = await res.text();
-        return text.split('\n').map(l => l.trim()).filter(Boolean);
-    }
-
-    function parseCsvRow(line) {
-        // Simple split sufficient for PokeAPI CSV we use (no embedded commas in selected columns)
-        return line.split(',');
-    }
-
-    async function loadBattleData() {
-        if (battleDataLoaded) return;
-        const [movesCsv, typesCsv, efficacyCsv, pokemonTypesCsv, pokemonStatsCsv, pokemonMovesCsv] = await Promise.all([
-            fetchCsv(`${POKEAPI_CSV_BASE}/moves.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/types.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/type_efficacy.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/pokemon_types.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/pokemon_stats.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/pokemon_moves.csv`),
-        ]);
-
-        const typeNameById = {};
-        typesCsv.slice(1).forEach(line => {
-            const [id, identifier] = parseCsvRow(line);
-            typeNameById[Number(id)] = identifier;
-        });
-
-        efficacyCsv.slice(1).forEach(line => {
-            const [damageTypeId, targetTypeId, factor] = parseCsvRow(line).map(Number);
-            const atk = typeNameById[damageTypeId];
-            const def = typeNameById[targetTypeId];
-            if (!atk || !def) return;
-            if (!typeChart[atk]) typeChart[atk] = {};
-            typeChart[atk][def] = (factor || 100) / 100;
-        });
-
-movesCsv.slice(1).forEach(line => {
-            const cols = parseCsvRow(line);
-            const id = Number(cols[0]);
-            const identifier = cols[1];
-            
-            const typeId = Number(cols[3]); // C'est la bonne colonne pour le Type
-
-            const power = cols[4] ? Number(cols[4]) : 0;
-            const pp = cols[5] ? Number(cols[5]) : 10;
-            const accuracy = cols[6] ? Number(cols[6]) : 100;
-            const damageClassId = Number(cols[9]); // 2 phys, 3 special, 1 status
-            const type = typeNameById[typeId] || TYPE_ID_MAP[typeId] || 'normal';
-            
-            movesById[id] = {
-                id,
-                name: identifier.replace(/-/g, ' '),
-                type,
-                power,
-                pp,
-                accuracy,
-                damageClass: damageClassId === 3 ? 'special' : damageClassId === 2 ? 'physical' : 'status',
-            };
-        });
-
-        pokemonTypesCsv.slice(1).forEach(line => {
-            const cols = parseCsvRow(line);
-            const pokemonId = Number(cols[0]);
-            const typeId = Number(cols[1]);
-            const typeName = typeNameById[typeId] || TYPE_ID_MAP[typeId];
-            if (!pokemonTypesMap[pokemonId]) pokemonTypesMap[pokemonId] = [];
-            if (typeName) pokemonTypesMap[pokemonId].push(typeName);
-        });
-
-        pokemonStatsCsv.slice(1).forEach(line => {
-            const cols = parseCsvRow(line);
-            const pokemonId = Number(cols[0]);
-            const statId = Number(cols[1]);
-            const baseStat = Number(cols[2]);
-            if (!baseStatsByPokemon[pokemonId]) baseStatsByPokemon[pokemonId] = {};
-            const statKey = ['hp','atk','def','spa','spd','spe'][statId - 1];
-            if (statKey) baseStatsByPokemon[pokemonId][statKey] = baseStat;
-        });
-
-        pokemonMovesCsv.slice(1).forEach(line => {
-            const cols = parseCsvRow(line);
-            const pokemonId = Number(cols[0]);
-            if (pokemonId > 251) return; // limiter pour perf
-            const versionGroupId = Number(cols[1]);
-            const moveId = Number(cols[2]);
-            const learnMethodId = Number(cols[3]); // pokemon_move_method_id
-            const level = Number(cols[4]);
-            if (learnMethodId !== 1) return; // level-up only
-            if (!learnsetByPokemon[pokemonId]) learnsetByPokemon[pokemonId] = [];
-            learnsetByPokemon[pokemonId].push({ moveId, level, versionGroupId });
-        });
-
-        battleDataLoaded = true;
-    }
-
-    const achievementsData = (() => {
         const list = [];
 
         // Argent progressif
@@ -390,8 +254,6 @@ movesCsv.slice(1).forEach(line => {
     ];
 
     let clickValue = 1;
-    let currentOpponent = null;
-    let battlesFought = 0;
     let currentGymBattle = null;
     const POKEMON_COST_GROWTH = 1.15;
     let automationState = {
@@ -420,270 +282,6 @@ movesCsv.slice(1).forEach(line => {
     let storeFilterGen = 'all';
 
     // --- Game Logic ---
-
-    function pickMovesForPokemon(pokemonId) {
-        const learnset = learnsetByPokemon[pokemonId] || [];
-        if (!learnset.length) {
-            const tackle = Object.values(movesById).find(m => m.name === 'tackle') || { name: 'Tackle', type: 'normal', power: 40, accuracy: 100, damageClass: 'physical' };
-            return [tackle];
-        }
-        const maxVersion = Math.max(...learnset.map(l => l.versionGroupId || 0));
-        const candidates = learnset
-            .filter(l => (l.versionGroupId || 0) === maxVersion)
-            .map(m => ({ ...movesById[m.moveId], level: m.level }))
-            .filter(m => m && m.name);
-        candidates.sort((a, b) => (b.level || 0) - (a.level || 0) || (b.power || 0) - (a.power || 0));
-        const unique = [];
-        const names = new Set();
-        for (const mv of candidates) {
-            if (!mv) continue;
-            if (names.has(mv.name)) continue;
-            unique.push(mv);
-            names.add(mv.name);
-            if (unique.length >= 4) break;
-        }
-        if (!unique.length) {
-            const tackle = Object.values(movesById).find(m => m.name === 'tackle') || { name: 'Tackle', type: 'normal', power: 40, accuracy: 100, damageClass: 'physical' };
-            unique.push(tackle);
-        }
-        return unique;
-    }
-
-    function buildCombatantFromDex(dex, options = {}) {
-        const { levelBoost = 0, level: directLevel = 0 } = options;
-        const pokemon = pokemonData.find(p => p.dex === dex || p.id === `dex-${dex}`);
-        const pokemonId = Number(String(dex).replace('dex-', ''));
-        const types = pokemonTypesMap[pokemonId] || ['normal'];
-        const bases = baseStatsByPokemon[pokemonId] || { hp: 60, atk: 60, def: 60, spa: 60, spd: 60, spe: 60 };
-        const level = directLevel > 0 ? directLevel : Math.max(10, BATTLE_LEVEL_BASE + levelBoost);
-        const stats = {
-            hp: calcStat(bases.hp, level, true),
-            atk: calcStat(bases.atk, level),
-            def: calcStat(bases.def, level),
-            spa: calcStat(bases.spa, level),
-            spd: calcStat(bases.spd, level),
-            spe: calcStat(bases.spe, level),
-        };
-        const localizedName = pokemon ? getLocalizedPokemonName(pokemon, currentLanguage()) : `Pokemon #${pokemonId}`;
-        return {
-            id: pokemonId,
-            name: localizedName,
-            sprite: pokemon ? pokemon.imageUrl : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`,
-            types,
-            level,
-            stats,
-            currentHp: stats.hp,
-            moves: pickMovesForPokemon(pokemonId),
-        };
-    }
-
-    function typeEffectiveness(moveType, defenderTypes) {
-        let mult = 1;
-        defenderTypes.forEach(t => {
-            const eff = (typeChart[moveType] && typeChart[moveType][t]) || 1;
-            mult *= eff;
-        });
-        return mult;
-    }
-
-    function computeDamage(attacker, defender, move) {
-        if (!move || move.damageClass === 'status' || !move.power) return 0;
-        const atk = move.damageClass === 'special' ? attacker.stats.spa : attacker.stats.atk;
-        const def = move.damageClass === 'special' ? defender.stats.spd : defender.stats.def;
-        const base = (((2 * attacker.level / 5 + 2) * move.power * (atk / Math.max(1, def))) / 50) + 2;
-        const stab = attacker.types.includes(move.type) ? 1.5 : 1;
-        const eff = typeEffectiveness(move.type, defender.types);
-        const rand = 0.85 + Math.random() * 0.15;
-        return Math.max(1, Math.floor(base * stab * eff * rand));
-    }
-
-    function pickPlayerPokemonForBattle() {
-        if (!Object.keys(ownedPokemon).length) return null;
-        let best = null;
-        let bestCost = -1;
-        pokemonData.forEach(p => {
-            const qty = ownedPokemon[p.id] || 0;
-            if (qty > 0 && p.cost > bestCost) {
-                best = p;
-                bestCost = p.cost;
-            }
-        });
-        if (battlePokemonId && ownedPokemon[battlePokemonId]) {
-            const fav = pokemonData.find(p => p.id === battlePokemonId);
-            if (fav) best = fav;
-        }
-        return best;
-    }
-
-    function generateBattleOpponentCombatant(playerLevel = 1) {
-        const maxDex = Math.max(...pokemonData.map(p => p.dex));
-        const playerOwnedMax = highestOwnedDexIndex() + 1;
-        const dex = Math.max(1, Math.min(maxDex, playerOwnedMax + Math.floor(Math.random() * 5)));
-        
-        const levelVariance = Math.floor(Math.random() * 5) - 2; // -2 to +2
-        const opponentLevel = Math.max(1, playerLevel + levelVariance);
-
-        return buildCombatantFromDex(dex, { level: opponentLevel });
-    }
-
-    function effectivenessText(mult) {
-        if (mult === 0) return "Ça n'a aucun effet...";
-        if (mult > 1.5) return "C'est super efficace !";
-        if (mult < 0.9) return "Ce n'est pas très efficace...";
-        return "";
-    }
-
-    function renderBattleUI() {
-        if (!battleState) return;
-        const { player, foe } = battleState;
-        if (battlePlayerLabel) battlePlayerLabel.textContent = `${player.name} Lv.${player.level}`;
-        if (battleFoeLabel) battleFoeLabel.textContent = `${foe.name} Lv.${foe.level}`;
-        if (battlePlayerSprite) battlePlayerSprite.src = player.sprite;
-        if (battleFoeSprite) battleFoeSprite.src = foe.sprite;
-        if (battleActions) {
-            battleActions.innerHTML = '';
-            player.moves.forEach(mv => {
-                const btn = document.createElement('button');
-                btn.className = 'btn small';
-                btn.textContent = `${mv.name} (${mv.type.toUpperCase()})`;
-                btn.addEventListener('click', () => performBattleTurn(mv));
-                battleActions.appendChild(btn);
-            });
-        }
-        updateHpBars();
-    }
-
-    function updateHpBars() {
-        if (!battleState) return;
-        const { player, foe } = battleState;
-        const playerPct = Math.max(0, (player.currentHp / player.stats.hp) * 100);
-        const foePct = Math.max(0, (foe.currentHp / foe.stats.hp) * 100);
-        if (battlePlayerHpFill) battlePlayerHpFill.style.width = `${playerPct}%`;
-        if (battleFoeHpFill) battleFoeHpFill.style.width = `${foePct}%`;
-        if (battlePlayerHpText) battlePlayerHpText.textContent = `${player.currentHp}/${player.stats.hp}`;
-        if (battleFoeHpText) battleFoeHpText.textContent = `${foe.currentHp}/${foe.stats.hp}`;
-    }
-
-    function logBattle(message, color = 'white') {
-        if (!battleLog) return;
-        const p = document.createElement('p');
-        p.style.color = color;
-        p.textContent = message;
-        battleLog.appendChild(p);
-        battleLog.scrollTop = battleLog.scrollHeight;
-    }
-
-    function endBattle(victory) {
-        if (currentGymBattle && victory) {
-            currentGymBattle.teamIndex++;
-            if (currentGymBattle.teamIndex < currentGymBattle.leader.team.length) {
-                // There's another Pokémon to fight
-                const nextFoePokemon = currentGymBattle.leader.team[currentGymBattle.teamIndex];
-                const nextFoe = buildCombatantFromDex(nextFoePokemon.dex, { level: nextFoePokemon.level });
-                logBattle(`Le champion envoie ${nextFoe.name} !`, '#ffb347');
-                startBattle(nextFoe, true); // `true` to indicate it's a continuation
-                return; // Skip normal end-of-battle rewards
-            } else {
-                // All Pokémon defeated, gym leader is beaten
-                const gen = currentGeneration;
-                if (!defeatedGyms[gen]) {
-                    defeatedGyms[gen] = [];
-                }
-                defeatedGyms[gen].push(currentGymBattle.leader.id);
-                toast(`Victoire ! Vous avez vaincu ${currentGymBattle.leader.name} !`);
-                currentGymBattle = null;
-                renderGyms();
-            }
-        } else if (currentGymBattle && !victory) {
-            // Player lost the gym battle
-            toast(`Défaite contre ${currentGymBattle.leader.name}...`);
-            currentGymBattle = null;
-            nextBattleAllowedAt = Date.now() + 10000;
-        } else {
-             const { foe } = battleState;
-            if (victory) {
-                const xpGained = 80;
-                const reward = Math.floor(foe.level * 120 * prestigeMultiplier);
-                money += reward;
-                gainXp(xpGained); // Grant XP to trainer
-                if (battlePokemonId) {
-                    if (!pokemonXP[battlePokemonId]) {
-                        pokemonXP[battlePokemonId] = 0;
-                    }
-                    pokemonXP[battlePokemonId] += xpGained;
-                }
-                questProgress.money += reward;
-                questProgress.battles += 1;
-                toast('toast-victory', { reward: formatNumber(reward) });
-            } else {
-                const lossMoney = Math.floor(money * 0.08);
-                money = Math.max(0, money - lossMoney);
-                trainerXp = Math.max(0, trainerXp - 10);
-                toast('toast-defeat', { loss: formatNumber(lossMoney) });
-                nextBattleAllowedAt = Date.now() + 10000;
-            }
-        }
-
-        battlesFought += 1;
-        updateStats();
-        checkQuests();
-        
-        if(!currentGymBattle) { // only reset if not in a gym battle sequence
-            battleState.finished = true;
-            currentOpponent = null;
-            refreshBattlePreview();
-        }
-    }
-
-    function performBattleTurn(playerMove) {
-        if (!battleState || battleState.finished) return;
-        const { player, foe } = battleState;
-        battleLog.innerHTML = '';
-
-        const foeMove = chooseBestMove(foe, player);
-
-        const order = [];
-        const playerPriority = player.stats.spe >= foe.stats.spe ? 0 : 1;
-        if (playerPriority === 0) order.push({ actor: player, target: foe, move: playerMove, isPlayer: true }, { actor: foe, target: player, move: foeMove, isPlayer: false });
-        else order.push({ actor: foe, target: player, move: foeMove, isPlayer: false }, { actor: player, target: foe, move: playerMove, isPlayer: true });
-
-        for (const step of order) {
-            if (player.currentHp <= 0 || foe.currentHp <= 0) continue;
-            const { actor, target, move, isPlayer } = step;
-            if (move.accuracy && Math.random() * 100 > move.accuracy) {
-                logBattle(`${actor.name} rate ${move.name} !`, '#ffb347');
-                continue;
-            }
-            const dmg = computeDamage(actor, target, move);
-            target.currentHp = Math.max(0, target.currentHp - dmg);
-            const effText = effectivenessText(typeEffectiveness(move.type, target.types));
-            logBattle(`${actor.name} utilise ${move.name} (${dmg} dégâts). ${effText}`, isPlayer ? '#9be7ff' : '#ffd166');
-            updateHpBars();
-            if (target.currentHp <= 0) {
-                logBattle(`${target.name} est K.O. !`, '#ff6961');
-            }
-        }
-
-        if (foe.currentHp <= 0) {
-            endBattle(true);
-        } else if (player.currentHp <= 0) {
-            endBattle(false);
-        }
-    }
-
-    function chooseBestMove(attacker, target) {
-        // Favorise super efficace, puis puissance, puis aléatoire pondéré
-        const scored = attacker.moves.map(mv => {
-            const eff = typeEffectiveness(mv.type, target.types);
-            const dmg = computeDamage(attacker, target, mv);
-            const score = (dmg || 0) * eff * (mv.accuracy ? mv.accuracy / 100 : 1);
-            return { mv, score };
-        }).sort((a, b) => b.score - a.score);
-        const top = scored[0] ? scored[0].mv : attacker.moves[0];
-        // petite randomisation pour éviter la monotonie
-        if (scored.length > 1 && Math.random() < 0.2) return scored[1].mv;
-        return top;
-    }
 
     function detachTutorialTargetListener() {
         if (tutorialTargetListener && tutorialTargetListener.el) {
@@ -893,7 +491,7 @@ movesCsv.slice(1).forEach(line => {
         if (tutorialActive) {
             showTutorialStep(tutorialStepIndex);
         }
-        refreshBattlePreview();
+        battleSystem?.refreshBattlePreview();
         updateHeroStats();
         if (languageSelect) {
             const optFr = languageSelect.querySelector('option[value="fr"]');
@@ -988,6 +586,46 @@ movesCsv.slice(1).forEach(line => {
         if (!iconName) return `${ITEM_SPRITE_BASE}poke-ball.png`;
         if (iconName.startsWith('http')) return iconName;
         return `${ITEM_SPRITE_BASE}${iconName}`;
+    }
+
+    function getPokemonXpValue(id) {
+        return pokemonXP[id] || 0;
+    }
+
+    function addPokemonXpValue(id, amount) {
+        pokemonXP[id] = (pokemonXP[id] || 0) + amount;
+    }
+
+    function incrementQuestProgressValue(field, amount) {
+        questProgress[field] = (questProgress[field] || 0) + amount;
+    }
+
+    function getMoneyValue() {
+        return money;
+    }
+
+    function addMoneyValue(delta) {
+        money += delta;
+    }
+
+    function getMoneyPerSecondValue() {
+        return moneyPerSecond;
+    }
+
+    function getCurrentGenerationValue() {
+        return currentGeneration;
+    }
+
+    function hideChangePokemonModal() {
+        if (changePokemonModal) changePokemonModal.style.display = 'none';
+    }
+
+    function hideGymsModal() {
+        if (gymsModal) gymsModal.style.display = 'none';
+    }
+
+    function hideLeaguesModal() {
+        if (leaguesModal) leaguesModal.style.display = 'none';
     }
 
     function recalculateClickValue() {
@@ -1107,46 +745,29 @@ movesCsv.slice(1).forEach(line => {
         return maxIndex;
     }
 
-    function generateOpponent() {
-        const ownedMax = Math.max(5, highestOwnedDexIndex());
-        const minIdx = Math.max(0, ownedMax - 5);
-        const maxIdx = Math.min(pokemonData.length - 1, ownedMax + 5);
-        const chosen = pokemonData[Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx];
-        const basePower = moneyPerSecond || 10;
-        const variance = (Math.random() * 0.5 + 0.75); // 75% to 125%
-        const difficulty = Math.pow(1.12, battlesFought) * (1 + (currentGeneration - 1) * 0.5);
-        const power = Math.max(15, basePower * variance * difficulty);
-        return { ...chosen, power };
-    }
-
     function calculateMoneyPerSecond() {
         moneyPerSecond = 0;
+        const favoriteId = battleSystem ? battleSystem.getBattlePokemonId() : null;
         for (const id in ownedPokemon) {
             const pokemon = pokemonData.find(p => p.id === id);
-            if (pokemon) { // Check if pokemon exists in the current data
-                let pokemonMps = pokemon.mps;
-
-        if (id === battlePokemonId) {
-            pokemonMps *= 2; // Double MPS for favorite pokemon
-        }
-
-        if (shinyPokemon.includes(id)) {
-            pokemonMps *= SHINY_MULTIPLIER; // shiny bonus
-        }
-        if (activeChallenge && activeChallenge.shinyOnly && !shinyPokemon.includes(id)) {
-            pokemonMps = 0;
-        }
-
-        // Apply specific and all upgrades
-        purchasedUpgrades.forEach(upgradeId => {
-            const upgrade = upgradesData.find(u => u.id === upgradeId);
-            if (upgrade && upgrade.multiplier && (upgrade.target === id || upgrade.target === 'all')) {
-                        pokemonMps *= upgrade.multiplier;
-                    }
-                });
-
-                moneyPerSecond += ownedPokemon[id] * pokemonMps;
+            if (!pokemon) continue;
+            let pokemonMps = pokemon.mps;
+            if (favoriteId && id === favoriteId) {
+                pokemonMps *= 2;
             }
+            if (shinyPokemon.includes(id)) {
+                pokemonMps *= SHINY_MULTIPLIER;
+            }
+            if (activeChallenge && activeChallenge.shinyOnly && !shinyPokemon.includes(id)) {
+                pokemonMps = 0;
+            }
+            purchasedUpgrades.forEach(upgradeId => {
+                const upgrade = upgradesData.find(u => u.id === upgradeId);
+                if (upgrade && upgrade.multiplier && (upgrade.target === id || upgrade.target === 'all')) {
+                    pokemonMps *= upgrade.multiplier;
+                }
+            });
+            moneyPerSecond += ownedPokemon[id] * pokemonMps;
         }
         moneyPerSecond *= prestigeMultiplier;
         moneyPerSecond *= temporaryMultiplier;
@@ -1168,8 +789,9 @@ movesCsv.slice(1).forEach(line => {
             }
             if (!pokemonXP[pokemonId]) pokemonXP[pokemonId] = 0;
             pokemonXP[pokemonId] += xpForLevel5;
-            if (!battlePokemonId) {
-                setBattlePokemon(pokemonId);
+            const favEmpty = !battleSystem || !battleSystem.getBattlePokemonId();
+            if (favEmpty) {
+                battleSystem?.setBattlePokemon(pokemonId);
             }
         }
     }
@@ -1315,18 +937,6 @@ movesCsv.slice(1).forEach(line => {
         }
     }
 
-    async function startLeagueBattle(league, isBoss = false) {
-        const entry = league.entry;
-        if (money < entry) {
-            toast('toast-no-league-money');
-            return;
-        }
-        money -= entry;
-        toast('toast-league-start', { name: league.name, difficulty: league.difficulty || 1 });
-        await startBattle();
-        if (isBoss) battlesFought += 2;
-    }
-
     function activateChallenge(challenge) {
         activeChallenge = challenge;
         toast('toast-challenge-start', { name: challenge.name });
@@ -1378,13 +988,12 @@ movesCsv.slice(1).forEach(line => {
     function updateUI() {
         updateStats();
         renderOwnedPokemon();
-        renderBattlePokemon();
+        battleSystem?.renderBattlePokemon();
         updateTrainerUI();
         renderAutomation();
         renderTalents();
         renderQuests();
         updateEventBanner();
-        renderLeagues();
         renderChallenges();
         renderInventory();
     }
@@ -1395,7 +1004,7 @@ movesCsv.slice(1).forEach(line => {
         prestigePointsDisplay.textContent = `${formatNumber(prestigePoints)} (Gen ${currentGeneration})`;
         prestigeMultiplierDisplay.textContent = `${prestigeMultiplier.toFixed(2)}x`;
         updateHeroStats();
-        refreshBattlePreview();
+        battleSystem?.refreshBattlePreview();
     }
 
     setNameUpdateCallback(() => {
@@ -1414,49 +1023,7 @@ movesCsv.slice(1).forEach(line => {
         }
     }
 
-function refreshBattlePreview() {
-        // Elements du DOM (assure-toi qu'ils existent dans le HTML modifié)
-        const previewPlayerImg = document.getElementById('preview-player-sprite');
-        const previewPlayerName = document.getElementById('preview-player-name');
-        
-        if (!battleOpponentName || !battleOpponentSprite || !battleOpponentPower || !battleRisk) return;
-        
-        // Génère un adversaire si besoin
-        if (!currentOpponent) currentOpponent = generateOpponent();
-        
-        // Mise à jour Adversaire
-        battleOpponentName.textContent = `#${currentOpponent.dex} ${currentOpponent.name}`;
-        battleOpponentSprite.src = currentOpponent.imageUrl;
-        battleOpponentPower.textContent = `${t('battle-power')}: ${formatNumber(currentOpponent.power)}`;
-        
-        // Mise à jour Joueur (Toi)
-        const playerMon = pickPlayerPokemonForBattle();
-
-        if (battlePlayerPower) {
-            if (playerMon) {
-                const playerXp = pokemonXP[playerMon.id] || 0;
-                const playerLevel = getLevelForXp(playerXp);
-                const combatant = buildCombatantFromDex(playerMon.dex, { level: playerLevel });
-                const power = combatant.stats.atk + combatant.stats.spa; // A simple power metric
-                battlePlayerPower.textContent = `${t('player-power')}: ${formatNumber(power || 1)}`;
-            } else {
-                battlePlayerPower.textContent = `${t('player-power')}: 0`;
-            }
-        }
-        
-        if (playerMon) {
-            if(previewPlayerImg) previewPlayerImg.src = playerMon.imageUrl;
-            if(previewPlayerName) previewPlayerName.textContent = playerMon.name;
-        } else {
-            // Si pas de pokemon (début de partie)
-            if(previewPlayerImg) previewPlayerImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png";
-            if(previewPlayerName) previewPlayerName.textContent = "Aucun";
-        }
-
-        battleRisk.textContent = t('battle-risk-text');
-    }
-
-    function enableDragScroll(el) {
+function enableDragScroll(el) {
         let isDown = false;
         let startX;
         let scrollLeft;
@@ -1506,7 +1073,8 @@ function refreshBattlePreview() {
     function buildPokemonCard(pokemon, count, isSelectable = false) {
         const pokemonElement = document.createElement('div');
         pokemonElement.className = 'pokemon-instance';
-        if (pokemon.id === battlePokemonId) {
+        const favoriteId = battleSystem ? battleSystem.getBattlePokemonId() : null;
+        if (pokemon.id === favoriteId) {
             pokemonElement.classList.add('favorite');
         }
         if (shinyPokemon.includes(pokemon.id)) {
@@ -1518,7 +1086,7 @@ function refreshBattlePreview() {
             <span>${localizedName} (x${formatNumber(count)})</span>
         `;
         if (isSelectable) {
-            pokemonElement.addEventListener('click', () => setBattlePokemon(pokemon.id));
+            pokemonElement.addEventListener('click', () => battleSystem?.setBattlePokemon(pokemon.id));
         }
         return pokemonElement;
     }
@@ -1602,52 +1170,6 @@ function refreshBattlePreview() {
 
     function closeOwnedModal() {
         if (ownedPokemonModal) ownedPokemonModal.style.display = 'none';
-    }
-
-    function setBattlePokemon(pokemonId) {
-        if (ownedPokemon[pokemonId] > 0) {
-            battlePokemonId = pokemonId;
-            calculateMoneyPerSecond();
-            updateUI();
-            if (changePokemonModal) {
-                changePokemonModal.style.display = 'none';
-            }
-        }
-    }
-
-    function renderBattlePokemon() {
-        const battlePokemonIdSlot = document.getElementById('favorite-pokemon-slot');
-        battlePokemonIdSlot.innerHTML = '';
-        if (battlePokemonId) {
-            const pokemon = pokemonData.find(p => p.id === battlePokemonId);
-            if (pokemon) {
-                const xp = pokemonXP[battlePokemonId] || 0;
-                const level = getLevelForXp(xp);
-                const currentLevelXp = getCurrentXpForLevel(xp);
-                const xpForNext = getXpToLevelUp(level);
-
-                const pokemonElement = document.createElement('div');
-                pokemonElement.className = 'pokemon-instance favorite';
-                 if (shinyPokemon.includes(battlePokemonId)) {
-                    pokemonElement.classList.add('shiny');
-                }
-                const localizedName = localizedPokemonName(pokemon);
-                pokemonElement.innerHTML = `
-                    <img src="${getSpriteUrl(pokemon)}" alt="${localizedName}">
-                    <span>${localizedName} <small>(Lvl ${level})</small></span>
-                `;
-                battlePokemonIdSlot.appendChild(pokemonElement);
-
-                battlePokemonXpContainer.style.display = 'block';
-                battlePokemonXpBar.value = currentLevelXp;
-                battlePokemonXpBar.max = xpForNext;
-                battlePokemonXpText.textContent = `${formatNumber(currentLevelXp)} / ${formatNumber(xpForNext)} XP`;
-
-            }
-        } else {
-            battlePokemonIdSlot.innerHTML = '<span>Choisissez un Pokémon pour le combat.</span>';
-            if(battlePokemonXpContainer) battlePokemonXpContainer.style.display = 'none';
-        }
     }
 
     function renderAutomation() {
@@ -1751,99 +1273,6 @@ function refreshBattlePreview() {
             });
         }
         updateTicker();
-    }
-
-    function renderLeagues() {
-        if (!leaguesList) return;
-        leaguesList.innerHTML = '';
-        leaguesData.forEach(league => {
-            const pill = document.createElement('div');
-            pill.className = 'pill';
-            pill.innerHTML = `
-                <strong>${league.name}</strong>
-                <span>${translateWithParams('league-ticket', { cost: formatNumber(league.entry) })}</span>
-                <span>${translateWithParams('league-reward', { mult: league.rewardMult.toFixed(2) })}</span>
-            `;
-            const btn = document.createElement('button');
-            btn.className = 'btn small';
-            btn.textContent = t('fight-btn');
-            btn.onclick = () => startLeagueBattle(league);
-            pill.appendChild(btn);
-            leaguesList.appendChild(pill);
-        });
-        // Boss
-        const bossPill = document.createElement('div');
-        bossPill.className = 'pill';
-        bossPill.innerHTML = `
-            <strong>${bossData.name}</strong>
-            <span>${translateWithParams('league-ticket', { cost: formatNumber(bossData.entry) })}</span>
-            <span>${translateWithParams('league-reward', { mult: bossData.rewardMult.toFixed(2) })}</span>
-        `;
-        const bossBtn = document.createElement('button');
-        bossBtn.className = 'btn small';
-        bossBtn.textContent = t('boss-fight-btn');
-        bossBtn.onclick = () => startLeagueBattle(bossData, true);
-        bossPill.appendChild(bossBtn);
-        leaguesList.appendChild(bossPill);
-    }
-
-    function renderGyms() {
-        if (!gymsList) return;
-        gymsList.innerHTML = '';
-        const gen = currentGeneration;
-        if (!gymLeadersData[gen]) {
-            gymsList.innerHTML = '<p class="muted">Aucune arène pour cette génération.</p>';
-            return;
-        }
-
-        if (!defeatedGyms[gen]) {
-            defeatedGyms[gen] = [];
-        }
-        
-        const leaders = [...gymLeadersData[gen], ...eliteFourData[gen]];
-
-        leaders.forEach((leader, index) => {
-            const defeated = defeatedGyms[gen].includes(leader.id);
-            const prevDefeated = index === 0 || defeatedGyms[gen].includes(leaders[index - 1].id);
-            const canFight = prevDefeated && !defeated;
-
-            const pill = document.createElement('div');
-            pill.className = `pill ${defeated ? 'purchased' : ''} ${!prevDefeated ? 'locked' : ''}`;
-            pill.innerHTML = `
-                <strong>${leader.name}</strong>
-                <span>${leader.badge || 'Membre du Conseil 4'}</span>
-            `;
-
-            if (defeated) {
-                const badge = document.createElement('span');
-                badge.className = 'muted';
-                badge.textContent = 'Vaincu';
-                pill.appendChild(badge);
-            } else {
-                const btn = document.createElement('button');
-                btn.className = 'btn small';
-                btn.textContent = 'Combattre';
-                btn.disabled = !canFight;
-                btn.onclick = () => startGymBattle(leader);
-                pill.appendChild(btn);
-            }
-            gymsList.appendChild(pill);
-        });
-    }
-
-    async function startGymBattle(leader) {
-        gymsModal.style.display = 'none';
-        
-        currentGymBattle = {
-            leader: leader,
-            teamIndex: 0
-        };
-        
-        const foePokemon = leader.team[0];
-        const foe = buildCombatantFromDex(foePokemon.dex, { level: foePokemon.level });
-        
-        logBattle(`Vous défiez ${leader.name} !`, '#f3d947');
-        await startBattle(foe);
     }
 
     function renderChallenges() {
@@ -2121,7 +1550,8 @@ function refreshBattlePreview() {
         // Update prestige button visibility
         const gen = currentGeneration;
         const requiredBadges = (gymLeadersData[gen]?.length || 8) + (eliteFourData[gen]?.length || 5);
-        if (defeatedGyms[gen] && defeatedGyms[gen].length >= requiredBadges) {
+        const defeatedCount = battleSystem?.getDefeatedGymsCount(gen) || 0;
+        if (defeatedCount >= requiredBadges) {
             prestigeButton.style.display = 'inline-block';
         } else {
             prestigeButton.style.display = 'none';
@@ -2230,7 +1660,8 @@ function refreshBattlePreview() {
     function prestige() {
         const gen = currentGeneration;
         const requiredBadges = (gymLeadersData[gen]?.length || 8) + (eliteFourData[gen]?.length || 5);
-        if (defeatedGyms[gen] && defeatedGyms[gen].length >= requiredBadges) {
+        const defeatedCount = battleSystem?.getDefeatedGymsCount(gen) || 0;
+        if (defeatedCount >= requiredBadges) {
             const newPrestigePoints = Math.floor(Math.sqrt(money / 10000000)); // Prestige points are now based on money at time of prestige
             prestigePoints += newPrestigePoints;
             prestigeMultiplier = 1 + prestigePoints * 0.1;
@@ -2247,15 +1678,13 @@ function refreshBattlePreview() {
             ownedPokemon = {};
             purchasedUpgrades = [];
             unlockedAchievements = [];
-            battlePokemonId = null;
             shinyPokemon = [];
-            defeatedGyms = {};
             defeatedEliteFour = {};
+            battleSystem?.resetBattleProgress();
             trainerLevel = 1;
             trainerXp = 0;
             xpToNextLevel = 100;
             clickValue = 1;
-            battlesFought = 0;
             prestigeButton.style.display = 'none';
 
             refreshGenerationData();
@@ -2275,9 +1704,8 @@ function refreshBattlePreview() {
             prestigePoints: prestigePoints,
             prestigeMultiplier: prestigeMultiplier,
             unlockedAchievements: unlockedAchievements,
-            battlePokemonId: battlePokemonId,
             shinyPokemon: shinyPokemon,
-            defeatedGyms: defeatedGyms,
+            battle: battleSystem?.getStateForSave() || null,
             pokemonXP: pokemonXP,
             trainerLevel: trainerLevel,
             trainerXp: trainerXp,
@@ -2312,9 +1740,8 @@ function refreshBattlePreview() {
                 prestigePoints = gameState.prestigePoints || 0;
                 prestigeMultiplier = gameState.prestigeMultiplier || 1;
                 unlockedAchievements = gameState.unlockedAchievements || [];
-                battlePokemonId = gameState.battlePokemonId || null;
                 shinyPokemon = gameState.shinyPokemon || [];
-                defeatedGyms = gameState.defeatedGyms || {};
+                battleSystem?.loadState(gameState.battle || {});
                 trainerLevel = gameState.trainerLevel || 1;
                 trainerXp = gameState.trainerXp || 0;
                 xpToNextLevel = gameState.xpToNextLevel || 100;
@@ -2344,9 +1771,8 @@ function refreshBattlePreview() {
             prestigePoints = 0;
             prestigeMultiplier = 1;
             unlockedAchievements = [];
-            battlePokemonId = null;
             shinyPokemon = [];
-            defeatedGyms = {};
+            battleSystem?.resetBattleProgress();
             trainerLevel = 1;
             trainerXp = 0;
             xpToNextLevel = 100;
@@ -2448,10 +1874,10 @@ function refreshBattlePreview() {
         }
 
         if (openLeaguesButton && leaguesModal && closeLeaguesButton) {
-            openLeaguesButton.addEventListener('click', () => {
-                leaguesModal.style.display = 'flex';
-                renderLeagues();
-            });
+        openLeaguesButton.addEventListener('click', () => {
+            leaguesModal.style.display = 'flex';
+            battleSystem?.renderLeagues();
+        });
             closeLeaguesButton.addEventListener('click', () => {
                 leaguesModal.style.display = 'none';
             });
@@ -2461,10 +1887,10 @@ function refreshBattlePreview() {
         }
 
         if (openGymsButton && gymsModal && closeGymsButton) {
-            openGymsButton.addEventListener('click', () => {
-                gymsModal.style.display = 'flex';
-                renderGyms();
-            });
+        openGymsButton.addEventListener('click', () => {
+            gymsModal.style.display = 'flex';
+            battleSystem?.renderGyms();
+        });
             closeGymsButton.addEventListener('click', () => {
                 gymsModal.style.display = 'none';
             });
@@ -2638,8 +2064,7 @@ function refreshBattlePreview() {
             });
         });
 
-        currentOpponent = generateOpponent();
-        refreshBattlePreview();
+        battleSystem?.refreshBattlePreview();
 
         document.querySelectorAll('.scroll-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -2704,7 +2129,7 @@ function refreshBattlePreview() {
             }
         });
 
-        battleButton.addEventListener('click', () => startBattle());
+        battleButton.addEventListener('click', () => battleSystem?.startBattle());
 
         if (tutorialOverlay && tutorialNextButton && tutorialBackButton && tutorialSkipButton) {
             tutorialNextButton.addEventListener('click', nextTutorialStep);
@@ -2715,48 +2140,6 @@ function refreshBattlePreview() {
         }
 
         startTutorialIfNeeded(lastSaveTime);
-    }
-
-    async function startBattle(predefinedFoe = null, isContinuation = false) {
-        const now = Date.now();
-        if (!isContinuation && now < nextBattleAllowedAt) {
-            const wait = Math.ceil((nextBattleAllowedAt - now) / 1000);
-            toast('toast-wait-battle', { seconds: wait });
-            return;
-        }
-        if (!Object.keys(ownedPokemon).length) {
-            toast('toast-no-battle-team');
-            return;
-        }
-        await loadBattleData().catch(() => toast('toast-battle-load-fail'));
-        const playerMon = pickPlayerPokemonForBattle();
-        if (!playerMon) {
-            toast('toast-no-battle-pokemon');
-            return;
-        }
-
-        const playerPokemonId = playerMon.id;
-        const playerXp = pokemonXP[playerPokemonId] || 0;
-        const playerLevel = getLevelForXp(playerXp);
-
-        // In a gym battle sequence, the player's pokemon is not healed.
-        const player = (isContinuation && battleState && battleState.player)
-            ? battleState.player 
-            : buildCombatantFromDex(playerMon.dex || Number(playerMon.id.replace('dex-', '')), { level: playerLevel });
-
-        if (isContinuation && battleState && battleState.player) {
-            player.currentHp = battleState.player.currentHp; // Explicitly carry over HP
-        }
-
-        const foe = predefinedFoe || generateBattleOpponentCombatant(playerLevel);
-        battleState = { player, foe, finished: false };
-        
-        if (!isContinuation) {
-            battleLog.innerHTML = '';
-        }
-
-        logBattle(`${foe.name} (Lv.${foe.level}) entre en scène !`, '#ffd166');
-        renderBattleUI();
     }
 
     function createFloatingNumber(x, y, value) {
@@ -2892,7 +2275,7 @@ cheatMenu.addEventListener('click', (e) => {
             break;
 
         case "skipBattle":
-            nextBattleAllowedAt = 0;
+            battleSystem?.clearBattleCooldown();
             break;
 
         case "shiny100":
@@ -2907,6 +2290,35 @@ cheatMenu.addEventListener('click', (e) => {
 
     if (typeof updateDisplays === "function") updateDisplays();
 });
+    battleSystem = createBattleSystem({
+        getPokemonData: () => pokemonData,
+        getOwnedPokemon: () => ownedPokemon,
+        getPokemonXPForId: getPokemonXpValue,
+        addPokemonXp: addPokemonXpValue,
+        isShinyPokemon: (id) => shinyPokemon.includes(id),
+        getCurrentGeneration: getCurrentGenerationValue,
+        getMoneyPerSecond: getMoneyPerSecondValue,
+        getMoney: getMoneyValue,
+        addMoney: addMoneyValue,
+        incrementQuestProgress: incrementQuestProgressValue,
+        gainXp: gainXp,
+        calculateMoneyPerSecond: calculateMoneyPerSecond,
+        updateStats: updateStats,
+        checkQuests: checkQuests,
+        toast: toast,
+        t: t,
+        translateWithParams: translateWithParams,
+        getLocalizedPokemonName: localizedPokemonName,
+        getSpriteUrl: getSpriteUrl,
+        closeChangePokemonModal: hideChangePokemonModal,
+        onBattlePokemonSelected: () => {
+            calculateMoneyPerSecond();
+            updateUI();
+        },
+        closeGymsModal: hideGymsModal,
+        closeLeaguesModal: hideLeaguesModal,
+        getPrestigeMultiplier: () => prestigeMultiplier
+    });
     init();
 
     function generateQuestsForDate(dateKey) {
@@ -2927,3 +2339,11 @@ cheatMenu.addEventListener('click', (e) => {
     }
 
 });
+
+
+
+
+
+
+
+
