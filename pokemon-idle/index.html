@@ -99,13 +99,16 @@
             </div>
 
             <div id="side-column">
-                <div id="favorite-pokemon-container" class="card">
-                    <h2><i class="fas fa-heart"></i> <span data-i18n="favorite">Favorite Pok´┐¢mon</span></h2>
-                    <div id="favorite-pokemon-slot">
-                        <!-- Favorite Pokémon will be displayed here -->
-                    </div>
-                </div>
-                <div id="battle-container" class="card">
+                            <div id="favorite-pokemon-container" class="card">
+                                <h2><i class="fas fa-gavel"></i> <span data-i18n="battle-pokemon-title">Battle Pokémon</span></h2>
+                                                <div id="favorite-pokemon-slot">
+                                                    <!-- Favorite Pokémon will be displayed here -->
+                                                </div>
+                                                <div id="battle-pokemon-xp-container" style="display: none; margin-top: 10px;">
+                                                    <progress id="battle-pokemon-xp-bar" value="0" max="100" style="width: 100%;"></progress>
+                                                    <span id="battle-pokemon-xp-text" class="muted" style="display: block; text-align: center;"></span>
+                                                </div>
+                                                <button id="change-battle-pokemon-button" class="btn small"><i class="fas fa-sync-alt"></i> Change</button>                            </div>                <div id="battle-container" class="card">
                     <h2><i class="fas fa-gamepad"></i> <span data-i18n="battle">Battle</span></h2>
                 <div id="battle-preview">
                     <div class="opponent-info">
@@ -140,6 +143,7 @@
                 <div id="battle-actions" class="battle-actions pill-list"></div>
                 <div class="pill-list">
                     <button id="battle-button" class="btn" data-i18n="btn-battle"><i class="fas fa-fist-raised"></i> Start Battle</button>
+                    <button id="open-gyms" class="btn ghost small"><i class="fas fa-shield-alt"></i> Arenas</button>
                     <button id="open-leagues" class="btn ghost small" data-i18n="btn-leagues"><i class="fas fa-trophy"></i> Leagues/Boss</button>
                 </div>
                 <div id="battle-log"></div>
@@ -196,6 +200,16 @@
         </div>
     </div>
 
+    <div id="change-pokemon-modal" class="modal" style="display:none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h3><i class="fas fa-gavel"></i> Choose Battle Pokémon</h3>
+                <button id="close-change-pokemon-modal" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
+            </div>
+            <div id="change-pokemon-grid" class="owned-modal-grid"></div>
+        </div>
+    </div>
+
     <div id="leagues-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
@@ -203,6 +217,16 @@
                 <button id="close-leagues" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="leagues-list" class="pill-list"></div>
+        </div>
+    </div>
+
+    <div id="gyms-modal" class="modal" style="display:none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h3><i class="fas fa-shield-alt"></i> Arenas</h3>
+                <button id="close-gyms" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
+            </div>
+            <div id="gyms-list" class="pill-list"></div>
         </div>
     </div>
 

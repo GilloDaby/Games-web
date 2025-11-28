@@ -8,11 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let prestigeMultiplier = 1;
     let unlockedAchievements = [];
     let temporaryMultiplier = 1;
-    let favoritePokemon = null;
+    let battlePokemonId = null;
     let shinyPokemon = [];
+    let defeatedGyms = {};
+    let defeatedEliteFour = {};
     let trainerLevel = 1;
     let trainerXp = 0;
     let xpToNextLevel = 100;
+    let pokemonXP = {};
     let settings = {
         floatingNumbers: true,
         dynamicBackground: true,
@@ -36,8 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'btn-automation': 'Gérer les automations',
             'btn-talents': 'Gérer les talents',
             'battle': 'Combat',
-            'favorite': 'Pokémon favori',
             'leagues-title': 'Ligues & Boss',
+            'battle-pokemon-title': 'Pokémon de Combat',
             'hero-event': 'Hoenn Plains - Événement en direct',
             'hero-title': 'Clique sur la Poké Ball pour gagner et capturer.',
             'hero-subtitle': 'Chaque clic te donne des Pokédollars, avec une faible chance de lâcher un Pokémon sauvage.',
@@ -303,6 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'battle': 'Battle',
             'favorite': 'Favorite Pokémon',
             'leagues-title': 'Leagues & Boss',
+            'battle-pokemon-title': 'Battle Pokémon',
             'hero-event': 'Hoenn Plains - Live Event',
             'hero-title': 'Tap the Poké Ball to earn & catch.',
             'hero-subtitle': 'Each tap grants Pokédollars with a small chance to drop a wild Pokémon.',
@@ -338,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'talent-points': 'Available points:',
             'owned-title': 'Full collection',
             'leagues-title': 'Leagues & Boss',
+            'battle-pokemon-title': 'Battle Pokémon',
             'challenges-title': 'Challenges',
             'inventory-title': 'Inventory & Consumables',
             'pokedex-title': 'Pokédex',
@@ -858,7 +863,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const storeItemsContainer = document.getElementById('store-items');
     const upgradesItemsContainer = document.getElementById('upgrades-items');
     const achievementsItemsContainer = document.getElementById('achievements-items');
-    const favoritePokemonSlot = document.getElementById('favorite-pokemon-slot');
+    const battlePokemonIdSlot = document.getElementById('favorite-pokemon-slot');
     const floatingNumbersContainer = document.getElementById('floating-numbers-container');
     const achievementsModal = document.getElementById('achievements-modal');
     const achievementsButton = document.getElementById('achievements-button');
@@ -873,6 +878,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeLeaguesButton = document.getElementById('close-leagues');
     const leaguesModal = document.getElementById('leagues-modal');
     const leaguesList = document.getElementById('leagues-list');
+    const openGymsButton = document.getElementById('open-gyms');
+    const closeGymsButton = document.getElementById('close-gyms');
+    const gymsModal = document.getElementById('gyms-modal');
+    const gymsList = document.getElementById('gyms-list');
     const openChallengesButton = document.getElementById('open-challenges');
     const closeChallengesButton = document.getElementById('close-challenges');
     const challengesModal = document.getElementById('challenges-modal');
@@ -906,6 +915,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const ownedPokemonModal = document.getElementById('owned-pokemon-modal');
     const ownedPokemonModalGrid = document.getElementById('owned-pokemon-grid');
     const closeOwnedPokemonModalButton = document.getElementById('close-owned-pokemon');
+    const changePokemonModal = document.getElementById('change-pokemon-modal');
+    const closeChangePokemonModal = document.getElementById('close-change-pokemon-modal');
+    const changePokemonGrid = document.getElementById('change-pokemon-grid');
+    const changeBattlePokemonButton = document.getElementById('change-battle-pokemon-button');
     const saveButton = document.getElementById('save-button');
     const loadButton = document.getElementById('load-button');
     const prestigeButton = document.getElementById('prestige-button');
@@ -921,6 +934,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const battlePlayerHpFill = document.getElementById('battle-player-hp-fill');
     const battlePlayerHpText = document.getElementById('battle-player-hp-text');
     const battlePlayerSprite = document.getElementById('battle-player-sprite');
+    const battlePokemonXpContainer = document.getElementById('battle-pokemon-xp-container');
+    const battlePokemonXpBar = document.getElementById('battle-pokemon-xp-bar');
+    const battlePokemonXpText = document.getElementById('battle-pokemon-xp-text');
     const battleFoeLabel = document.getElementById('battle-foe-label');
     const battleFoeHpFill = document.getElementById('battle-foe-hp-fill');
     const battleFoeHpText = document.getElementById('battle-foe-hp-text');
@@ -1097,7 +1113,32 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'league-4', name: 'Ligue Master', entry: 150000, rewardMult: 3.2, difficulty: 3.2 }
     ];
 
+    const gymLeadersData = {
+        1: [
+            { id: 'brock', name: 'Pierre', badge: 'Badge Roche', team: [{ dex: 74, level: 12 }, { dex: 95, level: 14 }] },
+            { id: 'misty', name: 'Ondine', badge: 'Badge Cascade', team: [{ dex: 120, level: 18 }, { dex: 121, level: 21 }] },
+            { id: 'lt-surge', name: 'Major Bob', badge: 'Badge Foudre', team: [{ dex: 100, level: 21 }, { dex: 25, level: 18 }, { dex: 26, level: 24 }] },
+            { id: 'erika', name: 'Erika', badge: 'Badge Prisme', team: [{ dex: 71, level: 29 }, { dex: 114, level: 24 }, { dex: 45, level: 29 }] },
+            { id: 'koga', name: 'Koga', badge: 'Badge Âme', team: [{ dex: 109, level: 37 }, { dex: 89, level: 39 }, { dex: 109, level: 37 }, { dex: 110, level: 43 }] },
+            { id: 'sabrina', name: 'Sabrina', badge: 'Badge Marais', team: [{ dex: 64, level: 38 }, { dex: 122, level: 37 }, { dex: 49, level: 38 }, { dex: 65, level: 43 }] },
+            { id: 'blaine', name: 'Auguste', badge: 'Badge Volcan', team: [{ dex: 58, level: 42 }, { dex: 77, level: 40 }, { dex: 78, level: 42 }, { dex: 59, level: 47 }] },
+            { id: 'giovanni', name: 'Giovanni', badge: 'Badge Terre', team: [{ dex: 111, level: 45 }, { dex: 51, level: 42 }, { dex: 31, level: 44 }, { dex: 34, level: 45 }, { dex: 112, level: 50 }] }
+        ]
+        // Gens 2-9 could be added here
+    };
+
+    const eliteFourData = {
+        1: [
+            { id: 'lorelei', name: 'Olga', team: [{ dex: 87, level: 54 }, { dex: 91, level: 53 }, { dex: 80, level: 54 }, { dex: 124, level: 56 }, { dex: 131, level: 56 }] },
+            { id: 'bruno', name: 'Aldo', team: [{ dex: 95, level: 53 }, { dex: 107, level: 55 }, { dex: 106, level: 55 }, { dex: 95, level: 56 }, { dex: 68, level: 58 }] },
+            { id: 'agatha', name: 'Agatha', team: [{ dex: 94, level: 56 }, { dex: 42, level: 56 }, { dex: 93, level: 55 }, { dex: 24, level: 58 }, { dex: 94, level: 60 }] },
+            { id: 'lance', name: 'Peter', team: [{ dex: 130, level: 58 }, { dex: 148, level: 56 }, { dex: 148, level: 56 }, { dex: 142, level: 60 }, { dex: 149, level: 62 }] },
+            { id: 'champion-blue', name: 'Maître Blue', team: [{ dex: 18, level: 61 }, { dex: 65, level: 59 }, { dex: 112, level: 61 }, { dex: 103, level: 63 }, { dex: 130, level: 61 }, { dex: 6, level: 65 }] }
+        ]
+    };
+
     const bossData = { id: 'boss-week', name: 'Boss Hebdo', entry: 250000, rewardMult: 5, difficulty: 5 };
+
 
     const challengesData = [
         { id: 'ch-no-click', name: 'No-Click Run', desc: 'Clic manuel interdit', reward: 'Titre: Zen', effect: { noClick: true } },
@@ -1410,6 +1451,7 @@ movesCsv.slice(1).forEach(line => {
     let clickValue = 1;
     let currentOpponent = null;
     let battlesFought = 0;
+    let currentGymBattle = null;
     const POKEMON_COST_GROWTH = 1.15;
     let automationState = {
         autoClickPower: 0,
@@ -1449,6 +1491,30 @@ movesCsv.slice(1).forEach(line => {
         return `${val % 1 === 0 ? val : val.toFixed(1)}${suffixes[idx]}`;
     }
 
+    const getXpToLevelUp = (level) => Math.floor(100 * Math.pow(1.2, level - 1));
+
+    const getLevelForXp = (xp) => {
+        let level = 1;
+        let required = getXpToLevelUp(level);
+        while (xp >= required) {
+            xp -= required;
+            level++;
+            required = getXpToLevelUp(level);
+        }
+        return level;
+    };
+
+    const getCurrentXpForLevel = (xp) => {
+        let level = 1;
+        let required = getXpToLevelUp(level);
+        while (xp >= required) {
+            xp -= required;
+            level++;
+            required = getXpToLevelUp(level);
+        }
+        return xp;
+    };
+
     function calcStat(base, level, isHp = false) {
         if (!base) base = 50;
         return isHp
@@ -1484,12 +1550,13 @@ movesCsv.slice(1).forEach(line => {
         return unique;
     }
 
-    function buildCombatantFromDex(dex, levelBoost = 0) {
+    function buildCombatantFromDex(dex, options = {}) {
+        const { levelBoost = 0, level: directLevel = 0 } = options;
         const pokemon = pokemonData.find(p => p.dex === dex || p.id === `dex-${dex}`);
         const pokemonId = Number(String(dex).replace('dex-', ''));
         const types = pokemonTypesMap[pokemonId] || ['normal'];
         const bases = baseStatsByPokemon[pokemonId] || { hp: 60, atk: 60, def: 60, spa: 60, spd: 60, spe: 60 };
-        const level = Math.max(10, BATTLE_LEVEL_BASE + levelBoost);
+        const level = directLevel > 0 ? directLevel : Math.max(10, BATTLE_LEVEL_BASE + levelBoost);
         const stats = {
             hp: calcStat(bases.hp, level, true),
             atk: calcStat(bases.atk, level),
@@ -1541,19 +1608,22 @@ movesCsv.slice(1).forEach(line => {
                 bestCost = p.cost;
             }
         });
-        if (favoritePokemon && ownedPokemon[favoritePokemon]) {
-            const fav = pokemonData.find(p => p.id === favoritePokemon);
+        if (battlePokemonId && ownedPokemon[battlePokemonId]) {
+            const fav = pokemonData.find(p => p.id === battlePokemonId);
             if (fav) best = fav;
         }
         return best;
     }
 
-    function generateBattleOpponentCombatant() {
+    function generateBattleOpponentCombatant(playerLevel = 1) {
         const maxDex = Math.max(...pokemonData.map(p => p.dex));
         const playerOwnedMax = highestOwnedDexIndex() + 1;
         const dex = Math.max(1, Math.min(maxDex, playerOwnedMax + Math.floor(Math.random() * 5)));
-        const levelBoost = Math.max(0, battlesFought * 2 + currentGeneration * 3);
-        return buildCombatantFromDex(dex, levelBoost);
+        
+        const levelVariance = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        const opponentLevel = Math.max(1, playerLevel + levelVariance);
+
+        return buildCombatantFromDex(dex, { level: opponentLevel });
     }
 
     function effectivenessText(mult) {
@@ -1604,27 +1674,65 @@ movesCsv.slice(1).forEach(line => {
     }
 
     function endBattle(victory) {
-        const { foe } = battleState;
-        if (victory) {
-            const reward = Math.floor(foe.level * 120 * prestigeMultiplier);
-            money += reward;
-            gainXp(80);
-            questProgress.money += reward;
-            questProgress.battles += 1;
-            toast('toast-victory', { reward: formatNumber(reward) });
-        } else {
-            const lossMoney = Math.floor(money * 0.08);
-            money = Math.max(0, money - lossMoney);
-            trainerXp = Math.max(0, trainerXp - 10);
-            toast('toast-defeat', { loss: formatNumber(lossMoney) });
+        if (currentGymBattle && victory) {
+            currentGymBattle.teamIndex++;
+            if (currentGymBattle.teamIndex < currentGymBattle.leader.team.length) {
+                // There's another Pokémon to fight
+                const nextFoePokemon = currentGymBattle.leader.team[currentGymBattle.teamIndex];
+                const nextFoe = buildCombatantFromDex(nextFoePokemon.dex, { level: nextFoePokemon.level });
+                logBattle(`Le champion envoie ${nextFoe.name} !`, '#ffb347');
+                startBattle(nextFoe, true); // `true` to indicate it's a continuation
+                return; // Skip normal end-of-battle rewards
+            } else {
+                // All Pokémon defeated, gym leader is beaten
+                const gen = currentGeneration;
+                if (!defeatedGyms[gen]) {
+                    defeatedGyms[gen] = [];
+                }
+                defeatedGyms[gen].push(currentGymBattle.leader.id);
+                toast(`Victoire ! Vous avez vaincu ${currentGymBattle.leader.name} !`);
+                currentGymBattle = null;
+                renderGyms();
+            }
+        } else if (currentGymBattle && !victory) {
+            // Player lost the gym battle
+            toast(`Défaite contre ${currentGymBattle.leader.name}...`);
+            currentGymBattle = null;
             nextBattleAllowedAt = Date.now() + 10000;
+        } else {
+             const { foe } = battleState;
+            if (victory) {
+                const xpGained = 80;
+                const reward = Math.floor(foe.level * 120 * prestigeMultiplier);
+                money += reward;
+                gainXp(xpGained); // Grant XP to trainer
+                if (battlePokemonId) {
+                    if (!pokemonXP[battlePokemonId]) {
+                        pokemonXP[battlePokemonId] = 0;
+                    }
+                    pokemonXP[battlePokemonId] += xpGained;
+                }
+                questProgress.money += reward;
+                questProgress.battles += 1;
+                toast('toast-victory', { reward: formatNumber(reward) });
+            } else {
+                const lossMoney = Math.floor(money * 0.08);
+                money = Math.max(0, money - lossMoney);
+                trainerXp = Math.max(0, trainerXp - 10);
+                toast('toast-defeat', { loss: formatNumber(lossMoney) });
+                nextBattleAllowedAt = Date.now() + 10000;
+            }
         }
+
         battlesFought += 1;
         updateStats();
         checkQuests();
-        battleState.finished = true;
-        currentOpponent = null;
-        refreshBattlePreview();
+        
+        if(!currentGymBattle) { // only reset if not in a gym battle sequence
+            battleState.finished = true;
+            currentOpponent = null;
+            refreshBattlePreview();
+        }
     }
 
     function performBattleTurn(playerMove) {
@@ -2210,7 +2318,7 @@ movesCsv.slice(1).forEach(line => {
             if (pokemon) { // Check if pokemon exists in the current data
                 let pokemonMps = pokemon.mps;
 
-        if (id === favoritePokemon) {
+        if (id === battlePokemonId) {
             pokemonMps *= 2; // Double MPS for favorite pokemon
         }
 
@@ -2224,7 +2332,7 @@ movesCsv.slice(1).forEach(line => {
         // Apply specific and all upgrades
         purchasedUpgrades.forEach(upgradeId => {
             const upgrade = upgradesData.find(u => u.id === upgradeId);
-            if (upgrade && (upgrade.target === id || upgrade.target === 'all')) {
+            if (upgrade && upgrade.multiplier && (upgrade.target === id || upgrade.target === 'all')) {
                         pokemonMps *= upgrade.multiplier;
                     }
                 });
@@ -2237,6 +2345,24 @@ movesCsv.slice(1).forEach(line => {
         moneyPerSecond *= talentBonuses.mpsMult;
         if (activeEvent && activeEvent.mpsMult) {
             moneyPerSecond *= activeEvent.mpsMult;
+        }
+    }
+
+    function grantPokemon(pokemonId) {
+        const isFirstEverPokemon = totalOwnedPokemon() === 0;
+        ownedPokemon[pokemonId] = (ownedPokemon[pokemonId] || 0) + 1;
+        gainXp(10); // trainer xp
+
+        if (isFirstEverPokemon) {
+            let xpForLevel5 = 0;
+            for (let i = 1; i < 5; i++) {
+                xpForLevel5 += getXpToLevelUp(i);
+            }
+            if (!pokemonXP[pokemonId]) pokemonXP[pokemonId] = 0;
+            pokemonXP[pokemonId] += xpForLevel5;
+            if (!battlePokemonId) {
+                setBattlePokemon(pokemonId);
+            }
         }
     }
 
@@ -2256,12 +2382,11 @@ movesCsv.slice(1).forEach(line => {
         const cost = pokemonCurrentCost(pokemon);
         if (money >= cost) {
             money -= cost;
-            ownedPokemon[pokemonId] = (ownedPokemon[pokemonId] || 0) + 1;
-            gainXp(10);
+            grantPokemon(pokemonId);
 
             if (Math.random() < getShinyChance()) {
-                if (!shinyPokemon.includes(pokemonId)) {
-                    shinyPokemon.push(pokemonId);
+                if (!shinyPokemon.includes(pokemon.id)) {
+                    shinyPokemon.push(pokemon.id);
                     showToast(`Shiny trouvé ! ${pokemon.name} rejoint l'équipe (bonus x${SHINY_MULTIPLIER}).`);
                     gainXp(100);
                 }
@@ -2445,7 +2570,7 @@ movesCsv.slice(1).forEach(line => {
     function updateUI() {
         updateStats();
         renderOwnedPokemon();
-        renderFavoritePokemon();
+        renderBattlePokemon();
         updateTrainerUI();
         renderAutomation();
         renderTalents();
@@ -2493,17 +2618,23 @@ function refreshBattlePreview() {
         battleOpponentPower.textContent = `${t('battle-power')}: ${formatNumber(currentOpponent.power)}`;
         
         // Mise à jour Joueur (Toi)
-        const fav = favoritePokemon && pokemonData.find(p => p.id === favoritePokemon);
-        const best = pickPlayerPokemonForBattle();
-        const previewMon = fav || best; // Priorité au favori, sinon le meilleur
+        const playerMon = pickPlayerPokemonForBattle();
 
         if (battlePlayerPower) {
-            battlePlayerPower.textContent = `${t('player-power')}: ${formatNumber(moneyPerSecond || 1)}`;
+            if (playerMon) {
+                const playerXp = pokemonXP[playerMon.id] || 0;
+                const playerLevel = getLevelForXp(playerXp);
+                const combatant = buildCombatantFromDex(playerMon.dex, { level: playerLevel });
+                const power = combatant.stats.atk + combatant.stats.spa; // A simple power metric
+                battlePlayerPower.textContent = `${t('player-power')}: ${formatNumber(power || 1)}`;
+            } else {
+                battlePlayerPower.textContent = `${t('player-power')}: 0`;
+            }
         }
         
-        if (previewMon) {
-            if(previewPlayerImg) previewPlayerImg.src = previewMon.imageUrl;
-            if(previewPlayerName) previewPlayerName.textContent = previewMon.name;
+        if (playerMon) {
+            if(previewPlayerImg) previewPlayerImg.src = playerMon.imageUrl;
+            if(previewPlayerName) previewPlayerName.textContent = playerMon.name;
         } else {
             // Si pas de pokemon (début de partie)
             if(previewPlayerImg) previewPlayerImg.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png";
@@ -2560,10 +2691,10 @@ function refreshBattlePreview() {
         return list;
     }
 
-    function buildPokemonCard(pokemon, count, allowFavorite = true) {
+    function buildPokemonCard(pokemon, count, isSelectable = false) {
         const pokemonElement = document.createElement('div');
         pokemonElement.className = 'pokemon-instance';
-        if (pokemon.id === favoritePokemon) {
+        if (pokemon.id === battlePokemonId) {
             pokemonElement.classList.add('favorite');
         }
         if (shinyPokemon.includes(pokemon.id)) {
@@ -2573,8 +2704,8 @@ function refreshBattlePreview() {
             <img src="${getSpriteUrl(pokemon)}" alt="${pokemon.name}">
             <span>${pokemon.name} (x${formatNumber(count)})</span>
         `;
-        if (allowFavorite) {
-            pokemonElement.addEventListener('click', () => setFavoritePokemon(pokemon.id));
+        if (isSelectable) {
+            pokemonElement.addEventListener('click', () => setBattlePokemon(pokemon.id));
         }
         return pokemonElement;
     }
@@ -2612,7 +2743,7 @@ function refreshBattlePreview() {
             grid.appendChild(empty);
         } else {
             visible.forEach(({ pokemon, count }) => {
-                grid.appendChild(buildPokemonCard(pokemon, count, true));
+                grid.appendChild(buildPokemonCard(pokemon, count, false));
             });
         }
         pokemonContainer.appendChild(grid);
@@ -2630,7 +2761,23 @@ function refreshBattlePreview() {
             return;
         }
         list.forEach(({ pokemon, count }) => {
-            ownedPokemonModalGrid.appendChild(buildPokemonCard(pokemon, count, true));
+            ownedPokemonModalGrid.appendChild(buildPokemonCard(pokemon, count, false));
+        });
+    }
+
+    function renderChangePokemonModal() {
+        if (!changePokemonGrid) return;
+        changePokemonGrid.innerHTML = '';
+        const list = ownedPokemonList('asc');
+        if (!list.length) {
+            const empty = document.createElement('p');
+            empty.className = 'muted';
+            empty.textContent = 'Aucun Pokemon dans ta collection.';
+            changePokemonGrid.appendChild(empty);
+            return;
+        }
+        list.forEach(({ pokemon, count }) => {
+            changePokemonGrid.appendChild(buildPokemonCard(pokemon, count, true));
         });
     }
 
@@ -2644,32 +2791,48 @@ function refreshBattlePreview() {
         if (ownedPokemonModal) ownedPokemonModal.style.display = 'none';
     }
 
-    function setFavoritePokemon(pokemonId) {
+    function setBattlePokemon(pokemonId) {
         if (ownedPokemon[pokemonId] > 0) {
-            favoritePokemon = pokemonId;
+            battlePokemonId = pokemonId;
             calculateMoneyPerSecond();
             updateUI();
+            if (changePokemonModal) {
+                changePokemonModal.style.display = 'none';
+            }
         }
     }
 
-    function renderFavoritePokemon() {
-        favoritePokemonSlot.innerHTML = '';
-        if (favoritePokemon) {
-            const pokemon = pokemonData.find(p => p.id === favoritePokemon);
+    function renderBattlePokemon() {
+        const battlePokemonIdSlot = document.getElementById('favorite-pokemon-slot');
+        battlePokemonIdSlot.innerHTML = '';
+        if (battlePokemonId) {
+            const pokemon = pokemonData.find(p => p.id === battlePokemonId);
             if (pokemon) {
+                const xp = pokemonXP[battlePokemonId] || 0;
+                const level = getLevelForXp(xp);
+                const currentLevelXp = getCurrentXpForLevel(xp);
+                const xpForNext = getXpToLevelUp(level);
+
                 const pokemonElement = document.createElement('div');
                 pokemonElement.className = 'pokemon-instance favorite';
-                 if (shinyPokemon.includes(favoritePokemon)) {
+                 if (shinyPokemon.includes(battlePokemonId)) {
                     pokemonElement.classList.add('shiny');
                 }
                 pokemonElement.innerHTML = `
                     <img src="${getSpriteUrl(pokemon)}" alt="${pokemon.name}">
-                    <span>${pokemon.name}</span>
+                    <span>${pokemon.name} <small>(Lvl ${level})</small></span>
                 `;
-                favoritePokemonSlot.appendChild(pokemonElement);
+                battlePokemonIdSlot.appendChild(pokemonElement);
+
+                battlePokemonXpContainer.style.display = 'block';
+                battlePokemonXpBar.value = currentLevelXp;
+                battlePokemonXpBar.max = xpForNext;
+                battlePokemonXpText.textContent = `${formatNumber(currentLevelXp)} / ${formatNumber(xpForNext)} XP`;
+
             }
         } else {
-            favoritePokemonSlot.innerHTML = '<span>Choisis un Pokémon possédé pour le mettre en favori.</span>';
+            battlePokemonIdSlot.innerHTML = '<span>Choisissez un Pokémon pour le combat.</span>';
+            if(battlePokemonXpContainer) battlePokemonXpContainer.style.display = 'none';
         }
     }
 
@@ -2807,6 +2970,65 @@ function refreshBattlePreview() {
         bossBtn.onclick = () => startLeagueBattle(bossData, true);
         bossPill.appendChild(bossBtn);
         leaguesList.appendChild(bossPill);
+    }
+
+    function renderGyms() {
+        if (!gymsList) return;
+        gymsList.innerHTML = '';
+        const gen = currentGeneration;
+        if (!gymLeadersData[gen]) {
+            gymsList.innerHTML = '<p class="muted">Aucune arène pour cette génération.</p>';
+            return;
+        }
+
+        if (!defeatedGyms[gen]) {
+            defeatedGyms[gen] = [];
+        }
+        
+        const leaders = [...gymLeadersData[gen], ...eliteFourData[gen]];
+
+        leaders.forEach((leader, index) => {
+            const defeated = defeatedGyms[gen].includes(leader.id);
+            const prevDefeated = index === 0 || defeatedGyms[gen].includes(leaders[index - 1].id);
+            const canFight = prevDefeated && !defeated;
+
+            const pill = document.createElement('div');
+            pill.className = `pill ${defeated ? 'purchased' : ''} ${!prevDefeated ? 'locked' : ''}`;
+            pill.innerHTML = `
+                <strong>${leader.name}</strong>
+                <span>${leader.badge || 'Membre du Conseil 4'}</span>
+            `;
+
+            if (defeated) {
+                const badge = document.createElement('span');
+                badge.className = 'muted';
+                badge.textContent = 'Vaincu';
+                pill.appendChild(badge);
+            } else {
+                const btn = document.createElement('button');
+                btn.className = 'btn small';
+                btn.textContent = 'Combattre';
+                btn.disabled = !canFight;
+                btn.onclick = () => startGymBattle(leader);
+                pill.appendChild(btn);
+            }
+            gymsList.appendChild(pill);
+        });
+    }
+
+    async function startGymBattle(leader) {
+        gymsModal.style.display = 'none';
+        
+        currentGymBattle = {
+            leader: leader,
+            teamIndex: 0
+        };
+        
+        const foePokemon = leader.team[0];
+        const foe = buildCombatantFromDex(foePokemon.dex, { level: foePokemon.level });
+        
+        logBattle(`Vous défiez ${leader.name} !`, '#f3d947');
+        await startBattle(foe);
     }
 
     function renderChallenges() {
@@ -3080,8 +3302,13 @@ function refreshBattlePreview() {
             triggerRandomEvent();
         }
 
-        if (money >= PRESTIGE_REQUIREMENT) {
+        // Update prestige button visibility
+        const gen = currentGeneration;
+        const requiredBadges = (gymLeadersData[gen]?.length || 8) + (eliteFourData[gen]?.length || 5);
+        if (defeatedGyms[gen] && defeatedGyms[gen].length >= requiredBadges) {
             prestigeButton.style.display = 'inline-block';
+        } else {
+            prestigeButton.style.display = 'none';
         }
     }
 
@@ -3185,13 +3412,15 @@ function refreshBattlePreview() {
 
     // --- Prestige Logic ---
     function prestige() {
-        if (money >= PRESTIGE_REQUIREMENT) {
-            const newPrestigePoints = Math.floor(Math.sqrt(money / PRESTIGE_REQUIREMENT));
+        const gen = currentGeneration;
+        const requiredBadges = (gymLeadersData[gen]?.length || 8) + (eliteFourData[gen]?.length || 5);
+        if (defeatedGyms[gen] && defeatedGyms[gen].length >= requiredBadges) {
+            const newPrestigePoints = Math.floor(Math.sqrt(money / 10000000)); // Prestige points are now based on money at time of prestige
             prestigePoints += newPrestigePoints;
             prestigeMultiplier = 1 + prestigePoints * 0.1;
-            talentPoints += newPrestigePoints; // talent points reward
+            talentPoints += newPrestigePoints;
 
-            // Avance à la génération suivante si possible
+            // Advance to the next generation if possible
             if (currentGeneration < genRanges.length) {
                 currentGeneration += 1;
                 showToast(`Nouvelle génération débloquée : Gen ${currentGeneration}!`);
@@ -3201,9 +3430,11 @@ function refreshBattlePreview() {
             money = 15;
             ownedPokemon = {};
             purchasedUpgrades = [];
-            unlockedAchievements = []; // Reset achievements
-            favoritePokemon = null; // Reset favorite pokemon
-            shinyPokemon = []; // Reset shiny pokemon
+            unlockedAchievements = [];
+            battlePokemonId = null;
+            shinyPokemon = [];
+            defeatedGyms = {};
+            defeatedEliteFour = {};
             trainerLevel = 1;
             trainerXp = 0;
             xpToNextLevel = 100;
@@ -3228,8 +3459,10 @@ function refreshBattlePreview() {
             prestigePoints: prestigePoints,
             prestigeMultiplier: prestigeMultiplier,
             unlockedAchievements: unlockedAchievements,
-            favoritePokemon: favoritePokemon,
+            battlePokemonId: battlePokemonId,
             shinyPokemon: shinyPokemon,
+            defeatedGyms: defeatedGyms,
+            pokemonXP: pokemonXP,
             trainerLevel: trainerLevel,
             trainerXp: trainerXp,
             xpToNextLevel: xpToNextLevel,
@@ -3263,8 +3496,9 @@ function refreshBattlePreview() {
                 prestigePoints = gameState.prestigePoints || 0;
                 prestigeMultiplier = gameState.prestigeMultiplier || 1;
                 unlockedAchievements = gameState.unlockedAchievements || [];
-                favoritePokemon = gameState.favoritePokemon || null;
+                battlePokemonId = gameState.battlePokemonId || null;
                 shinyPokemon = gameState.shinyPokemon || [];
+                defeatedGyms = gameState.defeatedGyms || {};
                 trainerLevel = gameState.trainerLevel || 1;
                 trainerXp = gameState.trainerXp || 0;
                 xpToNextLevel = gameState.xpToNextLevel || 100;
@@ -3294,8 +3528,9 @@ function refreshBattlePreview() {
             prestigePoints = 0;
             prestigeMultiplier = 1;
             unlockedAchievements = [];
-            favoritePokemon = null;
+            battlePokemonId = null;
             shinyPokemon = [];
+            defeatedGyms = {};
             trainerLevel = 1;
             trainerXp = 0;
             xpToNextLevel = 100;
@@ -3409,6 +3644,19 @@ function refreshBattlePreview() {
             });
         }
 
+        if (openGymsButton && gymsModal && closeGymsButton) {
+            openGymsButton.addEventListener('click', () => {
+                gymsModal.style.display = 'flex';
+                renderGyms();
+            });
+            closeGymsButton.addEventListener('click', () => {
+                gymsModal.style.display = 'none';
+            });
+            gymsModal.addEventListener('click', (e) => {
+                if (e.target === gymsModal) gymsModal.style.display = 'none';
+            });
+        }
+
         if (openChallengesButton && challengesModal && closeChallengesButton) {
             openChallengesButton.addEventListener('click', () => {
                 showToast('Bientôt des challenges seront là.');
@@ -3467,6 +3715,21 @@ function refreshBattlePreview() {
             closeOwnedPokemonModalButton.addEventListener('click', () => closeOwnedModal());
             ownedPokemonModal.addEventListener('click', (e) => {
                 if (e.target === ownedPokemonModal) closeOwnedModal();
+            });
+        }
+
+        if (changePokemonModal && closeChangePokemonModal && changeBattlePokemonButton) {
+            changeBattlePokemonButton.addEventListener('click', () => {
+                renderChangePokemonModal();
+                changePokemonModal.style.display = 'flex';
+            });
+            closeChangePokemonModal.addEventListener('click', () => {
+                changePokemonModal.style.display = 'none';
+            });
+            changePokemonModal.addEventListener('click', (e) => {
+                if (e.target === changePokemonModal) {
+                    changePokemonModal.style.display = 'none';
+                }
             });
         }
 
@@ -3603,12 +3866,12 @@ function refreshBattlePreview() {
             const droppablePokemon = pokemonData.slice(0, allowedMaxIndex + 1);
             if (Math.random() < POKEBALL_DROP_CHANCE && droppablePokemon.length > 0) {
                 const randomPokemon = droppablePokemon[Math.floor(Math.random() * droppablePokemon.length)];
-                ownedPokemon[randomPokemon.id] = (ownedPokemon[randomPokemon.id] || 0) + 1;
+                grantPokemon(randomPokemon.id);
+
                 if (Math.random() < getShinyChance() && !shinyPokemon.includes(randomPokemon.id)) {
                     shinyPokemon.push(randomPokemon.id);
                     showToast(`Shiny trouvé ! ${randomPokemon.name} (bonus x${SHINY_MULTIPLIER}).`);
                 }
-                gainXp(10);
                 questProgress.catches += 1;
                 calculateMoneyPerSecond();
                 updateUI();
@@ -3616,16 +3879,16 @@ function refreshBattlePreview() {
                 checkQuests();
             }
             // Item drop
-        if (Math.random() < 0.01) {
-            const item = itemDrops[Math.floor(Math.random() * itemDrops.length)];
-            inventoryItems[item.id] = (inventoryItems[item.id] || 0) + 1;
-            const label = translateWithParams('toast-item-drop', { name: item.name }, `${item.name} obtenu !`);
-            showToast(`<img src="${item.sprite}" style="width:24px;height:24px;vertical-align:middle;"> ${label}`, true);
-            renderInventory();
-        }
+            if (Math.random() < 0.01) {
+                const item = itemDrops[Math.floor(Math.random() * itemDrops.length)];
+                inventoryItems[item.id] = (inventoryItems[item.id] || 0) + 1;
+                const label = translateWithParams('toast-item-drop', { name: item.name }, `${item.name} obtenu !`);
+                showToast(`<img src="${item.sprite}" style="width:24px;height:24px;vertical-align:middle;"> ${label}`, true);
+                renderInventory();
+            }
         });
 
-        battleButton.addEventListener('click', startBattle);
+        battleButton.addEventListener('click', () => startBattle());
 
         if (tutorialOverlay && tutorialNextButton && tutorialBackButton && tutorialSkipButton) {
             tutorialNextButton.addEventListener('click', nextTutorialStep);
@@ -3638,9 +3901,9 @@ function refreshBattlePreview() {
         startTutorialIfNeeded(lastSaveTime);
     }
 
-    async function startBattle() {
+    async function startBattle(predefinedFoe = null, isContinuation = false) {
         const now = Date.now();
-        if (now < nextBattleAllowedAt) {
+        if (!isContinuation && now < nextBattleAllowedAt) {
             const wait = Math.ceil((nextBattleAllowedAt - now) / 1000);
             showToast(`Attends ${wait}s avant de relancer un combat.`);
             return;
@@ -3655,11 +3918,28 @@ function refreshBattlePreview() {
             showToast("Aucun Pokémon disponible pour le combat.");
             return;
         }
-        const player = buildCombatantFromDex(playerMon.dex || Number(playerMon.id.replace('dex-', '')), trainerLevel);
-        const foe = generateBattleOpponentCombatant();
+
+        const playerPokemonId = playerMon.id;
+        const playerXp = pokemonXP[playerPokemonId] || 0;
+        const playerLevel = getLevelForXp(playerXp);
+
+        // In a gym battle sequence, the player's pokemon is not healed.
+        const player = (isContinuation && battleState && battleState.player)
+            ? battleState.player 
+            : buildCombatantFromDex(playerMon.dex || Number(playerMon.id.replace('dex-', '')), { level: playerLevel });
+
+        if (isContinuation && battleState && battleState.player) {
+            player.currentHp = battleState.player.currentHp; // Explicitly carry over HP
+        }
+
+        const foe = predefinedFoe || generateBattleOpponentCombatant(playerLevel);
         battleState = { player, foe, finished: false };
-        battleLog.innerHTML = '';
-        logBattle(`Un ${foe.name} sauvage (Lv.${foe.level}) apparaît !`, '#ffd166');
+        
+        if (!isContinuation) {
+            battleLog.innerHTML = '';
+        }
+
+        logBattle(`${foe.name} (Lv.${foe.level}) entre en scène !`, '#ffd166');
         renderBattleUI();
     }
 
