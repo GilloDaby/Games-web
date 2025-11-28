@@ -17,6 +17,7 @@ import {
     consumablesData,
     itemDrops
 } from './features/gameData.js';
+import { persistGameState, readGameState } from './save/saveGame.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Game State ---
@@ -2282,16 +2283,16 @@ function refreshBattlePreview() {
             settings: settings,
             lastSave: Date.now() // Store the timestamp
         };
-        localStorage.setItem('pokemonIdleSave', JSON.stringify(gameState));
+        persistGameState(gameState);
         showToast('Sauvegarde réussie !');
     }
 
+
     function loadGame() {
         try {
-            const savedState = localStorage.getItem('pokemonIdleSave');
+            const gameState = readGameState();
 
-            if (savedState) {
-                const gameState = JSON.parse(savedState);
+            if (gameState) {
                 money = gameState.money || 0;
                 ownedPokemon = gameState.ownedPokemon || {};
                 purchasedUpgrades = gameState.purchasedUpgrades || [];
@@ -2345,11 +2346,11 @@ function refreshBattlePreview() {
             autoBuyChainEnabled = true;
             talentPoints = 0;
             unlockedTalents = [];
-            showToast('Echec de chargement. Nouvelle partie lancée.');
+            showToast('Echec de chargement. Nouvelle partie lanc�e.');
             return null;
         }
     }
-    
+
     // --- Initialization ---
     function init() {
         const lastSaveTime = loadGame(); // Load saved data first
