@@ -44,6 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
         musicVolume: 0.7,
         sfxVolume: 0.8,
     };
+    let upgradesData = [];
+
+    const nameCache = {};
+    let currentGeneration = 1;
+    let pokemonData = [];
+
 
     function currentLanguage() {
         return settings.language || 'fr';
@@ -185,7 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let tutorialSteps = [];
 
         // --- Pokémon Data by generation (external data) ---
-
     const PRESTIGE_REQUIREMENT = 5000000000; // base requirement
     const SHINY_CHANCE = 1 / 4096; // align closer to main games
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokÃ©ball
@@ -2889,10 +2894,8 @@ cheatMenu.addEventListener('click', (e) => {
 
     if (typeof updateDisplays === "function") updateDisplays();
 });
-
-
     init();
-});
+
     function generateQuestsForDate(dateKey) {
         const poolSrc = (typeof questPool !== 'undefined' && questPool.length) ? questPool : [];
         // deterministic pick based on date string
@@ -2910,21 +2913,4 @@ cheatMenu.addEventListener('click', (e) => {
         return picked;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+});
