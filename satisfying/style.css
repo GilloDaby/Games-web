@@ -132,47 +132,53 @@ h2 {
 #perfect-fit-container {
     position: relative;
     width: 100%;
-    height: 300px;
+    height: 350px;
     margin-top: 2rem;
     border: 3px dashed #d4a373;
     border-radius: 8px;
     background-color: #fefae0;
 }
 
-#fit-target {
+.fit-target {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     width: 100px;
     height: 100px;
-    background-color: rgba(212, 163, 115, 0.5);
     border: 3px solid #d4a373;
-    border-radius: 4px;
+    transition: all 0.3s ease;
 }
 
-#draggable-shape {
+.draggable-shape {
     position: absolute;
-    top: 20px;
-    left: 20px;
     width: 100px;
     height: 100px;
-    background-color: #457b9d; /* Blue */
-    border-radius: 4px;
     cursor: grab;
-    transition: background-color 0.3s;
-    border: 3px solid #3a6684;
+    transition: all 0.3s ease;
+    border: 3px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-#draggable-shape.dragging {
-    opacity: 0.5;
+.draggable-shape.dragging {
+    opacity: 0.7;
     cursor: grabbing;
+    transform: scale(1.1);
+}
+
+.draggable-shape.fitted {
+    cursor: default;
+}
+
+#level-progress, #bubble-progress, #slice-score, #organize-progress, 
+#wash-progress, #symmetry-progress, #wipe-progress, #stack-score {
+    margin-top: 1rem;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #60492c;
 }
 
 /* Level 2: Clean the Mess */
 #wipe-container {
     width: 100%;
-    height: 300px;
+    height: 350px;
     margin-top: 2rem;
     border-radius: 8px;
     overflow: hidden;
@@ -182,12 +188,13 @@ h2 {
     cursor: crosshair;
     border: 3px solid #d4a373;
     border-radius: 8px;
+    display: block;
 }
 
 /* Level 3: Orderly Stacking */
 #stack-container {
     width: 100%;
-    height: 400px;
+    height: 450px;
     margin-top: 1rem;
     border-radius: 8px;
     overflow: hidden;
@@ -197,6 +204,8 @@ h2 {
     border: 3px solid #d4a373;
     border-radius: 8px;
     cursor: pointer;
+    display: block;
+    background: linear-gradient(180deg, #f0f0f0 0%, #e0e0e0 100%);
 }
 
 /* Level 4: Paint the Wall */
@@ -227,4 +236,171 @@ h2 {
     border: 3px solid #d4a373;
     border-radius: 8px;
     cursor: pointer;
+}
+
+/* Level 6: Bubble Wrap */
+#bubble-container {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+#bubble-canvas {
+    border: 3px solid #d4a373;
+    border-radius: 8px;
+    cursor: pointer;
+    display: block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Level 7: Slice Master */
+#slice-container {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+#slice-canvas {
+    border: 3px solid #d4a373;
+    border-radius: 8px;
+    cursor: crosshair;
+    display: block;
+    background: linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%);
+}
+
+/* Level 8: Organize the Shelf */
+#organize-container {
+    width: 100%;
+    margin-top: 1rem;
+    min-height: 400px;
+}
+
+#organize-shelves {
+    padding: 10px;
+}
+
+.shelf {
+    transition: background-color 0.2s;
+}
+
+.shelf:hover {
+    background: rgba(144, 169, 85, 0.2) !important;
+}
+
+.organize-item:hover {
+    transform: scale(1.05);
+}
+
+/* Level 9: Power Wash */
+#wash-container {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+#wash-canvas {
+    border: 3px solid #d4a373;
+    border-radius: 8px;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" style="font-size:24px"><text y="24">💦</text></svg>') 16 16, crosshair;
+    display: block;
+}
+
+/* Level 10: Symmetry Draw */
+#symmetry-container {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+#symmetry-canvas {
+    border: 3px solid #d4a373;
+    border-radius: 8px;
+    cursor: crosshair;
+    display: block;
+}
+
+/* Animations */
+@keyframes popup {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.level-button.unlocked {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 4px #7f9549;
+    }
+    50% {
+        box-shadow: 0 4px #7f9549, 0 0 15px rgba(144, 169, 85, 0.5);
+    }
+}
+
+/* New Levels Styles */
+canvas {
+    display: block;
+    margin: 0 auto;
+}
+
+#pixel-container, #colormatch-container, #balloon-container, 
+#maze-container, #peel-container, #beat-container, #zipper-container,
+#sand-container, #dots-container, #scratch-container, #spiral-container,
+#sort-container, #fireworks-container {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+#pixel-canvas, #balloon-canvas, #maze-canvas, #peel-canvas,
+#beat-canvas, #zipper-canvas, #sand-canvas, #dots-canvas,
+#scratch-canvas, #spiral-canvas, #sort-canvas, #fireworks-canvas {
+    border: 3px solid #d4a373;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#pixel-progress, #balloon-progress, #maze-progress, #peel-progress,
+#beat-score, #zipper-progress, #sand-progress, #dots-progress,
+#cards-progress, #scratch-progress, #mole-score, #spiral-progress,
+#sort-progress, #fireworks-score {
+    margin-top: 1rem;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #60492c;
+}
+
+input[type="range"] {
+    width: 200px;
+    margin: 0 10px;
+}
+
+label {
+    font-weight: bold;
+    color: #60492c;
+    display: inline-block;
+    width: 80px;
+}
+
+.memory-card {
+    transition: transform 0.2s;
+}
+
+.memory-card:hover {
+    transform: scale(1.05);
+}
+
+#mole-container div:hover {
+    background: #a0522d !important;
 }
