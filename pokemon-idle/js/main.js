@@ -1,5 +1,5 @@
 import { translations } from './i18n/translations.js';
-import { formatNumber, getLevelForXp, getCurrentXpForLevel, getXpToLevelUp, calcStat } from './utils/math.js';
+import { formatNumber, getLevelForXp, getCurrentXpForLevel, getXpToLevelUp } from './utils/math.js';
 import { createToastController } from './ui/uiToasts.js';
 import {
     primeKantoNames,
@@ -22,6 +22,13 @@ import {
     itemDrops
 } from './features/gameData.js';
 import { persistGameState, readGameState } from './save/saveGame.js';
+import {
+    loadBattleData,
+    buildCombatantFromDex,
+    typeEffectiveness,
+    computeDamage,
+    chooseBestMove
+} from './mechanics/battleData.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Game State ---
@@ -53,6 +60,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentGeneration = 1;
     let pokemonData = [];
+    let purchasedAutomation = [];
+    let talentPoints = 0;
+    let unlockedTalents = [];
+    let talentBonuses = { mpsMult: 1, clickBonus: 0, shinyBonus: 0, storeDiscount: 0, upgradeDiscount: 0 };
+    let questProgress = { money: 0, clicks: 0, battles: 0, catches: 0 };
+    let completedQuests = [];
+    let dailyQuests = [];
+    let dailyQuestDay = null;
+    let questsHistory = {};
+    let inventoryItems = {};
+    let autoBuyTargetId = null;
+    let autoBuyChainEnabled = true;
+    let automationState = {
+        autoClickPower: 0,
+        autoClickRate: 0,
+        autoBuyPokemon: false,
+        autoBuyUpgrade: false,
+        autoBuyChain: false
+    };
+    let randomEvents = [];
+    let clickValue = 1;
+    let currentOpponent = null;
+    let battlesFought = 0;
+    let currentGymBattle = null;
+    let activeEvent = null;
+    let activeEventEndsAt = 0;
+    let activeChallenge = null;
+    let activeConsumables = [];
+    let knownSprites = {};
+    let storeFilterGen = 'all';
 
 
     function currentLanguage() {
@@ -67,24 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     let battleState = null;
     let nextBattleAllowedAt = 0;
-    let battleDataLoaded = false;
 
     function localizedPokemonName(pokemon) {
         return getLocalizedPokemonName(pokemon, currentLanguage());
     }
-    const movesById = {};
-    const pokemonTypesMap = {};
-    const typeChart = {};
-    const baseStatsByPokemon = {};
-    const learnsetByPokemon = {};
-    const POKEAPI_CSV_BASE = 'https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv';
     const ITEM_SPRITE_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/';
-    const TYPE_ID_MAP = {
-        1: 'normal', 2: 'fighting', 3: 'flying', 4: 'poison', 5: 'ground',
-        6: 'rock', 7: 'bug', 8: 'ghost', 9: 'steel', 10: 'fire', 11: 'water',
-        12: 'grass', 13: 'electric', 14: 'psychic', 15: 'ice', 16: 'dragon',
-        17: 'dark', 18: 'fairy'
-    };
 
     // --- DOM Elements ---
     const moneyDisplay = document.getElementById('money');
@@ -203,106 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SHINY_CHANCE = 1 / 4096; // align closer to main games
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
     const SHINY_MULTIPLIER = 2; // 2x bonus for shiny
-    const BATTLE_LEVEL_BASE = 30;
-
-    // --- Battle data loading (PokeAPI official CSV on GitHub) ---
-    async function fetchCsv(url) {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`CSV fetch failed: ${url}`);
-        const text = await res.text();
-        return text.split('\n').map(l => l.trim()).filter(Boolean);
-    }
-
-    function parseCsvRow(line) {
-        // Simple split sufficient for PokeAPI CSV we use (no embedded commas in selected columns)
-        return line.split(',');
-    }
-
-    async function loadBattleData() {
-        if (battleDataLoaded) return;
-        const [movesCsv, typesCsv, efficacyCsv, pokemonTypesCsv, pokemonStatsCsv, pokemonMovesCsv] = await Promise.all([
-            fetchCsv(`${POKEAPI_CSV_BASE}/moves.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/types.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/type_efficacy.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/pokemon_types.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/pokemon_stats.csv`),
-            fetchCsv(`${POKEAPI_CSV_BASE}/pokemon_moves.csv`),
-        ]);
-
-        const typeNameById = {};
-        typesCsv.slice(1).forEach(line => {
-            const [id, identifier] = parseCsvRow(line);
-            typeNameById[Number(id)] = identifier;
-        });
-
-        efficacyCsv.slice(1).forEach(line => {
-            const [damageTypeId, targetTypeId, factor] = parseCsvRow(line).map(Number);
-            const atk = typeNameById[damageTypeId];
-            const def = typeNameById[targetTypeId];
-            if (!atk || !def) return;
-            if (!typeChart[atk]) typeChart[atk] = {};
-            typeChart[atk][def] = (factor || 100) / 100;
-        });
-
-movesCsv.slice(1).forEach(line => {
-            const cols = parseCsvRow(line);
-            const id = Number(cols[0]);
-            const identifier = cols[1];
-            
-            const typeId = Number(cols[3]); // C'est la bonne colonne pour le Type
-
-            const power = cols[4] ? Number(cols[4]) : 0;
-            const pp = cols[5] ? Number(cols[5]) : 10;
-            const accuracy = cols[6] ? Number(cols[6]) : 100;
-            const damageClassId = Number(cols[9]); // 2 phys, 3 special, 1 status
-            const type = typeNameById[typeId] || TYPE_ID_MAP[typeId] || 'normal';
-            
-            movesById[id] = {
-                id,
-                name: identifier.replace(/-/g, ' '),
-                type,
-                power,
-                pp,
-                accuracy,
-                damageClass: damageClassId === 3 ? 'special' : damageClassId === 2 ? 'physical' : 'status',
-            };
-        });
-
-        pokemonTypesCsv.slice(1).forEach(line => {
-            const cols = parseCsvRow(line);
-            const pokemonId = Number(cols[0]);
-            const typeId = Number(cols[1]);
-            const typeName = typeNameById[typeId] || TYPE_ID_MAP[typeId];
-            if (!pokemonTypesMap[pokemonId]) pokemonTypesMap[pokemonId] = [];
-            if (typeName) pokemonTypesMap[pokemonId].push(typeName);
-        });
-
-        pokemonStatsCsv.slice(1).forEach(line => {
-            const cols = parseCsvRow(line);
-            const pokemonId = Number(cols[0]);
-            const statId = Number(cols[1]);
-            const baseStat = Number(cols[2]);
-            if (!baseStatsByPokemon[pokemonId]) baseStatsByPokemon[pokemonId] = {};
-            const statKey = ['hp','atk','def','spa','spd','spe'][statId - 1];
-            if (statKey) baseStatsByPokemon[pokemonId][statKey] = baseStat;
-        });
-
-        pokemonMovesCsv.slice(1).forEach(line => {
-            const cols = parseCsvRow(line);
-            const pokemonId = Number(cols[0]);
-            if (pokemonId > 251) return; // limiter pour perf
-            const versionGroupId = Number(cols[1]);
-            const moveId = Number(cols[2]);
-            const learnMethodId = Number(cols[3]); // pokemon_move_method_id
-            const level = Number(cols[4]);
-            if (learnMethodId !== 1) return; // level-up only
-            if (!learnsetByPokemon[pokemonId]) learnsetByPokemon[pokemonId] = [];
-            learnsetByPokemon[pokemonId].push({ moveId, level, versionGroupId });
-        });
-
-        battleDataLoaded = true;
-    }
-
+    const POKEMON_COST_GROWTH = 1.15;
     const achievementsData = (() => {
         const list = [];
 
@@ -356,7 +281,7 @@ movesCsv.slice(1).forEach(line => {
         return list.slice(0, 100);
     })();
 
-    const randomEvents = [
+    randomEvents = [
         {
             name: "Rush Pokédollars",
             message: "Un sac de 1 000 Pokédollars apparaît !",
@@ -388,144 +313,7 @@ movesCsv.slice(1).forEach(line => {
             }
         }
     ];
-
-    let clickValue = 1;
-    let currentOpponent = null;
-    let battlesFought = 0;
-    let currentGymBattle = null;
-    const POKEMON_COST_GROWTH = 1.15;
-    let automationState = {
-        autoClickPower: 0,
-        autoClickRate: 0, // clicks per second equivalent
-        autoBuyPokemon: false,
-        autoBuyUpgrade: false
-    };
-    let purchasedAutomation = [];
-    let talentPoints = 0;
-    let unlockedTalents = [];
-    let talentBonuses = { mpsMult: 1, clickBonus: 0, shinyBonus: 0, storeDiscount: 0, upgradeDiscount: 0 };
-    let questProgress = { money: 0, clicks: 0, battles: 0, catches: 0 };
-    let completedQuests = [];
-    let dailyQuests = [];
-    let dailyQuestDay = null;
-    let questsHistory = {};
-    let autoBuyTargetId = null;
-    let autoBuyChainEnabled = true;
-    let inventoryItems = {};
-    let activeEvent = null;
-    let activeEventEndsAt = 0;
-    let activeChallenge = null;
-    let activeConsumables = [];
-    let knownSprites = {};
-    let storeFilterGen = 'all';
-
-    // --- Game Logic ---
-
-    function pickMovesForPokemon(pokemonId) {
-        const learnset = learnsetByPokemon[pokemonId] || [];
-        if (!learnset.length) {
-            const tackle = Object.values(movesById).find(m => m.name === 'tackle') || { name: 'Tackle', type: 'normal', power: 40, accuracy: 100, damageClass: 'physical' };
-            return [tackle];
-        }
-        const maxVersion = Math.max(...learnset.map(l => l.versionGroupId || 0));
-        const candidates = learnset
-            .filter(l => (l.versionGroupId || 0) === maxVersion)
-            .map(m => ({ ...movesById[m.moveId], level: m.level }))
-            .filter(m => m && m.name);
-        candidates.sort((a, b) => (b.level || 0) - (a.level || 0) || (b.power || 0) - (a.power || 0));
-        const unique = [];
-        const names = new Set();
-        for (const mv of candidates) {
-            if (!mv) continue;
-            if (names.has(mv.name)) continue;
-            unique.push(mv);
-            names.add(mv.name);
-            if (unique.length >= 4) break;
-        }
-        if (!unique.length) {
-            const tackle = Object.values(movesById).find(m => m.name === 'tackle') || { name: 'Tackle', type: 'normal', power: 40, accuracy: 100, damageClass: 'physical' };
-            unique.push(tackle);
-        }
-        return unique;
-    }
-
-    function buildCombatantFromDex(dex, options = {}) {
-        const { levelBoost = 0, level: directLevel = 0 } = options;
-        const pokemon = pokemonData.find(p => p.dex === dex || p.id === `dex-${dex}`);
-        const pokemonId = Number(String(dex).replace('dex-', ''));
-        const types = pokemonTypesMap[pokemonId] || ['normal'];
-        const bases = baseStatsByPokemon[pokemonId] || { hp: 60, atk: 60, def: 60, spa: 60, spd: 60, spe: 60 };
-        const level = directLevel > 0 ? directLevel : Math.max(10, BATTLE_LEVEL_BASE + levelBoost);
-        const stats = {
-            hp: calcStat(bases.hp, level, true),
-            atk: calcStat(bases.atk, level),
-            def: calcStat(bases.def, level),
-            spa: calcStat(bases.spa, level),
-            spd: calcStat(bases.spd, level),
-            spe: calcStat(bases.spe, level),
-        };
-        const localizedName = pokemon ? getLocalizedPokemonName(pokemon, currentLanguage()) : `Pokemon #${pokemonId}`;
-        return {
-            id: pokemonId,
-            name: localizedName,
-            sprite: pokemon ? pokemon.imageUrl : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`,
-            types,
-            level,
-            stats,
-            currentHp: stats.hp,
-            moves: pickMovesForPokemon(pokemonId),
-        };
-    }
-
-    function typeEffectiveness(moveType, defenderTypes) {
-        let mult = 1;
-        defenderTypes.forEach(t => {
-            const eff = (typeChart[moveType] && typeChart[moveType][t]) || 1;
-            mult *= eff;
-        });
-        return mult;
-    }
-
-    function computeDamage(attacker, defender, move) {
-        if (!move || move.damageClass === 'status' || !move.power) return 0;
-        const atk = move.damageClass === 'special' ? attacker.stats.spa : attacker.stats.atk;
-        const def = move.damageClass === 'special' ? defender.stats.spd : defender.stats.def;
-        const base = (((2 * attacker.level / 5 + 2) * move.power * (atk / Math.max(1, def))) / 50) + 2;
-        const stab = attacker.types.includes(move.type) ? 1.5 : 1;
-        const eff = typeEffectiveness(move.type, defender.types);
-        const rand = 0.85 + Math.random() * 0.15;
-        return Math.max(1, Math.floor(base * stab * eff * rand));
-    }
-
-    function pickPlayerPokemonForBattle() {
-        if (!Object.keys(ownedPokemon).length) return null;
-        let best = null;
-        let bestCost = -1;
-        pokemonData.forEach(p => {
-            const qty = ownedPokemon[p.id] || 0;
-            if (qty > 0 && p.cost > bestCost) {
-                best = p;
-                bestCost = p.cost;
-            }
-        });
-        if (battlePokemonId && ownedPokemon[battlePokemonId]) {
-            const fav = pokemonData.find(p => p.id === battlePokemonId);
-            if (fav) best = fav;
-        }
-        return best;
-    }
-
-    function generateBattleOpponentCombatant(playerLevel = 1) {
-        const maxDex = Math.max(...pokemonData.map(p => p.dex));
-        const playerOwnedMax = highestOwnedDexIndex() + 1;
-        const dex = Math.max(1, Math.min(maxDex, playerOwnedMax + Math.floor(Math.random() * 5)));
-        
-        const levelVariance = Math.floor(Math.random() * 5) - 2; // -2 to +2
-        const opponentLevel = Math.max(1, playerLevel + levelVariance);
-
-        return buildCombatantFromDex(dex, { level: opponentLevel });
-    }
-
+    // Battle data helpers now live in ./mechanics/battleData.js
     function effectivenessText(mult) {
         if (mult === 0) return "Ça n'a aucun effet...";
         if (mult > 1.5) return "C'est super efficace !";
@@ -579,7 +367,12 @@ movesCsv.slice(1).forEach(line => {
             if (currentGymBattle.teamIndex < currentGymBattle.leader.team.length) {
                 // There's another Pokémon to fight
                 const nextFoePokemon = currentGymBattle.leader.team[currentGymBattle.teamIndex];
-                const nextFoe = buildCombatantFromDex(nextFoePokemon.dex, { level: nextFoePokemon.level });
+                const nextFoe = buildCombatantFromDex(nextFoePokemon.dex, {
+                    pokemonData,
+                    currentLanguage,
+                    localizePokemonName: localizedPokemonName,
+                    level: nextFoePokemon.level
+                });
                 logBattle(`Le champion envoie ${nextFoe.name} !`, '#ffb347');
                 startBattle(nextFoe, true); // `true` to indicate it's a continuation
                 return; // Skip normal end-of-battle rewards
@@ -1119,6 +912,40 @@ movesCsv.slice(1).forEach(line => {
         return { ...chosen, power };
     }
 
+    // --- Battle helpers ---
+    function pickPlayerPokemonForBattle() {
+        if (!Object.keys(ownedPokemon).length) return null;
+        let best = null;
+        let bestCost = -1;
+        pokemonData.forEach(p => {
+            const qty = ownedPokemon[p.id] || 0;
+            if (qty > 0 && p.cost > bestCost) {
+                best = p;
+                bestCost = p.cost;
+            }
+        });
+        if (battlePokemonId && ownedPokemon[battlePokemonId]) {
+            const fav = pokemonData.find(p => p.id === battlePokemonId);
+            if (fav) best = fav;
+        }
+        return best;
+    }
+
+    function generateBattleOpponentCombatant(playerLevel = 1) {
+        if (!pokemonData.length) return null;
+        const maxDex = Math.max(...pokemonData.map(p => p.dex));
+        const playerOwnedMax = highestOwnedDexIndex() + 1;
+        const dex = Math.max(1, Math.min(maxDex, playerOwnedMax + Math.floor(Math.random() * 5)));
+        const levelVariance = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        const opponentLevel = Math.max(1, playerLevel + levelVariance);
+        return buildCombatantFromDex(dex, {
+            pokemonData,
+            currentLanguage,
+            localizePokemonName: localizedPokemonName,
+            level: opponentLevel
+        });
+    }
+
     function calculateMoneyPerSecond() {
         moneyPerSecond = 0;
         for (const id in ownedPokemon) {
@@ -1436,7 +1263,12 @@ function refreshBattlePreview() {
             if (playerMon) {
                 const playerXp = pokemonXP[playerMon.id] || 0;
                 const playerLevel = getLevelForXp(playerXp);
-                const combatant = buildCombatantFromDex(playerMon.dex, { level: playerLevel });
+                const combatant = buildCombatantFromDex(playerMon.dex, {
+                    pokemonData,
+                    currentLanguage,
+                    localizePokemonName: localizedPokemonName,
+                    level: playerLevel
+                });
                 const power = combatant.stats.atk + combatant.stats.spa; // A simple power metric
                 battlePlayerPower.textContent = `${t('player-power')}: ${formatNumber(power || 1)}`;
             } else {
@@ -1840,7 +1672,12 @@ function refreshBattlePreview() {
         };
         
         const foePokemon = leader.team[0];
-        const foe = buildCombatantFromDex(foePokemon.dex, { level: foePokemon.level });
+        const foe = buildCombatantFromDex(foePokemon.dex, {
+            pokemonData,
+            currentLanguage,
+            localizePokemonName: localizedPokemonName,
+            level: foePokemon.level
+        });
         
         logBattle(`Vous défiez ${leader.name} !`, '#f3d947');
         await startBattle(foe);
@@ -2742,7 +2579,12 @@ function refreshBattlePreview() {
         // In a gym battle sequence, the player's pokemon is not healed.
         const player = (isContinuation && battleState && battleState.player)
             ? battleState.player 
-            : buildCombatantFromDex(playerMon.dex || Number(playerMon.id.replace('dex-', '')), { level: playerLevel });
+            : buildCombatantFromDex(playerMon.dex || Number(playerMon.id.replace('dex-', '')), {
+                pokemonData,
+                currentLanguage,
+                localizePokemonName: localizedPokemonName,
+                level: playerLevel
+            });
 
         if (isContinuation && battleState && battleState.player) {
             player.currentHp = battleState.player.currentHp; // Explicitly carry over HP
