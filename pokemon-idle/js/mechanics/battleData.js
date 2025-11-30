@@ -69,6 +69,7 @@ export async function loadBattleData() {
         const power = cols[4] ? Number(cols[4]) : 0;
         const pp = cols[5] ? Number(cols[5]) : 10;
         const accuracy = cols[6] ? Number(cols[6]) : 100;
+        const priority = cols[7] ? Number(cols[7]) : 0;
         const damageClassId = Number(cols[9]);
         const type = typeNameById[typeId] || TYPE_ID_MAP[typeId] || 'normal';
         movesById[id] = {
@@ -78,6 +79,7 @@ export async function loadBattleData() {
             power,
             pp,
             accuracy,
+            priority,
             damageClass: damageClassId === 3 ? 'special' : damageClassId === 2 ? 'physical' : 'status'
         };
     });

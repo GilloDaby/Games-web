@@ -428,9 +428,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (battleActions) {
             battleActions.innerHTML = '';
             player.moves.forEach(mv => {
+                const moveType = (mv.type || 'normal').toLowerCase();
                 const btn = document.createElement('button');
-                btn.className = 'btn small';
-                btn.textContent = `${mv.name} (${mv.type.toUpperCase()})`;
+                btn.className = `btn small battle-move-btn type-${moveType}`;
+                btn.textContent = `${mv.name}`;
                 btn.addEventListener('click', () => performBattleTurn(mv));
                 battleActions.appendChild(btn);
             });
@@ -488,11 +489,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Player lost the gym battle
             toast(`Défaite contre ${currentGymBattle.leader.name}...`);
             currentGymBattle = null;
-            nextBattleAllowedAt = Date.now() + 10000;
+            nextBattleAllowedAt = Date.now() + 1000;
         } else {
              const { foe } = battleState;
             if (victory) {
-                const baseBattleXp = 80;
+                const baseBattleXp = 800;
                 const reward = Math.floor(foe.level * 120 * prestigeMultiplier);
                 const pokemonXpGain = baseBattleXp * getTrainerXpBoostMultiplier();
                 money += reward;
@@ -513,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 money = Math.max(0, money - lossMoney);
                 trainerXp = Math.max(0, trainerXp - 10);
                 toast('toast-defeat', { loss: formatNumber(lossMoney) });
-                nextBattleAllowedAt = Date.now() + 10000;
+                nextBattleAllowedAt = Date.now() + 1000;
             }
         }
 
@@ -525,6 +526,13 @@ document.addEventListener('DOMContentLoaded', () => {
             battleState.finished = true;
             currentOpponent = null;
             refreshBattlePreview();
+            if (victory) {
+                setTimeout(() => {
+                    if (!currentGymBattle && (!battleState || battleState.finished)) {
+                        startBattle();
+                    }
+                }, 600);
+            }
         }
     }
 
@@ -535,10 +543,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const foeMove = chooseBestMove(foe, player);
 
+        const playerPriorityValue = playerMove?.priority || 0;
+        const foePriorityValue = foeMove?.priority || 0;
+
         const order = [];
-        const playerPriority = player.stats.spe >= foe.stats.spe ? 0 : 1;
-        if (playerPriority === 0) order.push({ actor: player, target: foe, move: playerMove, isPlayer: true }, { actor: foe, target: player, move: foeMove, isPlayer: false });
-        else order.push({ actor: foe, target: player, move: foeMove, isPlayer: false }, { actor: player, target: foe, move: playerMove, isPlayer: true });
+        if (playerPriorityValue !== foePriorityValue) {
+            const playerFirst = playerPriorityValue > foePriorityValue;
+            if (playerFirst) {
+                order.push({ actor: player, target: foe, move: playerMove, isPlayer: true }, { actor: foe, target: player, move: foeMove, isPlayer: false });
+            } else {
+                order.push({ actor: foe, target: player, move: foeMove, isPlayer: false }, { actor: player, target: foe, move: playerMove, isPlayer: true });
+            }
+        } else {
+            const playerFirst = player.stats.spe >= foe.stats.spe;
+            if (playerFirst) {
+                order.push({ actor: player, target: foe, move: playerMove, isPlayer: true }, { actor: foe, target: player, move: foeMove, isPlayer: false });
+            } else {
+                order.push({ actor: foe, target: player, move: foeMove, isPlayer: false }, { actor: player, target: foe, move: playerMove, isPlayer: true });
+            }
+        }
 
         for (const step of order) {
             if (player.currentHp <= 0 || foe.currentHp <= 0) continue;

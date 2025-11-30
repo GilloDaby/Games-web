@@ -586,6 +586,35 @@ h2, h3 {
     opacity: 0.8;
 }
 
+.battle-move-btn {
+    min-width: 120px;
+    margin: 4px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    color: #0b0e1c;
+    text-transform: capitalize;
+}
+
+.battle-move-btn.type-fire { background-color: #ff9448; }
+.battle-move-btn.type-water { background-color: #4f8cdd; }
+.battle-move-btn.type-grass { background-color: #63c74d; }
+.battle-move-btn.type-electric { background-color: #f5d94e; }
+.battle-move-btn.type-psychic { background-color: #f77fa1; }
+.battle-move-btn.type-ice { background-color: #73ceff; }
+.battle-move-btn.type-fighting { background-color: #c56d64; }
+.battle-move-btn.type-poison { background-color: #b173d1; }
+.battle-move-btn.type-ground { background-color: #d9a45f; }
+.battle-move-btn.type-rock { background-color: #bbaa6d; }
+.battle-move-btn.type-ghost { background-color: #7b62a3; color:#f5f5f5; }
+.battle-move-btn.type-dragon { background-color: #7b6cf7; color:#f5f5f5; }
+.battle-move-btn.type-dark { background-color: #705848; color:#f5f5f5; }
+.battle-move-btn.type-steel { background-color: #b7b7ce; }
+.battle-move-btn.type-fairy { background-color: #f4b1f0; }
+.battle-move-btn.type-bug { background-color: #9dc130; }
+.battle-move-btn.type-normal { background-color: #c6c6a7; }
+.battle-move-btn.type-flying { background-color: #8fa8ff; }
+
 .type-fire { background: #ff9448; }
 .type-water { background: #4f8cdd; }
 .type-grass { background: #63c74d; }
