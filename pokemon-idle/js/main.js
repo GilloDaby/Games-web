@@ -228,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
     const SHINY_MULTIPLIER = 2; // 2x bonus for shiny
     const POKEMON_COST_GROWTH = 1.15;
+    const AUTO_SAVE_INTERVAL = 5000; // save every 5 seconds
     const achievementsData = (() => {
         const list = [];
 
@@ -1029,6 +1030,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             calculateMoneyPerSecond();
             updateUI();
+            saveGame(true);
         } else {
             toast('toast-no-money');
         }
@@ -1055,6 +1057,7 @@ document.addEventListener('DOMContentLoaded', () => {
             recalculateClickValue();
             calculateMoneyPerSecond();
             updateUI();
+            saveGame(true);
         } else {
             toast('toast-upgrade-fail');
         }
@@ -1073,6 +1076,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 autoBuyTargetId = autoBuyTargetId || pokemonData[0]?.id || null;
                 renderAutomation();
             }
+            saveGame(true);
         } else {
             toast('toast-no-money-auto');
         }
@@ -2103,7 +2107,7 @@ function refreshBattlePreview() {
     }
 
     // --- Save/Load Logic ---
-    function saveGame() {
+    function saveGame(silent = false) {
         const gameState = {
             money: money,
             ownedPokemon: ownedPokemon,
@@ -2133,7 +2137,9 @@ function refreshBattlePreview() {
             lastSave: Date.now() // Store the timestamp
         };
         persistGameState(gameState);
-        toast('toast-save-ok');
+        if (!silent) {
+            toast('toast-save-ok');
+        }
     }
 
 
@@ -2230,8 +2236,9 @@ function refreshBattlePreview() {
         uiLoop();
         setInterval(gameLoop, 100); // Game loop runs every 100ms
         setInterval(uiLoop, 1000); // UI loop runs every second
+        setInterval(() => saveGame(true), AUTO_SAVE_INTERVAL); // Periodic auto-save
 
-        saveButton.addEventListener('click', saveGame);
+        saveButton.addEventListener('click', () => saveGame());
         loadButton.addEventListener('click', () => {
             loadGame();
             applySettingsUI();
