@@ -1,0 +1,230 @@
+body {
+    font-family: 'Comic Neue', cursive;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #fefae0; /* Light yellow */
+    color: #60492c; /* Brown */
+}
+
+header {
+    margin-bottom: 2rem;
+}
+
+h1, h2 {
+    color: #60492c; /* Brown */
+    font-weight: 700;
+}
+
+h1 {
+    font-size: 3.5rem;
+    text-shadow: 2px 2px #faedcd;
+}
+
+h2 {
+    font-size: 2rem;
+}
+
+#game-container {
+    width: 80%;
+    max-width: 800px;
+    background-color: #faedcd; /* Light cream */
+    border-radius: 20px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    padding: 2rem;
+    text-align: center;
+    border: 5px solid #d4a373;
+}
+
+#levels {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.level-button {
+    width: 80px;
+    height: 80px;
+    border: 3px solid #b7b7a4;
+    border-radius: 12px;
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #e9ecef;
+    color: #888;
+    box-shadow: 0 4px #ced4da;
+}
+
+.level-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px #ced4da;
+}
+
+
+.level-button.unlocked {
+    background-color: #90a955; /* Green */
+    color: white;
+    border-color: #7f9549;
+    box-shadow: 0 4px #7f9549;
+}
+
+.level-button.unlocked:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.level-button:disabled {
+    cursor: not-allowed;
+    background-color: #f8f9fa;
+    box-shadow: 0 4px #e9ecef;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Dev Menu */
+#dev-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #faedcd;
+    padding: 30px;
+    border-radius: 15px;
+    border: 5px solid #d4a373;
+    z-index: 1000;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+#dev-menu h3 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: #60492c;
+}
+
+#dev-menu button {
+    font-family: 'Comic Neue', cursive;
+    font-size: 1rem;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 2px solid #60492c;
+    background-color: #90a955;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 2px #7f9549;
+}
+
+#dev-menu button:active {
+    transform: translateY(2px);
+    box-shadow: none;
+}
+
+
+/* Level 1: Perfect Fit */
+#perfect-fit-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    margin-top: 2rem;
+    border: 3px dashed #d4a373;
+    border-radius: 8px;
+    background-color: #fefae0;
+}
+
+#fit-target {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+    background-color: rgba(212, 163, 115, 0.5);
+    border: 3px solid #d4a373;
+    border-radius: 4px;
+}
+
+#draggable-shape {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 100px;
+    height: 100px;
+    background-color: #457b9d; /* Blue */
+    border-radius: 4px;
+    cursor: grab;
+    transition: background-color 0.3s;
+    border: 3px solid #3a6684;
+}
+
+#draggable-shape.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+/* Level 2: Clean the Mess */
+#wipe-container {
+    width: 100%;
+    height: 300px;
+    margin-top: 2rem;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#wipe-canvas {
+    cursor: crosshair;
+    border: 3px solid #d4a373;
+    border-radius: 8px;
+}
+
+/* Level 3: Orderly Stacking */
+#stack-container {
+    width: 100%;
+    height: 400px;
+    margin-top: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#stack-canvas {
+    border: 3px solid #d4a373;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* Level 4: Paint the Wall */
+#paint-container {
+    width: 100%;
+    height: 300px;
+    margin-top: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#paint-canvas {
+    border: 3px solid #d4a373;
+    border-radius: 8px;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" style="font-size:24px"><text y="24">🖌️</text></svg>') 4 24, auto;
+}
+
+/* Level 5: Domino Chain */
+#domino-container {
+    width: 100%;
+    height: 400px;
+    margin-top: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#domino-canvas {
+    border: 3px solid #d4a373;
+    border-radius: 8px;
+    cursor: pointer;
+}
