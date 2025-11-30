@@ -16,6 +16,14 @@ const baseStatsByPokemon = {};
 const learnsetByPokemon = {};
 let battleDataLoaded = false;
 
+function normalizePokemonId(identifier) {
+    if (identifier === null || identifier === undefined) return null;
+    if (typeof identifier === 'number') return identifier;
+    const cleaned = String(identifier).replace('dex-', '');
+    const parsed = Number(cleaned);
+    return Number.isNaN(parsed) ? null : parsed;
+}
+
 async function fetchCsv(url) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`CSV fetch failed: ${url}`);
@@ -109,32 +117,79 @@ export async function loadBattleData() {
     battleDataLoaded = true;
 }
 
-export function pickMovesForPokemon(pokemonId) {
+function getFallbackMove() {
+    return Object.values(movesById).find(m => m.name === 'tackle') || { name: 'Tackle', type: 'normal', power: 40, accuracy: 100, damageClass: 'physical' };
+}
+
+function getLearnsetEntries(pokemonId) {
     const learnset = learnsetByPokemon[pokemonId] || [];
-    if (!learnset.length) {
-        const tackle = Object.values(movesById).find(m => m.name === 'tackle') || { name: 'Tackle', type: 'normal', power: 40, accuracy: 100, damageClass: 'physical' };
-        return [tackle];
-    }
-    const maxVersion = Math.max(...learnset.map(l => l.versionGroupId || 0));
-    const candidates = learnset
+    if (!learnset.length) return [];
+    const maxVersion = Math.max(...learnset.map(l => l.versionGroupId || 0), 0);
+    const filtered = learnset
         .filter(l => (l.versionGroupId || 0) === maxVersion)
-        .map(m => ({ ...movesById[m.moveId], level: m.level }))
-        .filter(m => m && m.name);
-    candidates.sort((a, b) => (b.level || 0) - (a.level || 0) || (b.power || 0) - (a.power || 0));
+        .map(entry => {
+            const move = movesById[entry.moveId];
+            if (!move) return null;
+            return { ...move, level: entry.level || 1 };
+        })
+        .filter(Boolean);
+    const seen = new Set();
+    return filtered
+        .sort((a, b) => (a.level || 0) - (b.level || 0) || a.name.localeCompare(b.name))
+        .filter(move => {
+            if (seen.has(move.name)) return false;
+            seen.add(move.name);
+            return true;
+        });
+}
+
+export function getFullMoveLearnset(pokemonId) {
+    const normalized = normalizePokemonId(pokemonId);
+    if (normalized === null) return [];
+    return getLearnsetEntries(normalized);
+}
+
+export function getMovesLearnedUpToLevel(pokemonId, level = 1) {
+    const normalized = normalizePokemonId(pokemonId);
+    if (normalized === null) return [];
+    return getLearnsetEntries(normalized).filter(move => (move.level || 1) <= level);
+}
+
+export function pickMovesForPokemon(pokemonId, level = 100, limit = 4, preferredMoveIds = []) {
+    const normalized = normalizePokemonId(pokemonId);
+    const learned = getMovesLearnedUpToLevel(normalized, level);
+    const pool = learned.length ? learned : getLearnsetEntries(normalized);
+    const available = pool.length ? pool : [getFallbackMove()];
     const unique = [];
-    const names = new Set();
-    for (const mv of candidates) {
-        if (!mv) continue;
-        if (names.has(mv.name)) continue;
-        unique.push(mv);
-        names.add(mv.name);
-        if (unique.length >= 4) break;
+    const used = new Set();
+
+    function tryPush(move) {
+        if (!move || used.has(move.id)) return;
+        unique.push(move);
+        used.add(move.id);
     }
+
+    preferredMoveIds.forEach(id => {
+        const move = available.find(mv => mv.id === id);
+        if (move && (!learned.length || (move.level || 1) <= level)) {
+            tryPush(move);
+        }
+    });
+
+    available
+        .slice()
+        .sort((a, b) => (b.level || 0) - (a.level || 0) || (b.power || 0) - (a.power || 0))
+        .forEach(move => {
+            if (unique.length >= limit) return;
+            if ((move.level || 1) <= level) {
+                tryPush(move);
+            }
+        });
+
     if (!unique.length) {
-        const tackle = Object.values(movesById).find(m => m.name === 'tackle') || { name: 'Tackle', type: 'normal', power: 40, accuracy: 100, damageClass: 'physical' };
-        unique.push(tackle);
+        unique.push(getFallbackMove());
     }
-    return unique;
+    return unique.slice(0, limit);
 }
 
 export function buildCombatantFromDex(dex, options = {}) {
@@ -143,7 +198,8 @@ export function buildCombatantFromDex(dex, options = {}) {
         localizePokemonName = (p) => p?.name || `Pokemon #${dex}`,
         currentLanguage = () => 'en',
         levelBoost = 0,
-        level: directLevel = 0
+        level: directLevel = 0,
+        preferredMoveIds = []
     } = options;
     const pokemon = pokemonData.find(p => p.dex === dex || p.id === `dex-${dex}`);
     const pokemonId = Number(String(dex).replace('dex-', ''));
@@ -167,7 +223,7 @@ export function buildCombatantFromDex(dex, options = {}) {
         level,
         stats,
         currentHp: stats.hp,
-        moves: pickMovesForPokemon(pokemonId)
+        moves: pickMovesForPokemon(pokemonId, level, 4, preferredMoveIds)
     };
 }
 

@@ -27,7 +27,9 @@ import {
     buildCombatantFromDex,
     typeEffectiveness,
     computeDamage,
-    chooseBestMove
+    chooseBestMove,
+    getMovesLearnedUpToLevel,
+    getFullMoveLearnset
 } from './mechanics/battleData.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -47,7 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let trainerLevel = 1;
     let trainerXp = 0;
     let xpToNextLevel = 100;
-    let pokemonXP = {};
+    let sharedPokemonXp = 0;
+    let pokemonXP = {}; // legacy per-Pokémon XP (for backward compatibility)
+    let pokemonMoveLoadouts = {};
+    let currentMovesModalPokemonId = null;
+    let currentMoveDrag = null;
     let settings = {
         floatingNumbers: true,
         dynamicBackground: true,
@@ -109,6 +115,82 @@ document.addEventListener('DOMContentLoaded', () => {
         return getLocalizedPokemonName(pokemon, currentLanguage());
     }
     const ITEM_SPRITE_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/';
+    const MAX_EQUIPPED_MOVES = 4;
+
+    function normalizeDexId(identifier) {
+        if (identifier === null || identifier === undefined) return null;
+        if (typeof identifier === 'number') return identifier;
+        const cleaned = String(identifier).replace('dex-', '');
+        const parsed = Number(cleaned);
+        return Number.isNaN(parsed) ? null : parsed;
+    }
+
+    function getSharedPokemonXp() {
+        return sharedPokemonXp;
+    }
+
+    function setSharedPokemonXp(value) {
+        sharedPokemonXp = Math.max(0, value || 0);
+    }
+
+    function addSharedPokemonXp(amount) {
+        if (!amount) return sharedPokemonXp;
+        setSharedPokemonXp(sharedPokemonXp + amount);
+        return sharedPokemonXp;
+    }
+
+    function getSharedPokemonLevel() {
+        return getLevelForXp(sharedPokemonXp);
+    }
+
+    function getSharedPokemonXpProgress() {
+        const level = getSharedPokemonLevel();
+        return {
+            level,
+            current: getCurrentXpForLevel(sharedPokemonXp),
+            required: getXpToLevelUp(level)
+        };
+    }
+
+    function getMoveLoadout(pokemonId) {
+        if (!pokemonId) return { active: [] };
+        if (!pokemonMoveLoadouts[pokemonId]) {
+            pokemonMoveLoadouts[pokemonId] = { active: [] };
+        }
+        return pokemonMoveLoadouts[pokemonId];
+    }
+
+    function legacyPokemonXpSnapshot() {
+        const snapshot = {};
+        const ids = Object.keys(ownedPokemon || {});
+        if (!ids.length) {
+            snapshot.__shared = sharedPokemonXp;
+            return snapshot;
+        }
+        ids.forEach(id => {
+            snapshot[id] = sharedPokemonXp;
+        });
+        return snapshot;
+    }
+
+    function deriveSharedXpFromLegacy(legacyMap) {
+        const values = Object.values(legacyMap || {}).map(v => Number(v)).filter(v => !Number.isNaN(v));
+        if (!values.length) return 0;
+        return values.sort((a, b) => b - a)[0];
+    }
+
+    function formatMoveNameLabel(move) {
+        if (!move || !move.name) return '';
+        return move.name
+            .replace(/-/g, ' ')
+            .replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    function updateMoveButtonState() {
+        if (manageMovesButton) {
+            manageMovesButton.disabled = !battlePokemonId;
+        }
+    }
 
     // --- DOM Elements ---
     const moneyDisplay = document.getElementById('money');
@@ -175,6 +257,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeChangePokemonModal = document.getElementById('close-change-pokemon-modal');
     const changePokemonGrid = document.getElementById('change-pokemon-grid');
     const changeBattlePokemonButton = document.getElementById('change-battle-pokemon-button');
+    const manageMovesButton = document.getElementById('manage-moves-button');
+    const movesModal = document.getElementById('moves-modal');
+    const closeMovesModalButton = document.getElementById('close-moves-modal');
+    const movesEquippedList = document.getElementById('moves-equipped-list');
+    const movesAvailableList = document.getElementById('moves-available-list');
+    const movesLockedList = document.getElementById('moves-locked-list');
+    const movesModalTitle = document.getElementById('moves-modal-title');
     const saveButton = document.getElementById('save-button');
     const loadButton = document.getElementById('load-button');
     const prestigeButton = document.getElementById('prestige-button');
@@ -222,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let tutorialTargetListener = null;
     let tutorialSteps = [];
 
-        // --- Pok�mon Data by generation (external data) ---
+        // --- Pokémon Data by generation (external data) ---
     const PRESTIGE_REQUIREMENT = 5000000000; // base requirement
     const SHINY_CHANCE = 1 / 4096; // align closer to main games
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
@@ -408,12 +497,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pokemonXpGain = baseBattleXp * getTrainerXpBoostMultiplier();
                 money += reward;
                 gainXp(baseBattleXp); // Grant XP to trainer
+                addSharedPokemonXp(pokemonXpGain);
                 if (battlePokemonId) {
-                    if (!pokemonXP[battlePokemonId]) {
-                        pokemonXP[battlePokemonId] = 0;
-                    }
-                    pokemonXP[battlePokemonId] += pokemonXpGain;
-                    renderBattlePokemon();
+                    ensureMoveLoadoutForPokemon(battlePokemonId).catch(() => {});
+                }
+                renderBattlePokemon();
+                if (movesModal && movesModal.style.display === 'flex') {
+                    renderMovesModal();
                 }
                 questProgress.money += reward;
                 questProgress.battles += 1;
@@ -1025,12 +1115,12 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 1; i < 5; i++) {
                 xpForLevel5 += getXpToLevelUp(i);
             }
-            if (!pokemonXP[pokemonId]) pokemonXP[pokemonId] = 0;
-            pokemonXP[pokemonId] += xpForLevel5;
             if (!battlePokemonId) {
                 setBattlePokemon(pokemonId);
             }
+            addSharedPokemonXp(xpForLevel5);
         }
+        ensureMoveLoadoutForPokemon(pokemonId).catch(() => {});
     }
 
     function buyPokemon(pokemonId) {
@@ -1249,6 +1339,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderLeagues();
         renderChallenges();
         renderInventory();
+        updateMoveButtonState();
     }
 
     function updateStats() {
@@ -1296,8 +1387,7 @@ function refreshBattlePreview() {
 
         if (battlePlayerPower) {
             if (playerMon) {
-                const playerXp = pokemonXP[playerMon.id] || 0;
-                const playerLevel = getLevelForXp(playerXp);
+                const playerLevel = getSharedPokemonLevel();
                 const combatant = buildCombatantFromDex(playerMon.dex, {
                     pokemonData,
                     currentLanguage,
@@ -1486,6 +1576,7 @@ function refreshBattlePreview() {
     function setBattlePokemon(pokemonId) {
         if (ownedPokemon[pokemonId] > 0) {
             battlePokemonId = pokemonId;
+            ensureMoveLoadoutForPokemon(pokemonId).catch(() => {});
             calculateMoneyPerSecond();
             updateUI();
             if (changePokemonModal) {
@@ -1500,14 +1591,10 @@ function refreshBattlePreview() {
         if (battlePokemonId) {
             const pokemon = pokemonData.find(p => p.id === battlePokemonId);
             if (pokemon) {
-                const xp = pokemonXP[battlePokemonId] || 0;
-                const level = getLevelForXp(xp);
-                const currentLevelXp = getCurrentXpForLevel(xp);
-                const xpForNext = getXpToLevelUp(level);
-
+                const { level, current: currentLevelXp, required: xpForNext } = getSharedPokemonXpProgress();
                 const pokemonElement = document.createElement('div');
                 pokemonElement.className = 'pokemon-instance favorite';
-                 if (shinyPokemon.includes(battlePokemonId)) {
+                if (shinyPokemon.includes(battlePokemonId)) {
                     pokemonElement.classList.add('shiny');
                 }
                 const localizedName = localizedPokemonName(pokemon);
@@ -1516,17 +1603,18 @@ function refreshBattlePreview() {
                     <span>${localizedName} <small>(Lvl ${level})</small></span>
                 `;
                 battlePokemonIdSlot.appendChild(pokemonElement);
-
-                battlePokemonXpContainer.style.display = 'block';
-                battlePokemonXpBar.value = currentLevelXp;
-                battlePokemonXpBar.max = xpForNext;
-                battlePokemonXpText.textContent = `${formatNumber(currentLevelXp)} / ${formatNumber(xpForNext)} XP`;
-
+                if (battlePokemonXpContainer) {
+                    battlePokemonXpContainer.style.display = 'block';
+                    battlePokemonXpBar.value = currentLevelXp;
+                    battlePokemonXpBar.max = xpForNext;
+                    battlePokemonXpText.textContent = `${formatNumber(currentLevelXp)} / ${formatNumber(xpForNext)} XP`;
+                }
             }
         } else {
             battlePokemonIdSlot.innerHTML = '<span>Choisissez un Pokémon pour le combat.</span>';
-            if(battlePokemonXpContainer) battlePokemonXpContainer.style.display = 'none';
+            if (battlePokemonXpContainer) battlePokemonXpContainer.style.display = 'none';
         }
+        updateMoveButtonState();
     }
 
     function renderAutomation() {
@@ -2133,6 +2221,8 @@ function refreshBattlePreview() {
             unlockedAchievements = [];
             battlePokemonId = null;
             shinyPokemon = [];
+            pokemonMoveLoadouts = {};
+            setSharedPokemonXp(0);
             defeatedGyms = {};
             defeatedEliteFour = {};
             trainerLevel = 1;
@@ -2162,7 +2252,9 @@ function refreshBattlePreview() {
             battlePokemonId: battlePokemonId,
             shinyPokemon: shinyPokemon,
             defeatedGyms: defeatedGyms,
-            pokemonXP: pokemonXP,
+            pokemonXP: legacyPokemonXpSnapshot(),
+            sharedPokemonXp: sharedPokemonXp,
+            pokemonMoveLoadouts: pokemonMoveLoadouts,
             trainerLevel: trainerLevel,
             trainerXp: trainerXp,
             xpToNextLevel: xpToNextLevel,
@@ -2201,6 +2293,12 @@ function refreshBattlePreview() {
                 battlePokemonId = gameState.battlePokemonId || null;
                 shinyPokemon = gameState.shinyPokemon || [];
                 pokemonXP = gameState.pokemonXP || {};
+                setSharedPokemonXp(
+                    gameState.sharedPokemonXp !== undefined
+                        ? gameState.sharedPokemonXp
+                        : deriveSharedXpFromLegacy(pokemonXP)
+                );
+                pokemonMoveLoadouts = gameState.pokemonMoveLoadouts || {};
                 defeatedGyms = gameState.defeatedGyms || {};
                 trainerLevel = gameState.trainerLevel || 1;
                 trainerXp = gameState.trainerXp || 0;
@@ -2234,6 +2332,8 @@ function refreshBattlePreview() {
             battlePokemonId = null;
             shinyPokemon = [];
             pokemonXP = {};
+            setSharedPokemonXp(0);
+            pokemonMoveLoadouts = {};
             defeatedGyms = {};
             trainerLevel = 1;
             trainerXp = 0;
@@ -2438,6 +2538,16 @@ function refreshBattlePreview() {
             });
         }
 
+        if (manageMovesButton && movesModal && closeMovesModalButton) {
+            manageMovesButton.addEventListener('click', openMovesModal);
+            closeMovesModalButton.addEventListener('click', closeMovesModal);
+            movesModal.addEventListener('click', (e) => {
+                if (e.target === movesModal) {
+                    closeMovesModal();
+                }
+            });
+        }
+
         if (openAutoBuyButton && autoBuyModal && closeAutoBuyButton) {
             openAutoBuyButton.addEventListener('click', () => {
                 autoBuyModal.style.display = 'flex';
@@ -2625,8 +2735,9 @@ function refreshBattlePreview() {
         }
 
         const playerPokemonId = playerMon.id;
-        const playerXp = pokemonXP[playerPokemonId] || 0;
-        const playerLevel = getLevelForXp(playerXp);
+        const playerLevel = getSharedPokemonLevel();
+        await ensureMoveLoadoutForPokemon(playerPokemonId);
+        const preferredMoveIds = getMoveLoadout(playerPokemonId).active || [];
 
         // In a gym battle sequence, the player's pokemon is not healed.
         const player = (isContinuation && battleState && battleState.player)
@@ -2635,7 +2746,8 @@ function refreshBattlePreview() {
                 pokemonData,
                 currentLanguage,
                 localizePokemonName: localizedPokemonName,
-                level: playerLevel
+                level: playerLevel,
+                preferredMoveIds
             });
 
         if (isContinuation && battleState && battleState.player) {

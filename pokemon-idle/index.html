@@ -108,7 +108,10 @@
                                                     <progress id="battle-pokemon-xp-bar" value="0" max="100" style="width: 100%;"></progress>
                                                     <span id="battle-pokemon-xp-text" class="muted" style="display: block; text-align: center;"></span>
                                                 </div>
-                                                <button id="change-battle-pokemon-button" class="btn small"><i class="fas fa-sync-alt"></i> Change</button>                            </div>                <div id="battle-container" class="card">
+                                                <button id="change-battle-pokemon-button" class="btn small"><i class="fas fa-sync-alt"></i> Change</button>
+                                                <button id="manage-moves-button" class="btn ghost small"><i class="fas fa-bolt"></i> Gérer les attaques</button>
+                            </div>
+                <div id="battle-container" class="card">
                     <h2><i class="fas fa-gamepad"></i> <span data-i18n="battle">Battle</span></h2>
                 <div id="battle-preview">
                     <div class="opponent-info">
@@ -207,6 +210,27 @@
                 <button id="close-change-pokemon-modal" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
             <div id="change-pokemon-grid" class="owned-modal-grid"></div>
+        </div>
+    </div>
+
+    <div id="moves-modal" class="modal" style="display:none;">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h3 id="moves-modal-title"><i class="fas fa-bolt"></i> Attaques</h3>
+                <button id="close-moves-modal" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
+            </div>
+            <div class="moves-section moves-equipped">
+                <h4>Attaques équipées</h4>
+                <div id="moves-equipped-list" class="pill-list"></div>
+            </div>
+            <div class="moves-section moves-available">
+                <h4>Attaques apprises</h4>
+                <div id="moves-available-list" class="pill-list"></div>
+            </div>
+            <div class="moves-section moves-locked">
+                <h4>Prochaines attaques</h4>
+                <div id="moves-locked-list" class="pill-list"></div>
+            </div>
         </div>
     </div>
 
