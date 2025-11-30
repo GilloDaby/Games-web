@@ -228,6 +228,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const POKEBALL_DROP_CHANCE = 0.005; // 0.5% drop chance from the pokéball
     const SHINY_MULTIPLIER = 2; // 2x bonus for shiny
     const POKEMON_COST_GROWTH = 1.15;
+    const TRAINER_OPPONENT_BRACKETS = [
+        { minLevel: 1, maxLevel: 10, minPct: 0.0, maxPct: 0.25 },
+        { minLevel: 11, maxLevel: 20, minPct: 0.2, maxPct: 0.45 },
+        { minLevel: 21, maxLevel: 30, minPct: 0.4, maxPct: 0.65 },
+        { minLevel: 31, maxLevel: 40, minPct: 0.6, maxPct: 0.85 },
+        { minLevel: 41, maxLevel: Infinity, minPct: 0.8, maxPct: 1.0 }
+    ];
     const AUTO_SAVE_INTERVAL = 5000; // save every 5 seconds
     const achievementsData = (() => {
         const list = [];
@@ -396,15 +403,17 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
              const { foe } = battleState;
             if (victory) {
-                const xpGained = 80;
+                const baseBattleXp = 80;
                 const reward = Math.floor(foe.level * 120 * prestigeMultiplier);
+                const pokemonXpGain = baseBattleXp * getTrainerXpBoostMultiplier();
                 money += reward;
-                gainXp(xpGained); // Grant XP to trainer
+                gainXp(baseBattleXp); // Grant XP to trainer
                 if (battlePokemonId) {
                     if (!pokemonXP[battlePokemonId]) {
                         pokemonXP[battlePokemonId] = 0;
                     }
-                    pokemonXP[battlePokemonId] += xpGained;
+                    pokemonXP[battlePokemonId] += pokemonXpGain;
+                    renderBattlePokemon();
                 }
                 questProgress.money += reward;
                 questProgress.battles += 1;
@@ -901,15 +910,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return maxIndex;
     }
 
+    function getCurrentRegionRange() {
+        return genRanges.find(r => r.gen === currentGeneration) || genRanges[0];
+    }
+
+    function getRegionalPokemonPool() {
+        const range = getCurrentRegionRange();
+        if (!range) return [...pokemonData];
+        return pokemonData.filter(p => p.dex >= range.start && p.dex <= range.end);
+    }
+
+    function getTrainerOpponentBracket(level = trainerLevel) {
+        return TRAINER_OPPONENT_BRACKETS.find(b => level >= b.minLevel && level <= b.maxLevel)
+            || TRAINER_OPPONENT_BRACKETS[TRAINER_OPPONENT_BRACKETS.length - 1];
+    }
+
+    function pickRegionalOpponent(level = trainerLevel) {
+        const pool = getRegionalPokemonPool();
+        if (!pool.length) return null;
+        const bracket = getTrainerOpponentBracket(level);
+        const maxIndex = pool.length - 1;
+        const start = Math.max(0, Math.floor(bracket.minPct * maxIndex));
+        const end = Math.max(start, Math.floor(bracket.maxPct * maxIndex));
+        const idx = start + Math.floor(Math.random() * (end - start + 1));
+        return pool[idx];
+    }
+
     function generateOpponent() {
-        const ownedMax = Math.max(5, highestOwnedDexIndex());
-        const minIdx = Math.max(0, ownedMax - 5);
-        const maxIdx = Math.min(pokemonData.length - 1, ownedMax + 5);
-        const chosen = pokemonData[Math.floor(Math.random() * (maxIdx - minIdx + 1)) + minIdx];
-        const basePower = moneyPerSecond || 10;
-        const variance = (Math.random() * 0.5 + 0.75); // 75% to 125%
-        const difficulty = Math.pow(1.12, battlesFought) * (1 + (currentGeneration - 1) * 0.5);
-        const power = Math.max(15, basePower * variance * difficulty);
+        const fallback = pokemonData[0] || { id: 'dex-1', dex: 1, name: '???', mps: 1, imageUrl: `${ITEM_SPRITE_BASE}poke-ball.png` };
+        const chosen = pickRegionalOpponent() || fallback;
+        const basePower = Math.max(10, (chosen.mps || 1) * 120);
+        const levelFactor = Math.max(1, trainerLevel * 0.3);
+        const variance = 0.85 + Math.random() * 0.3;
+        const power = Math.max(15, Math.floor(basePower * levelFactor * variance));
         return { ...chosen, power };
     }
 
@@ -933,13 +966,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateBattleOpponentCombatant(playerLevel = 1) {
-        if (!pokemonData.length) return null;
-        const maxDex = Math.max(...pokemonData.map(p => p.dex));
-        const playerOwnedMax = highestOwnedDexIndex() + 1;
-        const dex = Math.max(1, Math.min(maxDex, playerOwnedMax + Math.floor(Math.random() * 5)));
+        const opponentTemplate = pickRegionalOpponent() || pokemonData[0];
+        if (!opponentTemplate) return null;
         const levelVariance = Math.floor(Math.random() * 5) - 2; // -2 to +2
         const opponentLevel = Math.max(1, playerLevel + levelVariance);
-        return buildCombatantFromDex(dex, {
+        return buildCombatantFromDex(opponentTemplate.dex, {
             pokemonData,
             currentLanguage,
             localizePokemonName: localizedPokemonName,
@@ -1323,7 +1354,19 @@ function refreshBattlePreview() {
         trainerLevelDisplay.textContent = trainerLevel;
         xpBar.value = trainerXp;
         xpBar.max = xpToNextLevel;
-        xpText.textContent = `${trainerXp} / ${xpToNextLevel} XP`;
+        const xpBoostPercent = getTrainerXpBoostPercent().toFixed(1);
+        xpText.textContent = `${trainerXp} / ${xpToNextLevel} XP (+${xpBoostPercent}% bonus XP)`;
+    }
+
+    function getTrainerXpBoostPercent() {
+        const basePercent = 1; // Base 1% bonus
+        const perLevelPercent = 0.1;
+        const level = Math.max(0, trainerLevel);
+        return basePercent + (level * perLevelPercent);
+    }
+
+    function getTrainerXpBoostMultiplier() {
+        return 1 + (getTrainerXpBoostPercent() / 100);
     }
 
     function ownedPokemonList(sortDir = 'desc') {
@@ -2157,6 +2200,7 @@ function refreshBattlePreview() {
                 unlockedAchievements = gameState.unlockedAchievements || [];
                 battlePokemonId = gameState.battlePokemonId || null;
                 shinyPokemon = gameState.shinyPokemon || [];
+                pokemonXP = gameState.pokemonXP || {};
                 defeatedGyms = gameState.defeatedGyms || {};
                 trainerLevel = gameState.trainerLevel || 1;
                 trainerXp = gameState.trainerXp || 0;
@@ -2189,6 +2233,7 @@ function refreshBattlePreview() {
             unlockedAchievements = [];
             battlePokemonId = null;
             shinyPokemon = [];
+            pokemonXP = {};
             defeatedGyms = {};
             trainerLevel = 1;
             trainerXp = 0;
