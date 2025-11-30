@@ -1617,6 +1617,258 @@ function refreshBattlePreview() {
         updateMoveButtonState();
     }
 
+    async function ensureMoveLoadoutForPokemon(pokemonId) {
+        if (!pokemonId) return null;
+        try {
+            await loadBattleData();
+        } catch (error) {
+            console.error('Unable to load battle data for moves', error);
+            return null;
+        }
+        const dex = normalizeDexId(pokemonId);
+        if (!dex) return null;
+        const level = getSharedPokemonLevel();
+        const loadout = getMoveLoadout(pokemonId);
+        const learnedMoves = getMovesLearnedUpToLevel(dex, level);
+        const learnedIds = learnedMoves.map(m => m.id);
+        loadout.active = (loadout.active || []).filter(id => learnedIds.includes(id));
+
+        const sortedLearned = learnedMoves
+            .slice()
+            .sort((a, b) => (b.level || 0) - (a.level || 0) || (b.power || 0) - (a.power || 0))
+            .reverse();
+        for (const move of sortedLearned) {
+            if (loadout.active.length >= MAX_EQUIPPED_MOVES) break;
+            if (!loadout.active.includes(move.id)) {
+                loadout.active.push(move.id);
+            }
+        }
+        if (!loadout.active.length) {
+            const fallbackMoves = getFullMoveLearnset(dex).slice(0, MAX_EQUIPPED_MOVES);
+            fallbackMoves.forEach(move => {
+                if (loadout.active.length < MAX_EQUIPPED_MOVES) {
+                    loadout.active.push(move.id);
+                }
+            });
+        }
+        loadout.active = loadout.active.filter(Boolean).slice(0, MAX_EQUIPPED_MOVES);
+        return { loadout, learnedMoves };
+    }
+
+    async function openMovesModal() {
+        if (!battlePokemonId) {
+            toast('toast-no-battle-pokemon');
+            return;
+        }
+        currentMovesModalPokemonId = battlePokemonId;
+        await ensureMoveLoadoutForPokemon(currentMovesModalPokemonId);
+        await renderMovesModal();
+        if (movesModal) movesModal.style.display = 'flex';
+    }
+
+    function closeMovesModal() {
+        currentMovesModalPokemonId = null;
+        if (movesModal) movesModal.style.display = 'none';
+    }
+
+    async function renderMovesModal() {
+        if (!movesModal || !currentMovesModalPokemonId) return;
+        await ensureMoveLoadoutForPokemon(currentMovesModalPokemonId);
+        const dex = normalizeDexId(currentMovesModalPokemonId);
+        if (!dex) return;
+        const level = getSharedPokemonLevel();
+        const learnedMoves = getMovesLearnedUpToLevel(dex, level);
+        const fullMoves = getFullMoveLearnset(dex);
+        const loadout = getMoveLoadout(currentMovesModalPokemonId);
+        const pokemon = pokemonData.find(p => p.id === currentMovesModalPokemonId);
+        if (movesModalTitle) {
+            const label = pokemon ? localizedPokemonName(pokemon) : `Pokemon #${dex}`;
+            movesModalTitle.textContent = `${label} - Lvl ${level}`;
+        }
+        if (movesEquippedList) {
+            movesEquippedList.innerHTML = '';
+            enableMoveListDropping(movesEquippedList, 'equipped');
+            if (!loadout.active.length) {
+                const empty = document.createElement('p');
+                empty.className = 'muted';
+                empty.textContent = 'Aucune attaque équipée.';
+                movesEquippedList.appendChild(empty);
+            } else {
+                loadout.active.forEach(id => {
+                    const move = learnedMoves.find(m => m.id === id) || fullMoves.find(m => m.id === id);
+                    if (move) movesEquippedList.appendChild(createMoveCard(move, { listType: 'equipped', equipped: true }));
+                });
+            }
+        }
+        if (movesAvailableList) {
+            movesAvailableList.innerHTML = '';
+            enableMoveListDropping(movesAvailableList, 'available');
+            if (!learnedMoves.length) {
+                const empty = document.createElement('p');
+                empty.className = 'muted';
+                empty.textContent = `Aucune attaque apprise au niveau ${level}.`;
+                movesAvailableList.appendChild(empty);
+            } else {
+                learnedMoves.forEach(move => {
+                    movesAvailableList.appendChild(createMoveCard(move, { listType: 'available', equipped: loadout.active.includes(move.id) }));
+                });
+            }
+        }
+        if (movesLockedList) {
+            movesLockedList.innerHTML = '';
+            const lockedMoves = fullMoves
+                .filter(move => (move.level || 1) > level)
+                .sort((a, b) => (a.level || 0) - (b.level || 0));
+            if (!lockedMoves.length) {
+                const empty = document.createElement('p');
+                empty.className = 'muted';
+                empty.textContent = 'Toutes les attaques disponibles sont débloquées.';
+                movesLockedList.appendChild(empty);
+            } else {
+                lockedMoves.forEach(move => {
+                    movesLockedList.appendChild(createMoveCard(move, { listType: 'locked', locked: true }));
+                });
+            }
+        }
+    }
+
+    function enableMoveListDropping(listElement, listType) {
+        listElement.dataset.list = listType;
+        if (listElement.dataset.dndBound === 'true') return;
+        listElement.addEventListener('dragover', (event) => handleMoveDragOver(event, listElement));
+        listElement.addEventListener('drop', (event) => handleMoveDrop(event, listElement, listType));
+        listElement.dataset.dndBound = 'true';
+    }
+
+    function createMoveCard(move, { listType, equipped = false, locked = false } = {}) {
+        const card = document.createElement('div');
+        card.className = `move-card ${equipped ? 'equipped' : ''} ${locked ? 'locked' : ''}`;
+        card.dataset.moveId = move.id;
+        card.dataset.list = listType;
+        if (!locked) {
+            card.draggable = true;
+            card.addEventListener('dragstart', handleMoveDragStart);
+            card.addEventListener('dragend', handleMoveDragEnd);
+        }
+        card.addEventListener('click', () => toggleMoveEquipped(currentMovesModalPokemonId, move.id));
+        card.innerHTML = `
+            <div class="move-card-header">
+                <span class="move-name">${formatMoveNameLabel(move)}</span>
+                <span class="move-type type-${move.type || 'normal'}">${(move.type || '?').toUpperCase()}</span>
+            </div>
+            <div class="move-info">
+                <span>Nv ${move.level || 1}</span>
+                <span>Puissance ${move.power || '-'}</span>
+                <span>Précision ${move.accuracy || '-'}</span>
+            </div>
+        `;
+        return card;
+    }
+
+    function handleMoveDragStart(event) {
+        const moveId = Number(event.currentTarget.dataset.moveId);
+        const listType = event.currentTarget.dataset.list;
+        currentMoveDrag = { moveId, listType };
+        event.dataTransfer.effectAllowed = 'move';
+        event.currentTarget.classList.add('dragging');
+    }
+
+    function handleMoveDragEnd(event) {
+        event.currentTarget.classList.remove('dragging');
+        currentMoveDrag = null;
+    }
+
+    function handleMoveDragOver(event, listElement) {
+        event.preventDefault();
+        listElement.querySelectorAll('.drop-preview').forEach(el => el.classList.remove('drop-preview'));
+        const cards = [...listElement.querySelectorAll('.move-card:not(.dragging)')];
+        const dropIndex = getDropIndexFromCards(cards, event.clientX, event.clientY);
+        if (cards[dropIndex]) {
+            cards[dropIndex].classList.add('drop-preview');
+        } else if (cards.length) {
+            cards[cards.length - 1].classList.add('drop-preview');
+        }
+    }
+
+    function handleMoveDrop(event, listElement, listType) {
+        event.preventDefault();
+        listElement.querySelectorAll('.drop-preview').forEach(el => el.classList.remove('drop-preview'));
+        if (!currentMoveDrag || !currentMovesModalPokemonId) return;
+        const dropIndex = listType === 'equipped' ? getDropIndex(listElement, event.clientX, event.clientY) : null;
+        if (listType === 'equipped') {
+            equipMove(currentMovesModalPokemonId, currentMoveDrag.moveId, dropIndex, currentMoveDrag.listType);
+        } else if (listType === 'available' && currentMoveDrag.listType === 'equipped') {
+            unequipMove(currentMovesModalPokemonId, currentMoveDrag.moveId);
+        }
+        renderMovesModal();
+        renderBattlePokemon();
+    }
+
+    function getDropIndex(listElement, mouseX, mouseY) {
+        const cards = [...listElement.querySelectorAll('.move-card:not(.dragging)')];
+        return getDropIndexFromCards(cards, mouseX, mouseY);
+    }
+
+    function getDropIndexFromCards(cards, mouseX, mouseY) {
+        for (let i = 0; i < cards.length; i++) {
+            const box = cards[i].getBoundingClientRect();
+            if (mouseY < box.top) {
+                return i;
+            }
+            const withinRow = mouseY >= box.top && mouseY <= box.bottom;
+            if (withinRow) {
+                if (mouseX < box.left + box.width / 2) {
+                    return i;
+                }
+            }
+        }
+        return cards.length;
+    }
+
+    function equipMove(pokemonId, moveId, targetIndex = null, sourceList = 'available') {
+        const dex = normalizeDexId(pokemonId);
+        if (!dex) return false;
+        const level = getSharedPokemonLevel();
+        const learnedIds = getMovesLearnedUpToLevel(dex, level).map(m => m.id);
+        if (!learnedIds.includes(moveId)) {
+            showToast('Attaque non disponible pour ce niveau.', true);
+            return false;
+        }
+        const loadout = getMoveLoadout(pokemonId);
+        const existingIndex = loadout.active.indexOf(moveId);
+        if (existingIndex >= 0) loadout.active.splice(existingIndex, 1);
+        if (existingIndex === -1 && loadout.active.length >= MAX_EQUIPPED_MOVES) {
+            const evictionIndex = targetIndex === null
+                ? (loadout.active.length - 1)
+                : Math.min(Math.max(targetIndex, 0), loadout.active.length - 1);
+            loadout.active.splice(evictionIndex, 1);
+        }
+        const insertAt = targetIndex === null
+            ? loadout.active.length
+            : Math.max(0, Math.min(targetIndex, loadout.active.length));
+        loadout.active.splice(insertAt, 0, moveId);
+        return true;
+    }
+
+    function unequipMove(pokemonId, moveId) {
+        const loadout = getMoveLoadout(pokemonId);
+        const idx = loadout.active.indexOf(moveId);
+        if (idx >= 0) loadout.active.splice(idx, 1);
+    }
+
+    async function toggleMoveEquipped(pokemonId, moveId) {
+        if (!pokemonId || !moveId) return;
+        await ensureMoveLoadoutForPokemon(pokemonId);
+        const loadout = getMoveLoadout(pokemonId);
+        if (loadout.active.includes(moveId)) {
+            unequipMove(pokemonId, moveId);
+        } else if (!equipMove(pokemonId, moveId)) {
+            return;
+        }
+        await renderMovesModal();
+        renderBattlePokemon();
+    }
+
     function renderAutomation() {
         const container = document.getElementById('automation-items');
         if (!container) return;
