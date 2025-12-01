@@ -33,6 +33,60 @@ import {
 } from './mechanics/battleData.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Theme Switcher ---
+    const themes = {
+        modern: { label: 'Modern', href: 'style.css' },
+        retro: { label: 'Retro Pokédex', href: 'style2.css' },
+        neo: { label: 'Pokémon Neo', href: 'style3.css' }
+    };
+    const THEME_STORAGE_KEY = 'poke-idle-theme';
+    const themeStylesheet = document.getElementById('theme-stylesheet');
+    const themeSelect = document.getElementById('theme-select');
+
+    const applyTheme = (themeKey) => {
+        const nextThemeKey = themes[themeKey] ? themeKey : 'modern';
+        const theme = themes[nextThemeKey];
+
+        if (themeStylesheet) {
+            themeStylesheet.setAttribute('href', theme.href);
+        }
+        document.documentElement.setAttribute('data-theme', nextThemeKey);
+        if (themeSelect) {
+            themeSelect.value = nextThemeKey;
+        }
+        localStorage.setItem(THEME_STORAGE_KEY, nextThemeKey);
+    };
+
+    const initThemeSelector = () => {
+        if (!themeSelect) return;
+
+        themeSelect.innerHTML = '';
+        Object.entries(themes).forEach(([key, value]) => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = value.label;
+            themeSelect.appendChild(option);
+        });
+
+        themeSelect.addEventListener('change', (event) => applyTheme(event.target.value));
+        const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+        applyTheme(savedTheme && themes[savedTheme] ? savedTheme : 'modern');
+    };
+
+    initThemeSelector();
+
+    const openBattleModal = () => {
+        if (battleModal) {
+            battleModal.style.display = 'flex';
+        }
+    };
+
+    const closeBattleModal = () => {
+        if (battleModal) {
+            battleModal.style.display = 'none';
+        }
+    };
+
     // --- Game State ---
     let money = 0;
     let ownedPokemon = {}; // Stores counts of each owned Pokémon, e.g., { 'rattata': 2 }
@@ -287,6 +341,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const battleFoeHpText = document.getElementById('battle-foe-hp-text');
     const battleFoeSprite = document.getElementById('battle-foe-sprite');
     const battleActions = document.getElementById('battle-actions');
+    const battleModal = document.getElementById('battle-modal');
+    const openBattleUiButton = document.getElementById('open-battle-ui');
+    const closeBattleModalButton = document.getElementById('close-battle-modal');
     const horizontalScrollers = Array.from(document.querySelectorAll('.horizontal-scroller'));
     const toastContainer = document.getElementById('toast-container');
     const { toast, showToast, translateWithParams } = createToastController({ translate: t, settings, toastContainer });
@@ -2978,7 +3035,18 @@ function refreshBattlePreview() {
             }
         });
 
-        battleButton.addEventListener('click', () => startBattle());
+        if (openBattleUiButton) openBattleUiButton.addEventListener('click', openBattleModal);
+        if (closeBattleModalButton) closeBattleModalButton.addEventListener('click', closeBattleModal);
+        if (battleModal) {
+            battleModal.addEventListener('click', (e) => {
+                if (e.target === battleModal) closeBattleModal();
+            });
+        }
+
+        battleButton.addEventListener('click', () => {
+            openBattleModal();
+            startBattle();
+        });
 
         if (tutorialOverlay && tutorialNextButton && tutorialBackButton && tutorialSkipButton) {
             tutorialNextButton.addEventListener('click', nextTutorialStep);
