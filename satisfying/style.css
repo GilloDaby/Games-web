@@ -1,13 +1,31 @@
+:root {
+    --font-family: 'Comic Neue', cursive;
+    --bg-color: #fefae0;
+    --text-color: #60492c;
+    --panel-bg: #faedcd;
+    --panel-border: #d4a373;
+    --button-bg: #e9ecef;
+    --button-border: #b7b7a4;
+    --button-text: #888;
+    --button-shadow: #ced4da;
+    --button-disabled-bg: #f8f9fa;
+    --button-disabled-shadow: #e9ecef;
+    --success-bg: #90a955;
+    --success-border: #7f9549;
+    --heading-shadow: #faedcd;
+    --card-hover: rgba(144, 169, 85, 0.2);
+}
+
 body {
-    font-family: 'Comic Neue', cursive;
+    font-family: var(--font-family);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
     margin: 0;
-    background-color: #fefae0; /* Light yellow */
-    color: #60492c; /* Brown */
+    background-color: var(--bg-color);
+    color: var(--text-color);
 }
 
 header {
@@ -15,28 +33,59 @@ header {
 }
 
 h1, h2 {
-    color: #60492c; /* Brown */
+    color: var(--text-color);
     font-weight: 700;
 }
 
 h1 {
     font-size: 3.5rem;
-    text-shadow: 2px 2px #faedcd;
+    text-shadow: 2px 2px var(--heading-shadow);
 }
 
 h2 {
     font-size: 2rem;
 }
 
+@media (max-width: 720px) {
+    body {
+        padding: 0 1rem;
+    }
+}
+
+#theme-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.9rem;
+    border: 2px solid var(--panel-border);
+    border-radius: 12px;
+    background: var(--panel-bg);
+}
+
+#theme-switcher label {
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+#theme-switcher select {
+    font-family: inherit;
+    padding: 0.35rem 0.6rem;
+    border-radius: 10px;
+    border: 2px solid var(--panel-border);
+    background: var(--button-bg);
+    color: var(--text-color);
+    cursor: pointer;
+}
+
 #game-container {
     width: 80%;
     max-width: 800px;
-    background-color: #faedcd; /* Light cream */
+    background-color: var(--panel-bg);
     border-radius: 20px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     padding: 2rem;
     text-align: center;
-    border: 5px solid #d4a373;
+    border: 5px solid var(--panel-border);
 }
 
 #levels {
@@ -50,28 +99,28 @@ h2 {
 .level-button {
     width: 80px;
     height: 80px;
-    border: 3px solid #b7b7a4;
+    border: 3px solid var(--button-border);
     border-radius: 12px;
     font-size: 2rem;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.2s ease;
-    background-color: #e9ecef;
-    color: #888;
-    box-shadow: 0 4px #ced4da;
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    box-shadow: 0 4px var(--button-shadow);
 }
 
 .level-button:active {
     transform: translateY(2px);
-    box-shadow: 0 2px #ced4da;
+    box-shadow: 0 2px var(--button-shadow);
 }
 
 
 .level-button.unlocked {
-    background-color: #90a955; /* Green */
-    color: white;
-    border-color: #7f9549;
-    box-shadow: 0 4px #7f9549;
+    background-color: var(--success-bg);
+    color: #fff;
+    border-color: var(--success-border);
+    box-shadow: 0 4px var(--success-border);
 }
 
 .level-button.unlocked:hover {
@@ -81,8 +130,8 @@ h2 {
 
 .level-button:disabled {
     cursor: not-allowed;
-    background-color: #f8f9fa;
-    box-shadow: 0 4px #e9ecef;
+    background-color: var(--button-disabled-bg);
+    box-shadow: 0 4px var(--button-disabled-shadow);
 }
 
 .hidden {
@@ -95,10 +144,10 @@ h2 {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #faedcd;
+    background-color: var(--panel-bg);
     padding: 30px;
     border-radius: 15px;
-    border: 5px solid #d4a373;
+    border: 5px solid var(--panel-border);
     z-index: 1000;
     text-align: center;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
@@ -107,19 +156,19 @@ h2 {
 #dev-menu h3 {
     margin-top: 0;
     font-size: 1.5rem;
-    color: #60492c;
+    color: var(--text-color);
 }
 
 #dev-menu button {
-    font-family: 'Comic Neue', cursive;
+    font-family: var(--font-family);
     font-size: 1rem;
     padding: 10px 20px;
     border-radius: 8px;
-    border: 2px solid #60492c;
-    background-color: #90a955;
-    color: white;
+    border: 2px solid var(--text-color);
+    background-color: var(--success-bg);
+    color: #fff;
     cursor: pointer;
-    box-shadow: 0 2px #7f9549;
+    box-shadow: 0 2px var(--success-border);
 }
 
 #dev-menu button:active {
@@ -134,16 +183,16 @@ h2 {
     width: 100%;
     height: 350px;
     margin-top: 2rem;
-    border: 3px dashed #d4a373;
+    border: 3px dashed var(--panel-border);
     border-radius: 8px;
-    background-color: #fefae0;
+    background-color: var(--bg-color);
 }
 
 .fit-target {
     position: absolute;
     width: 100px;
     height: 100px;
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     transition: all 0.3s ease;
 }
 
@@ -172,7 +221,7 @@ h2 {
     margin-top: 1rem;
     font-size: 1.3rem;
     font-weight: bold;
-    color: #60492c;
+    color: var(--text-color);
 }
 
 /* Level 2: Clean the Mess */
@@ -186,7 +235,7 @@ h2 {
 
 #wipe-canvas {
     cursor: crosshair;
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     border-radius: 8px;
     display: block;
 }
@@ -201,7 +250,7 @@ h2 {
 }
 
 #stack-canvas {
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     border-radius: 8px;
     cursor: pointer;
     display: block;
@@ -218,7 +267,7 @@ h2 {
 }
 
 #paint-canvas {
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     border-radius: 8px;
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" style="font-size:24px"><text y="24">🖌️</text></svg>') 4 24, auto;
 }
@@ -233,7 +282,7 @@ h2 {
 }
 
 #domino-canvas {
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     border-radius: 8px;
     cursor: pointer;
 }
@@ -245,7 +294,7 @@ h2 {
 }
 
 #bubble-canvas {
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     border-radius: 8px;
     cursor: pointer;
     display: block;
@@ -259,7 +308,7 @@ h2 {
 }
 
 #slice-canvas {
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     border-radius: 8px;
     cursor: crosshair;
     display: block;
@@ -282,7 +331,7 @@ h2 {
 }
 
 .shelf:hover {
-    background: rgba(144, 169, 85, 0.2) !important;
+    background: var(--card-hover) !important;
 }
 
 .organize-item:hover {
@@ -296,7 +345,7 @@ h2 {
 }
 
 #wash-canvas {
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     border-radius: 8px;
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" style="font-size:24px"><text y="24">💦</text></svg>') 16 16, crosshair;
     display: block;
@@ -309,7 +358,7 @@ h2 {
 }
 
 #symmetry-canvas {
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     border-radius: 8px;
     cursor: crosshair;
     display: block;
@@ -342,10 +391,10 @@ h2 {
 
 @keyframes pulse {
     0%, 100% {
-        box-shadow: 0 4px #7f9549;
+        box-shadow: 0 4px var(--success-border);
     }
     50% {
-        box-shadow: 0 4px #7f9549, 0 0 15px rgba(144, 169, 85, 0.5);
+        box-shadow: 0 4px var(--success-border), 0 0 15px rgba(144, 169, 85, 0.5);
     }
 }
 
@@ -366,7 +415,7 @@ canvas {
 #pixel-canvas, #balloon-canvas, #maze-canvas, #peel-canvas,
 #beat-canvas, #zipper-canvas, #sand-canvas, #dots-canvas,
 #scratch-canvas, #spiral-canvas, #sort-canvas, #fireworks-canvas {
-    border: 3px solid #d4a373;
+    border: 3px solid var(--panel-border);
     border-radius: 8px;
     cursor: pointer;
 }
@@ -378,7 +427,7 @@ canvas {
     margin-top: 1rem;
     font-size: 1.3rem;
     font-weight: bold;
-    color: #60492c;
+    color: var(--text-color);
 }
 
 input[type="range"] {
@@ -388,7 +437,7 @@ input[type="range"] {
 
 label {
     font-weight: bold;
-    color: #60492c;
+    color: var(--text-color);
     display: inline-block;
     width: 80px;
 }

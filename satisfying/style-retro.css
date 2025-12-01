@@ -1,0 +1,70 @@
+@import url('./style.css');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+    --font-family: 'Press Start 2P', monospace;
+    --bg-color: #f8e8d0;
+    --text-color: #1b1b1b;
+    --panel-bg: #fff5d6;
+    --panel-border: #c0392b;
+    --button-bg: #fff1c4;
+    --button-border: #c0392b;
+    --button-text: #1b1b1b;
+    --button-shadow: #e0aa62;
+    --button-disabled-bg: #f2e6d3;
+    --button-disabled-shadow: #d7c4a0;
+    --success-bg: #2e86de;
+    --success-border: #154c79;
+    --heading-shadow: #ffd166;
+    --card-hover: rgba(192, 57, 43, 0.12);
+}
+
+body {
+    image-rendering: pixelated;
+    background-image:
+        linear-gradient(0deg, rgba(255,255,255,0.4), rgba(255,255,255,0.4)),
+        repeating-linear-gradient(45deg, #f8e8d0 0, #f8e8d0 16px, #f3dec0 16px, #f3dec0 32px);
+}
+
+h1, h2 {
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 3px 3px var(--panel-border);
+}
+
+#game-container {
+    border-radius: 10px;
+    border-width: 6px;
+    box-shadow: 0 10px 0 #1b1b1b, 0 16px 28px rgba(0, 0, 0, 0.25);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0));
+}
+
+.level-button {
+    border-radius: 6px;
+    border-width: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background-image: linear-gradient(180deg, #fffbe8 0%, #ffe09a 100%);
+    box-shadow: 0 6px var(--button-shadow);
+}
+
+.level-button:active {
+    box-shadow: 0 2px var(--button-shadow);
+}
+
+.level-button.unlocked {
+    box-shadow: 0 6px var(--success-border);
+}
+
+.level-button.unlocked:hover {
+    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.25);
+}
+
+#theme-switcher {
+    border-width: 4px;
+    border-radius: 10px;
+}
+
+#theme-switcher select {
+    border-width: 3px;
+}
