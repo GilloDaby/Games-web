@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const themes = {
         modern: { label: 'Modern', href: 'style.css' },
         retro: { label: 'Retro Pokédex', href: 'style2.css' },
-        neo: { label: 'Pokémon Neo', href: 'style3.css' }
+        neo: { label: 'Pokémon Neo', href: 'style3.css' },
     };
     const THEME_STORAGE_KEY = 'poke-idle-theme';
     const themeStylesheet = document.getElementById('theme-stylesheet');
