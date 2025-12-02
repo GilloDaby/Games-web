@@ -155,6 +155,103 @@ export const gymLeadersData = {
     ]
 };
 
+// Mapping explicite des badges de chaque champion vers les sprites PokeAPI
+// Source: https://github.com/PokeAPI/sprites/tree/master/sprites/badges
+// Ordre officiel Kanto :
+// 1 = Rock (Brock), 2 = Cascade (Misty), 3 = Thunder (Lt. Surge), 4 = Rainbow (Erika),
+// 5 = Soul (Koga), 6 = Marsh (Sabrina), 7 = Volcano (Blaine), 8 = Earth (Giovanni)
+export const gymBadgeSpriteMap = {
+    // Gen 1 – Kanto (1–8)
+    brock: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png',
+    misty: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png',
+    'lt-surge': 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png',
+    erika: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png',
+    koga: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png',
+    sabrina: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png',
+    blaine: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png',
+    giovanni: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png',
+
+    // Gen 2 – Johto (9–16)
+    falkner: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png',
+    bugsy: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png',
+    whitney: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png',
+    morty: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png',
+    chuck: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png',
+    jasmine: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png',
+    pryce: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png',
+    clair: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png',
+
+    // Gen 3 – Hoenn (17–24)
+    roxanne: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/17.png',
+    brawly: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/18.png',
+    wattson: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/19.png',
+    flannery: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/20.png',
+    norman: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/21.png',
+    winona: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/22.png',
+    tate_liza: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/23.png',
+    juan: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/24.png',
+
+    // Gen 4 – Sinnoh (25–32)
+    roark: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/25.png',
+    gardenia: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/26.png',
+    maylene: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/27.png',
+    crasher_wake: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/28.png',
+    fantina: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/29.png',
+    byron: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/30.png',
+    candice: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/31.png',
+    volkner: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/32.png',
+
+    // Gen 5 – Unova (33–40)
+    cilan_chili_cress: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/33.png',
+    lenora: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/34.png',
+    burgh: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/35.png',
+    elesa: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/36.png',
+    clay: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/37.png',
+    skyla: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/38.png',
+    brycen: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/39.png',
+    drayden_iris: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/40.png',
+
+    // Gen 6 – Kalos (41–48)
+    viola: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/41.png',
+    grant: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/42.png',
+    korrina: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/43.png',
+    ramos: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/44.png',
+    clemont: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/45.png',
+    valerie: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/46.png',
+    olympia: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/47.png',
+    wulfric: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png',
+
+    // Gen 7 – Alola (49–56)
+    ilima: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/49.png',
+    lana: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/50.png',
+    kiawe: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/51.png',
+    mallow: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/52.png',
+    sophocles: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/53.png',
+    acerola: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/54.png',
+    kahili: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/55.png',
+    nanu: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/56.png',
+
+    // Gen 8 – Galar (57–64)
+    milo: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/57.png',
+    nessa: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/58.png',
+    bea_allister: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png',
+    kabu: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/60.png',
+    opal: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/61.png',
+    gordie_melony: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/62.png',
+    piers: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/63.png',
+    raihan: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/64.png',
+
+    // Gen 9 – Paldea (65–72)
+    katy: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/65.png',
+    brassius: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/66.png',
+    iono: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/67.png',
+    kofu: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/68.png',
+    larry: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/69.png',
+    rhyme: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/70.png',
+    tulip: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/71.png',
+    grusha: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/72.png'
+};
+
 export const eliteFourData = {
     1: [
         { id: 'lorelei', name: 'Olga', team: [{ dex: 87, level: 54 }, { dex: 91, level: 53 }, { dex: 80, level: 54 }, { dex: 124, level: 56 }, { dex: 131, level: 56 }] },

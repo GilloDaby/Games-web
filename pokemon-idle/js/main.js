@@ -15,6 +15,7 @@ import {
     dynamicEventsPool,
     leaguesData,
     gymLeadersData,
+    gymBadgeSpriteMap,
     eliteFourData,
     bossData,
     challengesData,
@@ -147,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeEvent = null;
     let activeEventEndsAt = 0;
     let activeChallenge = null;
+    let arenaTeamIds = [];
     let activeConsumables = [];
     let knownSprites = {};
     let storeFilterGen = 'all';
@@ -169,6 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return getLocalizedPokemonName(pokemon, currentLanguage());
     }
     const ITEM_SPRITE_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/';
+    // Gym badges use static local images for nicer control
+    const BADGE_SPRITE_BASE = 'sprite/badges/';
     const MAX_EQUIPPED_MOVES = 4;
 
     function normalizeDexId(identifier) {
@@ -274,6 +278,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeGymsButton = document.getElementById('close-gyms');
     const gymsModal = document.getElementById('gyms-modal');
     const gymsList = document.getElementById('gyms-list');
+    const openArenaTeamButton = document.getElementById('open-arena-team');
+    const arenaTeamModal = document.getElementById('arena-team-modal');
+    const closeArenaTeamButton = document.getElementById('close-arena-team');
+    const arenaTeamGrid = document.getElementById('arena-team-grid');
+    const arenaTeamCurrent = document.getElementById('arena-team-current');
     const openChallengesButton = document.getElementById('open-challenges');
     const closeChallengesButton = document.getElementById('close-challenges');
     const challengesModal = document.getElementById('challenges-modal');
@@ -287,6 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const pokedexModal = document.getElementById('pokedex-modal');
     const pokedexGrid = document.getElementById('pokedex-grid');
     const pokedexSummary = document.getElementById('pokedex-summary');
+    const openProfileButton = document.getElementById('open-profile');
+    const closeProfileButton = document.getElementById('close-profile');
     const settingsButton = document.getElementById('settings-button');
     const settingsContainer = document.getElementById('settings-container');
     const settingsCloseButton = document.getElementById('settings-close');
@@ -475,9 +486,34 @@ document.addEventListener('DOMContentLoaded', () => {
         return "";
     }
 
+    function getActivePlayer() {
+        if (!battleState) return null;
+        if (battleState.playerTeam && Array.isArray(battleState.playerTeam)) {
+            let idx = typeof battleState.activePlayerIndex === 'number' ? battleState.activePlayerIndex : 0;
+            let current = battleState.playerTeam[idx] || null;
+            // Si l'actif est K.O. ou inexistant, cherche le prochain vivant
+            if (!current || current.currentHp <= 0) {
+                const nextIndex = battleState.playerTeam.findIndex(p => p && p.currentHp > 0);
+                if (nextIndex !== -1) {
+                    battleState.activePlayerIndex = nextIndex;
+                    if (currentGymBattle) {
+                        currentGymBattle.activePlayerIndex = nextIndex;
+                    }
+                    current = battleState.playerTeam[nextIndex];
+                } else {
+                    return null;
+                }
+            }
+            return current;
+        }
+        return battleState.player || null;
+    }
+
     function renderBattleUI() {
         if (!battleState) return;
-        const { player, foe } = battleState;
+        const foe = battleState.foe;
+        const player = getActivePlayer();
+        if (!player || !foe) return;
         if (battlePlayerLabel) battlePlayerLabel.textContent = `${player.name} Lv.${player.level}`;
         if (battleFoeLabel) battleFoeLabel.textContent = `${foe.name} Lv.${foe.level}`;
         if (battlePlayerSprite) battlePlayerSprite.src = player.sprite;
@@ -498,7 +534,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateHpBars() {
         if (!battleState) return;
-        const { player, foe } = battleState;
+        const foe = battleState.foe;
+        const player = getActivePlayer();
+        if (!player || !foe) return;
         const playerPct = Math.max(0, (player.currentHp / player.stats.hp) * 100);
         const foePct = Math.max(0, (foe.currentHp / foe.stats.hp) * 100);
         if (battlePlayerHpFill) battlePlayerHpFill.style.width = `${playerPct}%`;
@@ -516,6 +554,104 @@ document.addEventListener('DOMContentLoaded', () => {
         battleLog.scrollTop = battleLog.scrollHeight;
     }
 
+    function hasAlivePlayerInTeam() {
+        if (!battleState || !battleState.playerTeam) return false;
+        return battleState.playerTeam.some(p => p && p.currentHp > 0);
+    }
+
+    function openArenaSwitchModal(onChoose) {
+        // Reuse arenaTeamModal but show only current battle team
+        if (!arenaTeamModal || !arenaTeamGrid || !arenaTeamCurrent) {
+            if (onChoose) onChoose(null);
+            return;
+        }
+        arenaTeamCurrent.innerHTML = '';
+        arenaTeamGrid.innerHTML = '';
+
+        // Current active indicator
+        const title = document.createElement('p');
+        title.textContent = 'Choisis le prochain Pokémon';
+        arenaTeamCurrent.appendChild(title);
+
+        if (!battleState || !battleState.playerTeam) {
+            if (onChoose) onChoose(null);
+            return;
+        }
+
+        battleState.playerTeam.forEach((pkm, index) => {
+            if (!pkm) return;
+            if (pkm.currentHp <= 0) return;
+            const pill = document.createElement('div');
+            pill.className = 'pill arena-team-slot';
+
+            const img = document.createElement('img');
+            img.src = pkm.sprite;
+            img.alt = pkm.name;
+
+            const label = document.createElement('div');
+            label.className = 'arena-team-label';
+            label.textContent = `${pkm.name} Lv.${pkm.level}`;
+
+            pill.appendChild(img);
+            pill.appendChild(label);
+
+            pill.onclick = () => {
+                // Choix explicite du prochain Pokémon actif
+                battleState.activePlayerIndex = index;
+                if (currentGymBattle) {
+                    currentGymBattle.activePlayerIndex = index;
+                }
+                closeArenaTeamModal();
+                renderBattleUI();
+                if (onChoose) onChoose(index);
+            };
+            arenaTeamGrid.appendChild(pill);
+        });
+
+        arenaTeamModal.style.display = 'flex';
+    }
+
+    function showGymBadgeReward(leader) {
+        const profileBadges = document.getElementById('profile-badges');
+        if (!profileBadges) return;
+
+        const badgeId = leader.id || leader.badge || leader.name;
+        const normalizedId = String(badgeId).toLowerCase().replace(/\s+/g, '-');
+        const mappedUrl = gymBadgeSpriteMap && gymBadgeSpriteMap[leader.id];
+        const imgUrl = mappedUrl || `${BADGE_SPRITE_BASE}badge-${normalizedId}.png`;
+
+        const badge = document.createElement('div');
+        badge.className = 'badge-card';
+        badge.innerHTML = `
+            <img src="${imgUrl}" alt="${leader.badge || leader.name}">
+            <span>${leader.badge || leader.name}</span>
+        `;
+        profileBadges.appendChild(badge);
+
+        // Little floating animation in center of screen
+        const anim = document.createElement('div');
+        anim.className = 'badge-unlock-anim';
+        anim.innerHTML = `<img src="${imgUrl}" alt="badge"><p>Badge obtenu !</p>`;
+        document.body.appendChild(anim);
+        setTimeout(() => anim.remove(), 2600);
+    }
+
+    function showGymBadgeLoss(leader) {
+        const badgeId = leader.id || leader.badge || leader.name;
+        const normalizedId = String(badgeId).toLowerCase().replace(/\s+/g, '-');
+        const mappedUrl = gymBadgeSpriteMap && gymBadgeSpriteMap[leader.id];
+        const imgUrl = mappedUrl || `${BADGE_SPRITE_BASE}badge-${normalizedId}.png`;
+
+        const anim = document.createElement('div');
+        anim.className = 'badge-loss-anim';
+        anim.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <img src="${imgUrl}" alt="badge">
+            <p>Badge manqué...</p>
+        </div>`;
+        document.body.appendChild(anim);
+        setTimeout(() => anim.remove(), 3600);
+    }
+
     function endBattle(victory) {
         if (currentGymBattle && victory) {
             currentGymBattle.teamIndex++;
@@ -529,6 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     level: nextFoePokemon.level
                 });
                 logBattle(`Le champion envoie ${nextFoe.name} !`, '#ffb347');
+                // Continuation of the same gym battle: keep current active Pokémon as-is
                 startBattle(nextFoe, true); // `true` to indicate it's a continuation
                 return; // Skip normal end-of-battle rewards
             } else {
@@ -539,12 +676,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 defeatedGyms[gen].push(currentGymBattle.leader.id);
                 toast(`Victoire ! Vous avez vaincu ${currentGymBattle.leader.name} !`);
+                showGymBadgeReward(currentGymBattle.leader);
                 currentGymBattle = null;
                 renderGyms();
             }
         } else if (currentGymBattle && !victory) {
             // Player lost the gym battle
             toast(`Défaite contre ${currentGymBattle.leader.name}...`);
+            showGymBadgeLoss(currentGymBattle.leader);
             currentGymBattle = null;
             nextBattleAllowedAt = Date.now() + 1000;
         } else {
@@ -595,7 +734,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function performBattleTurn(playerMove) {
         if (!battleState || battleState.finished) return;
-        const { player, foe } = battleState;
+        const foe = battleState.foe;
+        const player = getActivePlayer();
+        if (!player || !foe) return;
         battleLog.innerHTML = '';
 
         const foeMove = chooseBestMove(foe, player);
@@ -638,9 +779,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (foe.currentHp <= 0) {
-            endBattle(true);
+            // En combat de gym : après avoir mis K.O. un ennemi, laisser le joueur
+            // choisir explicitement quel Pokémon restera/sera envoyé pour le prochain.
+            if (battleState && battleState.isArena && battleState.playerTeam && hasAlivePlayerInTeam()) {
+                openArenaSwitchModal(() => {
+                    endBattle(true);
+                });
+            } else {
+                endBattle(true);
+            }
         } else if (player.currentHp <= 0) {
-            endBattle(false);
+            if (battleState && battleState.isArena && battleState.playerTeam) {
+                if (hasAlivePlayerInTeam()) {
+                    // Laisser le joueur choisir le prochain vivant; getActivePlayer empêchera
+                    // qu'un Pokémon K.O. soit réutilisé automatiquement.
+                    openArenaSwitchModal();
+                } else {
+                    endBattle(false);
+                }
+            } else {
+                endBattle(false);
+            }
         }
     }
 
@@ -1643,6 +1802,152 @@ function refreshBattlePreview() {
         });
     }
 
+    function renderArenaTeamCurrent() {
+        if (!arenaTeamCurrent) return;
+        arenaTeamCurrent.innerHTML = '';
+        if (!arenaTeamIds.length) {
+            const span = document.createElement('span');
+            span.className = 'muted';
+            span.textContent = 'Aucun Pokémon sélectionné (max 3).';
+            arenaTeamCurrent.appendChild(span);
+            return;
+        }
+        arenaTeamIds.forEach(id => {
+            const p = pokemonData.find(p => p.id === id);
+            if (!p) return;
+            const pill = document.createElement('div');
+            pill.className = 'pill arena-team-slot';
+
+            const img = document.createElement('img');
+            img.src = getSpriteUrl(p);
+            img.alt = localizedPokemonName(p);
+
+            const label = document.createElement('div');
+            label.className = 'arena-team-label';
+            label.textContent = `#${p.dex} ${localizedPokemonName(p)}`;
+
+            pill.appendChild(img);
+            pill.appendChild(label);
+
+            pill.addEventListener('click', () => {
+                arenaTeamIds = arenaTeamIds.filter(x => x !== id);
+                renderArenaTeamCurrent();
+                renderArenaTeamGrid();
+            });
+            arenaTeamCurrent.appendChild(pill);
+        });
+    }
+
+    function renderArenaTeamGrid() {
+        if (!arenaTeamGrid) return;
+        arenaTeamGrid.innerHTML = '';
+        const list = ownedPokemonList('asc');
+        if (!list.length) {
+            const p = document.createElement('p');
+            p.className = 'muted';
+            p.textContent = 'Aucun Pokemon dans ta collection.';
+            arenaTeamGrid.appendChild(p);
+            return;
+        }
+        list.forEach(({ pokemon, count }) => {
+            const el = buildPokemonCard(pokemon, count, false);
+            if (arenaTeamIds.includes(pokemon.id)) {
+                el.classList.add('favorite');
+            }
+            el.addEventListener('click', () => {
+                // Toggle sélection / désélection dans l'équipe d'arène (max 3)
+                const id = pokemon.id;
+                if (arenaTeamIds.includes(id)) {
+                    arenaTeamIds = arenaTeamIds.filter(x => x !== id);
+                } else {
+                    if (arenaTeamIds.length >= 3) return;
+                    arenaTeamIds.push(id);
+                }
+                renderArenaTeamCurrent();
+                renderArenaTeamGrid();
+            });
+            arenaTeamGrid.appendChild(el);
+        });
+    }
+
+    function renderProfileBadges() {
+        const profileBadges = document.getElementById('profile-badges');
+        if (!profileBadges) return;
+        profileBadges.innerHTML = '';
+
+        const gens = Object.keys(gymLeadersData).map(k => parseInt(k, 10)).sort((a, b) => a - b);
+        let hasAny = false;
+
+        gens.forEach(gen => {
+            const defeated = defeatedGyms[gen] || [];
+            if (!defeated.length) return;
+            hasAny = true;
+
+            const box = document.createElement('div');
+            box.className = 'badge-box';
+
+            const header = document.createElement('div');
+            header.className = 'badge-box-header';
+            header.textContent = `Génération ${gen}`;
+            box.appendChild(header);
+
+            const row = document.createElement('div');
+            row.className = 'badge-box-row';
+
+            defeated.forEach(id => {
+                const leader = (gymLeadersData[gen] || []).find(l => l.id === id);
+                if (!leader) return;
+                const badgeId = leader.id || leader.badge || leader.name;
+                const normalizedId = String(badgeId).toLowerCase().replace(/\s+/g, '-');
+                const mappedUrl = gymBadgeSpriteMap && gymBadgeSpriteMap[leader.id];
+                const imgUrl = mappedUrl || `${BADGE_SPRITE_BASE}badge-${normalizedId}.png`;
+
+                const slot = document.createElement('div');
+                slot.className = 'badge-slot';
+                slot.innerHTML = `
+                    <img src="${imgUrl}" alt="${leader.badge || leader.name}">
+                    <span>${leader.badge || leader.name}</span>
+                `;
+                row.appendChild(slot);
+            });
+
+            box.appendChild(row);
+            profileBadges.appendChild(box);
+        });
+
+        if (!hasAny) {
+            const p = document.createElement('p');
+            p.className = 'muted';
+            p.textContent = 'Aucun badge pour le moment.';
+            profileBadges.appendChild(p);
+        }
+    }
+
+    function openArenaTeamModal() {
+        if (!arenaTeamModal) return;
+        renderArenaTeamCurrent();
+        renderArenaTeamGrid();
+        arenaTeamModal.style.display = 'flex';
+    }
+
+    function openProfileModal() {
+        const modal = document.getElementById('profile-modal');
+        if (!modal) return;
+        renderProfileBadges();
+        modal.style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+        const modal = document.getElementById('profile-modal');
+        if (!modal) return;
+        modal.style.display = 'none';
+    }
+
+    function closeArenaTeamModal() {
+        if (!arenaTeamModal) return;
+        arenaTeamModal.style.display = 'none';
+    }
+
     function openOwnedPokemonModal() {
         if (!ownedPokemonModal) return;
         renderOwnedPokemonModal();
@@ -2132,12 +2437,46 @@ function refreshBattlePreview() {
 
     async function startGymBattle(leader) {
         gymsModal.style.display = 'none';
-        
+
+        // Construire l'équipe d'arène UNE SEULE FOIS pour tout le combat de gym
+        const playerLevel = getSharedPokemonLevel();
+        const playerTeam = [];
+
+        for (const id of arenaTeamIds.slice(0, 3)) {
+            if (!ownedPokemon[id] || ownedPokemon[id] <= 0) continue;
+
+            const pkm = pokemonData.find(p => p.id === id);
+            if (!pkm) continue;
+
+            const playerPokemonId = id;
+            await ensureMoveLoadoutForPokemon(playerPokemonId);
+            const preferredMoveIds = getMoveLoadout(playerPokemonId).active || [];
+
+            const dexId = pkm.dex || normalizeDexId(pkm.id);
+            if (!dexId) continue;
+
+            const combatant = buildCombatantFromDex(dexId, {
+                pokemonData,
+                currentLanguage,
+                localizePokemonName: localizedPokemonName,
+                level: playerLevel,
+                preferredMoveIds
+            });
+            playerTeam.push(combatant);
+        }
+
+        if (!playerTeam.length) {
+            toast('toast-no-battle-pokemon');
+            return;
+        }
+
         currentGymBattle = {
             leader: leader,
-            teamIndex: 0
+            teamIndex: 0,
+            playerTeam: playerTeam,
+            activePlayerIndex: 0
         };
-        
+
         const foePokemon = leader.team[0];
         const foe = buildCombatantFromDex(foePokemon.dex, {
             pokemonData,
@@ -2145,7 +2484,7 @@ function refreshBattlePreview() {
             localizePokemonName: localizedPokemonName,
             level: foePokemon.level
         });
-        
+
         logBattle(`Vous défiez ${leader.name} !`, '#f3d947');
         await startBattle(foe);
     }
@@ -2601,6 +2940,7 @@ function refreshBattlePreview() {
             autoBuyTargetId: autoBuyTargetId,
             autoBuyChainEnabled: autoBuyChainEnabled,
             settings: settings,
+            arenaTeamIds: arenaTeamIds,
             lastSave: Date.now() // Store the timestamp
         };
         persistGameState(gameState);
@@ -2646,6 +2986,12 @@ function refreshBattlePreview() {
                 autoBuyTargetId = gameState.autoBuyTargetId || null;
                 autoBuyChainEnabled = gameState.autoBuyChainEnabled !== undefined ? gameState.autoBuyChainEnabled : true;
                 settings = { ...settings, ...(gameState.settings || {}) };
+
+                // Restore arena team selection (filter invalid IDs in case Pokémon were removed)
+                arenaTeamIds = Array.isArray(gameState.arenaTeamIds) ? gameState.arenaTeamIds.slice(0, 3) : [];
+                if (arenaTeamIds.length) {
+                    arenaTeamIds = arenaTeamIds.filter(id => ownedPokemon[id]);
+                }
 
                 return gameState.lastSave; // Return the last save time
             } else {
@@ -2794,6 +3140,19 @@ function refreshBattlePreview() {
             });
         }
 
+        if (openArenaTeamButton) {
+            openArenaTeamButton.addEventListener('click', () => {
+                openArenaTeamModal();
+            });
+        }
+
+        if (arenaTeamModal && closeArenaTeamButton) {
+            closeArenaTeamButton.addEventListener('click', () => closeArenaTeamModal());
+            arenaTeamModal.addEventListener('click', (e) => {
+                if (e.target === arenaTeamModal) closeArenaTeamModal();
+            });
+        }
+
         if (openChallengesButton && challengesModal && closeChallengesButton) {
             openChallengesButton.addEventListener('click', () => {
                 toast('toast-challenges-soon');
@@ -2816,6 +3175,18 @@ function refreshBattlePreview() {
             });
             inventoryModal.addEventListener('click', (e) => {
                 if (e.target === inventoryModal) inventoryModal.style.display = 'none';
+            });
+        }
+
+        if (openProfileButton) {
+            openProfileButton.addEventListener('click', () => {
+                openProfileModal();
+            });
+        }
+
+        if (closeProfileButton) {
+            closeProfileButton.addEventListener('click', () => {
+                closeProfileModal();
             });
         }
 
@@ -3035,7 +3406,13 @@ function refreshBattlePreview() {
             }
         });
 
-        if (openBattleUiButton) openBattleUiButton.addEventListener('click', openBattleModal);
+        // Ouvrir l'arène : on ouvre la fenêtre ET on lance directement un combat
+        // pour que les sprites et attaques soient déjà chargés.
+        if (openBattleUiButton) openBattleUiButton.addEventListener('click', () => {
+            refreshBattlePreview();
+            openBattleModal();
+            startBattle();
+        });
         if (closeBattleModalButton) closeBattleModalButton.addEventListener('click', closeBattleModal);
         if (battleModal) {
             battleModal.addEventListener('click', (e) => {
@@ -3043,8 +3420,8 @@ function refreshBattlePreview() {
             });
         }
 
+        // Bouton "Lancer un combat" dans la fenêtre GameBoy
         battleButton.addEventListener('click', () => {
-            openBattleModal();
             startBattle();
         });
 
@@ -3071,34 +3448,72 @@ function refreshBattlePreview() {
             return;
         }
         await loadBattleData().catch(() => toast('toast-battle-load-fail'));
-        const playerMon = pickPlayerPokemonForBattle();
-        if (!playerMon) {
-            toast('toast-no-battle-pokemon');
-            return;
-        }
 
-        const playerPokemonId = playerMon.id;
         const playerLevel = getSharedPokemonLevel();
-        await ensureMoveLoadoutForPokemon(playerPokemonId);
-        const preferredMoveIds = getMoveLoadout(playerPokemonId).active || [];
 
-        // In a gym battle sequence, the player's pokemon is not healed.
-        const player = (isContinuation && battleState && battleState.player)
-            ? battleState.player 
-            : buildCombatantFromDex(playerMon.dex || Number(playerMon.id.replace('dex-', '')), {
+        // Build player's side
+        let player = null;
+        let playerTeam = null;
+
+        if (currentGymBattle && currentGymBattle.playerTeam && currentGymBattle.playerTeam.length > 0) {
+            // Combat de gym : réutiliser l'équipe entière telle quelle
+            playerTeam = currentGymBattle.playerTeam;
+
+            // Utiliser STRICTEMENT l'index choisi (pas de réécriture ici)
+            let activeIndex = typeof currentGymBattle.activePlayerIndex === 'number'
+                ? currentGymBattle.activePlayerIndex
+                : 0;
+            if (activeIndex < 0 || activeIndex >= playerTeam.length) {
+                activeIndex = 0;
+            }
+            player = playerTeam[activeIndex];
+        } else {
+            const playerMon = pickPlayerPokemonForBattle();
+            if (!playerMon) {
+                toast('toast-no-battle-pokemon');
+                return;
+            }
+
+            const playerPokemonId = playerMon.id;
+            await ensureMoveLoadoutForPokemon(playerPokemonId);
+            const preferredMoveIds = getMoveLoadout(playerPokemonId).active || [];
+
+            player = buildCombatantFromDex(playerMon.dex || Number(playerMon.id.replace('dex-', '')), {
                 pokemonData,
                 currentLanguage,
                 localizePokemonName: localizedPokemonName,
                 level: playerLevel,
                 preferredMoveIds
             });
+        }
 
-        if (isContinuation && battleState && battleState.player) {
-            player.currentHp = battleState.player.currentHp; // Explicitly carry over HP
+        if (isContinuation && battleState && battleState.playerTeam && battleState.playerTeam.length > 0) {
+            // En combat de gym : on conserve l'état HP de toute l'équipe existante
+            currentGymBattle.playerTeam.forEach((member, idx) => {
+                const previous = battleState.playerTeam[idx];
+                if (previous) {
+                    member.currentHp = previous.currentHp;
+                }
+            });
+        } else if (isContinuation && battleState && battleState.player) {
+            player.currentHp = battleState.player.currentHp; // fallback non-arène
         }
 
         const foe = predefinedFoe || generateBattleOpponentCombatant(playerLevel);
-        battleState = { player, foe, finished: false };
+        if (playerTeam) {
+            battleState = {
+                player,
+                playerTeam,
+                activePlayerIndex: typeof currentGymBattle?.activePlayerIndex === 'number'
+                    ? currentGymBattle.activePlayerIndex
+                    : 0,
+                foe,
+                finished: false,
+                isArena: !!currentGymBattle
+            };
+        } else {
+            battleState = { player, foe, finished: false };
+        }
         
         if (!isContinuation) {
             battleLog.innerHTML = '';

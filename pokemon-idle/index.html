@@ -41,6 +41,7 @@
                 <button id="save-button" class="btn ghost" data-i18n="btn-save"><i class="fas fa-save"></i> Save</button>
                 <button id="load-button" class="btn ghost" data-i18n="btn-load"><i class="fas fa-folder-open"></i> Load</button>
                 <button id="prestige-button" class="btn prestige-btn" style="display: none;" data-i18n="btn-prestige"><i class="fas fa-trophy"></i> Prestige</button>
+                <button id="open-profile" class="btn ghost small"><i class="fas fa-id-badge"></i> Profil</button>
                 <button id="settings-button" class="btn ghost small"><i class="fas fa-cog"></i> Options</button>
             </div>
         </header>
@@ -260,6 +261,21 @@
         </div>
     </div>
 
+    <div id="profile-modal" class="modal" style="display:none;">
+        <div class="modal-content card profile-modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-id-badge"></i> Profil du dresseur</h3>
+                <button id="close-profile" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
+            </div>
+            <div class="profile-body">
+                <div class="profile-stats">
+                    <p class="eyebrow">Badges obtenus</p>
+                    <div id="profile-badges" class="badge-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="leagues-modal" class="modal" style="display:none;">
         <div class="modal-content card">
             <div class="modal-header">
@@ -276,9 +292,26 @@
                 <h3><i class="fas fa-shield-alt"></i> Arenas</h3>
                 <button id="close-gyms" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
             </div>
+            <div class="pill-list" style="margin-bottom: 10px;">
+                <button id="open-arena-team" class="btn small"><i class="fas fa-users"></i> Équipe d'arène (max 3)</button>
+            </div>
             <div id="gyms-list" class="pill-list"></div>
         </div>
     </div>
+
+            <!-- Sélection de l'équipe d'arène (jusqu'à 3 Pokémon) -->
+            <div id="arena-team-modal" class="modal" style="display:none;">
+                <div class="modal-content card">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-users"></i> Équipe d'arène</h3>
+                        <button id="close-arena-team" class="btn ghost small" data-i18n="btn-close"><i class="fas fa-times"></i> Fermer</button>
+                    </div>
+                    <p class="eyebrow">Choisis jusqu'à 3 Pokémon pour les combats d'arène.</p>
+                    <div id="arena-team-current" class="pill-list"></div>
+                    <hr>
+                    <div id="arena-team-grid" class="owned-modal-grid"></div>
+                </div>
+            </div>
 
     <div id="challenges-modal" class="modal" style="display:none;">
         <div class="modal-content card">
