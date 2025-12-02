@@ -799,6 +799,11 @@ position: fixed; bottom: 0; left: 0; right: 0;
     inset: 0;
 }
 
+/* Ensure moves modal always appears above other modals */
+#moves-modal {
+    z-index: 7000;
+}
+
 /* Le Cadre Principal (Style Coque Pokédex Rouge) */
 .modal-content, .settings-panel {
     background: #f2f2f2; /* Fond gris très clair (écran éteint) */
@@ -1157,6 +1162,194 @@ position: fixed; bottom: 0; left: 0; right: 0;
     width: 100%;
         justify-content: center;
 }
+
+/* =========================================
+   MOVE MANAGEMENT POPUP (Retro Style)
+   - Garde le look Pokédex de style2
+   - Reprend la structure du système de style.css
+   ========================================= */
+
+/* Corps interne du panneau de moves : écran vert GameBoy avec grille */
+.moves-screen {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr);
+    gap: 12px;
+    padding: 16px;
+    background: #98c8bc;
+    background-image:
+        linear-gradient(#8bb8ac 1px, transparent 1px),
+        linear-gradient(90deg, #8bb8ac 1px, transparent 1px);
+    background-size: 20px 20px;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
+}
+
+@media (max-width: 900px) {
+    .moves-screen {
+        grid-template-columns: 1fr;
+    }
+}
+
+.moves-left-column,
+.moves-right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.moves-header-box {
+    background: #f0f8f0;
+    border: 2px solid #556655;
+    border-radius: 4px;
+    padding: 10px;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+}
+
+.moves-header-box h4 {
+    font-family: var(--font-header);
+    font-size: 0.7rem;
+    margin: 0 0 6px 0;
+    text-transform: uppercase;
+}
+
+.moves-header-box p {
+    margin: 0;
+    font-family: var(--font-screen);
+    font-size: 1rem;
+}
+
+/* Sections de listes : équipées / apprises / verrouillées */
+.moves-section {
+    background: #f0f8f0;
+    border: 2px solid #333;
+    border-radius: 4px;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.25);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.moves-section-title {
+    font-family: var(--font-header);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    background: #333;
+    color: #fff;
+    padding: 4px 6px;
+    border-radius: 3px;
+    margin-bottom: 4px;
+}
+
+.moves-section-subtitle {
+    font-family: var(--font-screen);
+    font-size: 0.9rem;
+    color: #111;
+    opacity: 0.8;
+    margin-bottom: 4px;
+}
+
+#moves-equipped-list,
+#moves-available-list,
+#moves-locked-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    position: relative; /* permet de calculer correctement les zones de drop */
+}
+
+@media (max-width: 900px) {
+    #moves-equipped-list,
+    #moves-available-list,
+    #moves-locked-list {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Cartes d'attaques : structure compatible avec style.css mais look rétro */
+.move-card {
+    background: #ffffff;
+    border: 2px solid #333;
+    border-radius: 4px;
+    padding: 6px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+    cursor: grab; /* visuel drag & drop */
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--font-screen);
+    font-size: 0.95rem;
+    user-select: none;
+}
+
+.move-card.equipped {
+    border-color: #4caf50;
+    background: #e8f5e9;
+}
+
+.move-card.locked {
+    opacity: 0.55;
+    background: #eeeeee;
+}
+
+.move-card.dragging {
+    cursor: grabbing;
+    opacity: 0.8;
+    box-shadow: 0 0 0 2px #ffeb3b, 4px 4px 0 rgba(0,0,0,0.4);
+}
+
+.move-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+}
+
+.move-name {
+    font-family: var(--font-header);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+.move-type {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 2px solid #333;
+    background: #c6c6a7; /* Normal par défaut */
+}
+
+.move-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+}
+
+.move-extra {
+    font-size: 0.75rem;
+    color: #444;
+}
+
+/* Badge de type coloré façon cartouche GameBoy, compatible avec classes .type-* */
+.move-type.type-fire { background: #ff9448; }
+.move-type.type-water { background: #4f8cdd; color: #fff; }
+.move-type.type-grass { background: #63c74d; }
+.move-type.type-electric { background: #f5d94e; }
+.move-type.type-psychic { background: #f77fa1; }
+.move-type.type-ice { background: #73ceff; }
+.move-type.type-fighting { background: #c56d64; color: #fff; }
+.move-type.type-poison { background: #b173d1; color: #fff; }
+.move-type.type-ground { background: #d9a45f; }
+.move-type.type-rock { background: #bbaa6d; }
+.move-type.type-ghost { background: #7b62a3; color: #f5f5f5; }
+.move-type.type-dragon { background: #7b6cf7; color: #f5f5f5; }
+.move-type.type-dark { background: #705848; color: #f5f5f5; }
+.move-type.type-steel { background: #b7b7ce; }
+.move-type.type-fairy { background: #f4b1f0; }
+.move-type.type-bug { background: #9dc130; }
+.move-type.type-normal { background: #c6c6a7; }
+.move-type.type-flying { background: #8fa8ff; }
 
 /* Boutons d'attaque colorés par type */
 .battle-move-btn {

@@ -2869,6 +2869,54 @@ function refreshBattlePreview() {
         });
     }
 
+    function renderArenaTeamCurrent() {
+        if (!arenaTeamCurrent) return;
+        arenaTeamCurrent.innerHTML = '';
+        if (!arenaTeamIds.length) {
+            const span = document.createElement('span');
+            span.className = 'muted';
+            span.textContent = 'Aucun Pokémon sélectionné (max 3).';
+            arenaTeamCurrent.appendChild(span);
+            return;
+        }
+        arenaTeamIds.forEach(id => {
+            const p = pokemonData.find(p => p.id === id);
+            if (!p) return;
+            const pill = document.createElement('div');
+            pill.className = 'pill arena-team-slot';
+
+            const img = document.createElement('img');
+            img.src = getSpriteUrl(p);
+            img.alt = localizedPokemonName(p);
+
+            const label = document.createElement('div');
+            label.className = 'arena-team-label';
+            label.textContent = `#${p.dex} ${localizedPokemonName(p)}`;
+
+            pill.appendChild(img);
+            pill.appendChild(label);
+
+            // Clic gauche : ouvrir la gestion des attaques pour ce Pokémon
+            pill.addEventListener('click', async () => {
+                if (!movesModal) return;
+                currentMovesModalPokemonId = id;
+                await ensureMoveLoadoutForPokemon(id);
+                await renderMovesModal();
+                movesModal.style.display = 'flex';
+            });
+
+            // Clic droit : retirer de l'équipe d'arène
+            pill.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                arenaTeamIds = arenaTeamIds.filter(x => x !== id);
+                renderArenaTeamCurrent();
+                renderArenaTeamGrid();
+            });
+
+            arenaTeamCurrent.appendChild(pill);
+        });
+    }
+
     // --- Prestige Logic ---
     function prestige() {
         const gen = currentGeneration;
@@ -3583,6 +3631,12 @@ cheatMenu.innerHTML = `
 
     <hr style="margin:10px 0; border-color:#444;">
 
+    <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:4px;">Set niveau Pokémon partagé</label>
+    <input id="cheat-set-level-input" type="number" placeholder="Niveau (1-100)" style="width:100%; margin-bottom:5px;">
+    <button class="cheat-btn" data-cmd="setSharedLevel">Appliquer niveau</button>
+
+    <hr style="margin:10px 0; border-color:#444;">
+
     <button class="cheat-btn" data-cmd="resetSave" style="background:#922;">Reset Save</button>
 `;
 
@@ -3658,6 +3712,20 @@ cheatMenu.addEventListener('click', (e) => {
         case "skipBattle":
             nextBattleAllowedAt = 0;
             break;
+
+        case "setSharedLevel": {
+            const levelInput = document.getElementById('cheat-set-level-input');
+            const targetLevel = Number(levelInput.value);
+            if (!isNaN(targetLevel) && targetLevel >= 1) {
+                // Recalcule un XP correspondant exactement à ce niveau
+                let xp = 0;
+                for (let lvl = 1; lvl < targetLevel; lvl++) {
+                    xp += getXpToLevelUp(lvl);
+                }
+                setSharedPokemonXp(xp);
+            }
+            break;
+        }
 
         case "shiny100":
             window.cheatShinyBoost = true;

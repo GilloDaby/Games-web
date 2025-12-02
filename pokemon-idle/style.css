@@ -1652,6 +1652,11 @@ h2, h3 {
     backdrop-filter: blur(4px);
 }
 
+/* Ensure moves modal always appears above other modals */
+#moves-modal {
+    z-index: 3000;
+}
+
 .modal-content {
     max-width: 960px;
     width: 92vw;
