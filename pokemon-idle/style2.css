@@ -882,6 +882,97 @@ position: fixed; bottom: 0; left: 0; right: 0;
     box-shadow: 0 0 0 black;
 }
 
+/* =========================================
+   AUTO-BUY SELECTION (RETRO POKÉDEX)
+   ========================================= */
+.auto-buy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    padding: 12px;
+    max-height: 70vh;
+    overflow-y: auto;
+    border-top: 4px solid #333;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(240, 240, 240, 0.9));
+}
+
+.auto-buy-grid::-webkit-scrollbar {
+    width: 8px;
+}
+.auto-buy-grid::-webkit-scrollbar-thumb {
+    background: rgba(51, 51, 51, 0.5);
+    border-radius: 6px;
+}
+
+.auto-buy-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #fff, #f1f1f1);
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    min-height: 120px;
+}
+
+.auto-buy-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--pk-ui-blue);
+}
+
+.auto-buy-card.selected {
+    border-color: var(--pk-green);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(233, 255, 214, 0.8));
+    box-shadow:
+        0 0 0 3px rgba(76, 175, 80, 0.35),
+        3px 3px 6px rgba(0, 0, 0, 0.4);
+}
+
+.auto-buy-card img {
+    width: 64px;
+    height: 64px;
+    image-rendering: pixelated;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    padding: 2px;
+    background: #e5e5e5;
+}
+
+.auto-buy-card strong {
+    font-family: var(--font-screen);
+    font-size: 0.75rem;
+    color: #111;
+    letter-spacing: 0.6px;
+}
+
+.auto-buy-card span {
+    font-family: var(--font-screen);
+    font-size: 0.85rem;
+    color: var(--pk-text);
+    text-transform: capitalize;
+}
+
+.auto-buy-card.selected strong,
+.auto-buy-card.selected span {
+    color: #0a2f15;
+    text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 720px) {
+    .auto-buy-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+
+    .auto-buy-card {
+        padding: 8px;
+    }
+}
+
 /* Contenu interne (Listes, Grilles) */
 .pill-list, .achievements-grid, .settings-grid, .calendar-grid {
     background: #98c8bc; /* Vert "Gameboy Screen" retro */
