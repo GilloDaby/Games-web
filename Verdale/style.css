@@ -1,0 +1,322 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700&family=Space+Grotesk:wght@400;600&display=swap');
+
+:root {
+  --bg: #0e1b1b;
+  --panel: rgba(16, 29, 33, 0.78);
+  --accent: #ffcf4d;
+  --accent-strong: #f08c2a;
+  --text: #f6f8fb;
+  --muted: #9ab8c5;
+  --border: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, #13333a 0%, #0b1618 45%, #0a1214 100%);
+  color: var(--text);
+  font-family: 'Nunito', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+}
+
+.menu-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #050909;
+  z-index: 10;
+}
+
+.menu-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.6) saturate(1.05);
+}
+
+.menu-overlay {
+  position: relative;
+  padding: 40px 44px;
+  background: linear-gradient(145deg, rgba(7, 14, 16, 0.82), rgba(12, 24, 28, 0.72));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55), 0 10px 24px rgba(0, 0, 0, 0.35);
+  text-align: center;
+  max-width: 620px;
+  width: min(92%, 680px);
+}
+
+.menu-logo {
+  font-size: 56px;
+  letter-spacing: 1px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
+  margin-bottom: 12px;
+}
+
+.menu-subtitle {
+  margin: 0 0 20px;
+  color: #d9e7ef;
+  font-size: 16px;
+}
+
+.primary-btn {
+  padding: 14px 26px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0c1416;
+  background: linear-gradient(120deg, var(--accent) 0%, var(--accent-strong) 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25), 0 6px 16px rgba(240, 140, 42, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35), 0 8px 18px rgba(240, 140, 42, 0.4);
+  filter: brightness(1.05);
+}
+
+.primary-btn:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.menu-hint {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.hud {
+  position: fixed;
+  inset: 0;
+  padding: 16px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.panel {
+  background: var(--panel);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  pointer-events: auto;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.inventory {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.quests {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, 90vw);
+  background: rgba(11, 18, 20, 0.72);
+}
+
+.panel-title {
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.inventory-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.inv-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border-radius: 6px;
+  background: none;
+  border: none;
+}
+
+.inv-item img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+.inv-item span {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+#quest-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#quest-list li {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  padding: 12px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+}
+
+#quest-list li .goal {
+  color: var(--text);
+  font-weight: 700;
+}
+
+#quest-list li .progress {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+#quest-list li.completed {
+  border-color: rgba(74, 222, 128, 0.8);
+  background: linear-gradient(120deg, rgba(74, 222, 128, 0.12), rgba(16, 185, 129, 0.08));
+}
+
+#quest-list li .badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.hint {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  pointer-events: none;
+  max-width: 520px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.debug-panel {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  background: linear-gradient(140deg, rgba(11, 20, 24, 0.92), rgba(16, 36, 44, 0.88));
+  color: #e4f0ff;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  z-index: 30;
+  min-width: 260px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+.debug-panel .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.debug-panel .section-title {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #9ab8c5;
+  margin-top: 10px;
+}
+
+.debug-panel input[type='range'] {
+  flex: 1;
+}
+
+.debug-panel button {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4f0ff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.debug-panel button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.dev-quest-controls {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.dev-quest-controls button {
+  padding: 3px 6px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e4f0ff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .quests {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 12px;
+  }
+  .inventory {
+    right: 12px;
+    top: 12px;
+  }
+  .hint {
+    left: 12px;
+    bottom: 12px;
+  }
+}
