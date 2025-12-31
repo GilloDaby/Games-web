@@ -1,0 +1,656 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    color: #fff;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+/* Écrans */
+.screen {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.screen.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Menu Principal */
+.menu-header {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.menu-header h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    background: linear-gradient(135deg, #ff6b6b, #ffd93d, #ff6b6b);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+    to { background-position: 200% center; }
+}
+
+.menu-header p {
+    font-size: 1.2rem;
+    color: #a0a0a0;
+}
+
+.game-modes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 25px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.mode-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #e63946;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(230, 57, 70, 0.3);
+}
+
+.mode-icon {
+    font-size: 3rem;
+    min-width: 70px;
+    text-align: center;
+}
+
+.mode-info h3 {
+    color: #fff;
+    font-size: 1.3rem;
+    margin-bottom: 5px;
+}
+
+.mode-info p {
+    color: #a0a0a0;
+    font-size: 0.9rem;
+}
+
+/* En-tête du Jeu */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+.icon-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    font-family: 'Poppins', sans-serif;
+}
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.game-stats {
+    display: flex;
+    gap: 30px;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #a0a0a0;
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #ffd93d;
+}
+
+/* Question */
+.question-container {
+    text-align: center;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+#question-text {
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: #fff;
+}
+
+.flag-display {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    display: inline-block;
+}
+
+.flag-display img {
+    max-width: 200px;
+    max-height: 120px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.flag-display.hidden {
+    display: none;
+}
+
+/* Carte */
+.map-container {
+    position: relative;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+    padding: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden; /* Important pour le zoom */
+    touch-action: none; /* Empêche le scroll par défaut sur mobile */
+}
+
+#canada-map {
+    width: 100%;
+    height: auto;
+    max-height: 85vh; /* Augmenté pour une carte plus grande */
+    cursor: grab; /* Curseur de déplacement */
+}
+
+#canada-map:active {
+    cursor: grabbing;
+}
+
+.province {
+    fill: #2d4a7c;
+    stroke: #fff;
+    stroke-width: 1.5;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.province:hover {
+    fill: #4a7cba;
+    filter: brightness(1.2);
+}
+
+.province.correct {
+    fill: #2ecc71 !important;
+    animation: pulse 0.5s ease;
+}
+
+.province.incorrect {
+    fill: #e74c3c !important;
+    animation: shake 0.5s ease;
+}
+
+.province.highlight {
+    fill: #f39c12 !important;
+    animation: pulse 1s ease infinite;
+}
+
+.province.completed {
+    fill: #27ae60;
+    opacity: 0.7;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Tooltip */
+.tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 100;
+}
+
+.tooltip.visible {
+    opacity: 1;
+}
+
+/* Feedback */
+.feedback {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 40px;
+    border-radius: 50px;
+    font-size: 1.2rem;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideUp 0.3s ease;
+}
+
+.feedback.hidden {
+    display: none;
+}
+
+.feedback.correct {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    box-shadow: 0 5px 20px rgba(46, 204, 113, 0.4);
+}
+
+.feedback.incorrect {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4);
+}
+
+@keyframes slideUp {
+    from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* Résultats */
+.results-container {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.results-container h2 {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+}
+
+.final-score {
+    font-size: 5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+#final-score-value {
+    color: #ffd93d;
+}
+
+.score-label {
+    color: #a0a0a0;
+    font-size: 3rem;
+}
+
+.score-message {
+    font-size: 1.3rem;
+    color: #a0a0a0;
+    margin-bottom: 40px;
+}
+
+.results-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 15px 40px;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Poppins', sans-serif;
+}
+
+.btn.primary {
+    background: linear-gradient(135deg, #e63946, #d62839);
+    color: #fff;
+}
+
+.btn.primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(230, 57, 70, 0.4);
+}
+
+.btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-3px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .menu-header {
+        padding: 20px 10px;
+    }
+
+    .menu-header h1 {
+        font-size: 2rem;
+    }
+    
+    .game-modes {
+        grid-template-columns: 1fr;
+        padding: 10px;
+    }
+
+    .map-container {
+        padding: 5px;
+        border-width: 1px;
+    }
+    
+    #question-text {
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+    }
+    
+    .game-stats {
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .stat-value {
+        font-size: 1.1rem;
+    }
+    
+    .final-score {
+        font-size: 3rem;
+    }
+    
+    .score-label {
+        font-size: 2rem;
+    }
+
+    /* Optimisation pour mobile : carte plus grande */
+    #canada-map {
+        max-height: 70vh; /* Un peu moins haut sur mobile pour laisser place au texte */
+    }
+}
+
+@media (max-width: 480px) {
+    .menu-header h1 {
+        font-size: 1.8rem;
+    }
+
+    .mode-btn {
+        padding: 15px;
+    }
+
+    .mode-icon {
+        font-size: 2rem;
+        min-width: 50px;
+    }
+
+    .mode-info h3 {
+        font-size: 1.1rem;
+    }
+}
+
+/* Precision Mode Markers */
+.marker {
+    pointer-events: none;
+    stroke: white;
+    stroke-width: 2px;
+}
+
+.marker-target {
+    fill: rgba(255, 217, 61, 0.5); /* Yellow transparent */
+    stroke: #ffd93d;
+    animation: pulse 1.5s infinite;
+}
+
+.marker-user-correct {
+    fill: #4cd137; /* Green */
+    stroke: #fff;
+}
+
+.marker-user-incorrect {
+    fill: #ff6b6b; /* Red */
+    stroke: #fff;
+}
+
+@keyframes pulse {
+    0% { r: 5; opacity: 1; }
+    50% { r: 8; opacity: 0.5; }
+    100% { r: 5; opacity: 1; }
+}
+
+
+/* Silhouette Mode Input */
+.input-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+    width: 100%;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.input-container.hidden {
+    display: none;
+}
+
+.input-container input {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 30px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1.1rem;
+    font-family: 'Poppins', sans-serif;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.input-container input:focus {
+    border-color: #ffd93d;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(255, 217, 61, 0.3);
+}
+
+.input-container button {
+    padding: 10px 25px;
+    border-radius: 30px;
+    font-size: 1rem;
+}
+
+/* Silhouette Mode Map Styles */
+.silhouette-mode .province {
+    fill: #444;
+    stroke: #666;
+    transition: all 0.5s ease;
+}
+
+.silhouette-mode .province.active-silhouette {
+    fill: #fff;
+    stroke: #ffd93d;
+    stroke-width: 2px;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+}
+
+.silhouette-mode .province.hidden-silhouette {
+    opacity: 0.05;
+    pointer-events: none;
+}
+
+
+/* Puzzle Mode */
+.puzzle-mode .province {
+    fill: #1a1a2e;
+    stroke: #333;
+    stroke-width: 1px;
+    stroke-dasharray: 5, 5;
+}
+
+.puzzle-piece {
+    cursor: grab;
+    filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+    transition: fill 0.3s;
+}
+
+.puzzle-piece:active {
+    cursor: grabbing;
+}
+
+.puzzle-piece.placed {
+    cursor: default;
+    stroke: #fff;
+    stroke-width: 1px;
+    animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.9); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+
+/* Puzzle Piece Style */
+.puzzle-piece {
+    fill: #3498db; /* Blue color for the piece */
+    stroke: #fff;
+    stroke-width: 2px;
+    opacity: 0.9;
+}
+
+
+/* Puzzle Mode Visibility */
+.puzzle-mode .province {
+    opacity: 0.1; /* Légèrement visible pour guider */
+    pointer-events: none;
+    transition: opacity 0.3s;
+    fill: #1a1a2e;
+    stroke: #444;
+    stroke-width: 1px;
+    stroke-dasharray: 5, 5; /* Pointillés pour montrer que c'est un emplacement */
+}
+
+.puzzle-mode .province.placed {
+    opacity: 1;
+    fill: #1a1a2e;
+    stroke: #fff;
+    stroke-width: 1px;
+    stroke-dasharray: none;
+}
+
+/* Image Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    object-fit: contain;
+}
+
+.close-modal {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    color: #fff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close-modal:hover {
+    color: #e63946;
+}
+
+/* Add cursor pointer to tourism images */
+.flag-display img {
+    cursor: zoom-in;
+    transition: transform 0.2s;
+}
+
+.flag-display img:hover {
+    transform: scale(1.05);
+}
+
