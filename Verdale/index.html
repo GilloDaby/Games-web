@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verdale - Prototype</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div id="menu" class="menu-screen">
+    <img class="menu-bg" src="./images/Icon/background.png" alt="Verdale background">
+    <div class="menu-overlay">
+      <div class="menu-logo">Verdale</div>
+      <p class="menu-subtitle">Explore l'île, récolte, débloque de nouvelles zones.</p>
+      <button id="start-btn" class="primary-btn">Commencer</button>
+      <div class="menu-hint">WASD / ZQSD pour bouger · E ou Espace pour récolter</div>
+    </div>
+  </div>
+
+  <div id="hud" class="hud hidden">
+    <div id="inventory" class="panel inventory">
+      <div class="panel-title">Inventaire</div>
+      <div class="inventory-items">
+        <div class="inv-item" data-type="wood">
+          <img src="./images/items/bois.png" alt="Bois">
+          <span id="wood-count">0</span>
+        </div>
+        <div class="inv-item" data-type="stone">
+          <img src="./images/items/pierre.png" alt="Pierre">
+          <span id="stone-count">0</span>
+        </div>
+        <div class="inv-item" data-type="gold">
+          <img src="./images/items/or.png" alt="Or">
+          <span id="gold-count">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="quests" class="panel quests">
+      <div class="panel-title">Quêtes</div>
+      <ul id="quest-list"></ul>
+    </div>
+
+    <div class="hint">WASD/ZQSD pour bouger · E ou Espace pour récolter · Les quêtes débloquent de nouvelles tiles.</div>
+  </div>
+
+  <div id="game"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
